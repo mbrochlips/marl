@@ -1,2 +1,0 @@
-_target_: utils.loggers.WandbLogger
-project_name: fastmarl

@@ -1,2 +1,0 @@
-_target_: utils.loggers.FileSystemLogger
-project_name: fastmarl

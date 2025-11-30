@@ -1,4 +1,0 @@
-- +algorithm=idqn
-- env.name=lbforaging:Foraging-8x8-2p-3f-v3
-- env.time_limit=50
-- seed=0
