@@ -1,0 +1,11 @@
+Gennem tjek for forståelse af koden. Hvad sker der egentlig
+Jeg ønsker længere episode længde, hvor agenter kører samme env igennem flere gange (ingen placerings ændringer)
+--> done
+--> VIDEO problemer???
+
+JAL virker ikke ordenligt.
+--> der er problemer med måden den bruger self.agent_model
+
+IQL er ikke samlignendelig med JAL, som det er nu
+--> enten skal begge være oppe imod en random agent
+--> ellers skal begge være mod sig selv (mindre samligning)
