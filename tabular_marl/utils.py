@@ -1,5 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import csv
+import os
+
 
 FIG_WIDTH=5
 FIG_HEIGHT=2
@@ -39,6 +42,29 @@ def visualise_evaluation_returns(means, stds, config, dirpath:str):
     fig.subplots_adjust(hspace=FIG_HSPACE)
     if config["save"] == True:
         plt.savefig(f"{dirpath}/output/{config['runname']}/eval_image.png", dpi=300, bbox_inches="tight")
+        # save the data as a csv file:
+        try:
+            out_dir = f"{dirpath}output/{config['runname']}"
+            os.makedirs(out_dir, exist_ok=True)
+            csv_path = os.path.join(out_dir, "eval_returns.csv")
+            with open(csv_path, "w", newline="") as csvfile:
+                writer = csv.writer(csvfile)
+                # header: eval_index, agent1_mean, agent1_std, agent2_mean, agent2_std, ...
+                header = ["eval_index"]
+                for a in range(n_agents):
+                    header.append(f"agent{a+1}_mean")
+                    header.append(f"agent{a+1}_std")
+                writer.writerow(header)
+
+                for idx in range(n_evals):
+                    row = [idx]
+                    for a in range(n_agents):
+                        row.append(float(means[idx][a]))
+                        row.append(float(stds[idx][a]))
+                    writer.writerow(row)
+        except Exception as e:
+            # don't raise from plotting helper; just print a warning
+            print(f"Warning: could not save eval returns csv: {e}")
     plt.show()
 
 def visualise_q_convergence(eval_q_tables, env, savefig=None):

@@ -16,20 +16,20 @@ from utils import (
 )
 from matrix_game import create_pd_game
 from custom_foraging_env import CustomForagingEnv
-dirpath = "/Users/m.brochlips/Documents/25Fall/Marl_Bachelor/marl-book-exercises/tabular_marl/"
+dirpath = "tabular_marl/"
 
 from video import VideoRecorder
 
 
 CONFIG = {
-    "runname": '5nov2025',
+    "runname": '4dec2025',
     "save": True,
     "algorithm": Random, # how the agents learn
     "seed": None,
     "gamma": 0.99,
-    "total_eps": 2000, # total episodes
+    "total_eps": 20, # total episodes
     "ep_length": 25, # how long each episode is (max step for env)
-    "eval_freq": 200, # how often it is evaluated
+    "eval_freq": 20, # how often it is evaluated
     "lr": 0.5,
     "init_epsilon": 0.9,
     "eval_epsilon": 0.05,
@@ -180,5 +180,5 @@ if __name__ == "__main__":
     )
 
     #visualise_q_tables(q_tables)
-    eval_return_image = visualise_evaluation_returns(evaluation_return_means, evaluation_return_stds, CONFIG, dirpath)
+    r = visualise_evaluation_returns(evaluation_return_means, evaluation_return_stds, CONFIG, dirpath)
     #visualise_q_convergence(eval_q_tables, env)
