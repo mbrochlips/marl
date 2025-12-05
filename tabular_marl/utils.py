@@ -41,10 +41,10 @@ def visualise_evaluation_returns(means, stds, config, dirpath:str):
     fig.legend()
     fig.subplots_adjust(hspace=FIG_HSPACE)
     if config["save"] == True:
-        plt.savefig(f"{dirpath}/output/{config['runname']}/eval_image.png", dpi=300, bbox_inches="tight")
+        plt.savefig(f"{config['dir']}/eval_image.png", dpi=300, bbox_inches="tight")
         # save the data as a csv file:
         try:
-            out_dir = f"{dirpath}output/{config['runname']}"
+            out_dir = config['dir']
             os.makedirs(out_dir, exist_ok=True)
             csv_path = os.path.join(out_dir, "eval_returns.csv")
             with open(csv_path, "w", newline="") as csvfile:

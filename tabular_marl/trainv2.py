@@ -14,7 +14,7 @@ from utils import (
     visualise_q_convergence,
     visualise_evaluation_returns,
 )
-from matrix_game import create_pd_game
+from matrix_game import create_stag_game
 from custom_foraging_env import CustomForagingEnv
 dirpath = "tabular_marl/"
 
@@ -22,23 +22,43 @@ from video import VideoRecorder
 
 
 CONFIG = {
-    "runname": '4dec2025',
+    "runname": '5dec2025',
     "save": True,
-    "algorithm": Random, # how the agents learn
+    "algorithm": IQL, # how the agents learn
+    "env": "cf", #game type: "f" = foraging, "cf" = costum_foraging or "m" = matrix
+
+    "ep_length": 50, # how long each episode is (max step for env)
+    "total_eps": 10, # total episodes
+    "eval_freq": 9, # how often it is evaluated (of total_eps)
+
     "seed": None,
-    "gamma": 0.99,
-    "total_eps": 20, # total episodes
-    "ep_length": 25, # how long each episode is (max step for env)
-    "eval_freq": 20, # how often it is evaluated
-    "lr": 0.5,
+    "lr": 0.5, # learning rate
     "init_epsilon": 0.9,
     "eval_epsilon": 0.05,
-    "food_pos": [[1,1],[3,3]],
-    "player_pos": [[0,4],[4,0]]
-}
-CONFIG["runname"] = f"{CONFIG['algorithm'].__name__}_{CONFIG['total_eps']}eps_{CONFIG['ep_length']}epL_{CONFIG['runname']}"
+    "num_agents": 2,
+    "gamma": 0.99,
 
-def iql_eval(env, config, q_tables, eval_episodes=500, output=True):
+    "food_pos": [[1,1],[3,3]],
+    "player_pos": [[0,4],[4,0]],
+    "payoff_matrix": np.array([[[3, 3], [0, 1]], 
+                               [[1, 0], [1, 1]]])
+}
+
+
+
+if CONFIG["save"]:
+    CONFIG["runname"] = f"{CONFIG['total_eps']}eps_{CONFIG['ep_length']}epL_{CONFIG['runname']}_{CONFIG['algorithm'].__name__}"
+    save_dir = f"{dirpath}output/{CONFIG['algorithm'].__name__}/{CONFIG['runname']}"
+    CONFIG["dir"] = save_dir
+
+    if CONFIG["env"][-1] == "f":
+        CONFIG["video"] = True
+        os.makedirs(f"{save_dir}/video", exist_ok=True)
+    else:
+        os.makedirs(f"{save_dir}", exist_ok=True)
+        
+
+def eval(env, config, q_tables, eval_episodes=500, output=True):
     """
     Evaluate configuration of independent Q-learning on given environment when initialised with given Q-table
 
@@ -50,7 +70,7 @@ def iql_eval(env, config, q_tables, eval_episodes=500, output=True):
     :return (float, float): mean and standard deviation of returns received over episodes
     """
     eval_agents = config["algorithm"](
-        num_agents=len(config["player_pos"]),
+        num_agents=config["num_agents"],
         action_spaces=env.action_space,
         gamma=config["gamma"],
         learning_rate=config["lr"],
@@ -100,7 +120,7 @@ def train(env, config, output=True):
 
     step_counter = 0
     max_steps = config["total_eps"] * config["ep_length"]
-
+    
     video = VideoRecorder()
 
     evaluation_return_means = []
@@ -124,24 +144,29 @@ def train(env, config, output=True):
 
             step_counter += 1
             episodic_return += rewards
-            obss = n_obss
+            obss = n_obss #the new observation becomes the current
             
-            video.record_frame(env)
+            if config["video"]:
+                video.record_frame(env)
 
         if eps_num > 0 and (eps_num) % config["eval_freq"] == 0:
-            video.save(f"{dirpath}output/{config['runname']}/video/run-{eps_num}.mp4")
-            video.reset()
+            if config["video"]:
+                video.save(f"{config['dir']}/video/run-{eps_num}.mp4")
+                video.reset()
 
-            mean_return, std_return = iql_eval(
+            mean_return, std_return = eval(
                 env, config, agents.q_tables, output=output
             )
             evaluation_return_means.append(mean_return)
             evaluation_return_stds.append(std_return)
             evaluation_q_tables.append(copy.deepcopy(agents.q_tables))
         else:
-            video.reset()
-    print(all_rewards)
+            if config["video"]:
+                video.reset()
+
     print(agents.q_tables[0].values())
+    print(agents.q_tables[1].values())
+
     return (
         evaluation_return_means,
         evaluation_return_stds,
@@ -153,32 +178,41 @@ def train(env, config, output=True):
 if __name__ == "__main__":
     random.seed(CONFIG["seed"])
     np.random.seed(CONFIG["seed"])
-    # env = create_pd_game()
-    # env = gym.make("lbforaging:Foraging-5x5-2p-1f-v3")
 
-    env = CustomForagingEnv(
-        field_size=(5, 5),  
-        players=len(CONFIG["player_pos"]),       
-        min_player_level=2,
-        max_player_level=3,
-        min_food_level=2,
-        max_food_level=4,
-        max_num_food=len(CONFIG["food_pos"]),  
-        sight=5,         
-        max_episode_steps=CONFIG["ep_length"],  
-        force_coop=False,
-        pos_foods=CONFIG["food_pos"],
-        pos_players=CONFIG["player_pos"],
-        )   
-    env.reset()
+    if CONFIG["env"] == "cf":
+        env = CustomForagingEnv(
+            field_size=(5, 5),  
+            players=len(CONFIG["player_pos"]),       
+            min_player_level=2,
+            max_player_level=3,
+            min_food_level=2,
+            max_food_level=4,
+            max_num_food=len(CONFIG["food_pos"]),  
+            sight=5,         
+            max_episode_steps=CONFIG["ep_length"],  
+            force_coop=False,
+            pos_foods=CONFIG["food_pos"],
+            pos_players=CONFIG["player_pos"],
+            )   
+        env.reset()
+        
+    
+    elif CONFIG["env"] == "f":
+        env = gym.make("lbforaging:Foraging-5x5-2p-1f-v3")
 
-    # Create the folder if it doesn't exist
-    os.makedirs(f"{dirpath}output/{CONFIG['runname']}/video", exist_ok=True)
 
+    elif CONFIG["env"] == "m":
+        env = create_stag_game(CONFIG["payoff_matrix"], CONFIG["ep_length"])
+        CONFIG["video"] = False
+    
+    else:
+        assert "A non-valid env was chosen"
+    
+    
     evaluation_return_means, evaluation_return_stds, eval_q_tables, q_tables = train(
         env, CONFIG
     )
 
-    #visualise_q_tables(q_tables)
-    r = visualise_evaluation_returns(evaluation_return_means, evaluation_return_stds, CONFIG, dirpath)
+    #q = visualise_q_tables(q_tables)
+    fig = visualise_evaluation_returns(evaluation_return_means, evaluation_return_stds, CONFIG, dirpath)
     #visualise_q_convergence(eval_q_tables, env)

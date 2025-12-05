@@ -42,8 +42,6 @@ class MatrixGame(gym.Env):
         print(f"Step {self.t} - actions: {self.last_actions}")
 
 
-def create_pd_game(payoff_matrix, ep_length=1):
-    # payoff_matrix = np.array([[[3, 3], [0, 5]], 
-    #                             [[5, 0], [1, 1]]])
+def create_stag_game(payoff_matrix, ep_length):
     return MatrixGame(payoff_matrix, ep_length)
 

@@ -56,15 +56,15 @@ class IQL:
         :return (List[int]): index of selected action for each agent
         """
     #obss = [1,1,2] = food1_pos,level + [3,3,1] = food2_pos,level + [0,4,1] = selfpos,level + [4,0,1] = otherplayerpos,level
-
+    # obss[i][:-3] to not include the pos of the other agent. --> include in env!
         actions = []
 
         for i in range(self.num_agents):
-            if self.epsilon < np.random.rand():
+            if self.epsilon > np.random.rand():
                 actions.append(random.randrange(self.n_acts[i]))
             else:
-                q_values = [self.q_tables[i][str((obss[i][:-3],a))] for a in range(self.n_acts[i])]
-                # obss[i][:-3] to not include the pos of the other agent.
+                q_values = [self.q_tables[i][str((obss[i],a))] for a in range(self.n_acts[i])]
+                
                 if sum(q_values) == 0:
                     actions.append(random.randrange(self.n_acts[i]))
                     # for better start, otherwise alot of no-ops
@@ -95,10 +95,10 @@ class IQL:
                 q_next = 0
                 #print(self.q_tables)
             else:
-                q_values_next = [self.q_tables[i][str((obss[i][:-3],a))] for a in range(self.n_acts[i])]
+                q_values_next = [self.q_tables[i][str((obss[i],a))] for a in range(self.n_acts[i])]
                 q_next = max(q_values_next)
                 
-            self.q_tables[i][str((obss[i][:-3],actions[i]))] += self.learning_rate * (rewards[i] + self.gamma*q_next - self.q_tables[i][str((obss[i][:-3],actions[i]))])
+            self.q_tables[i][str((obss[i],actions[i]))] += self.learning_rate * (rewards[i] + self.gamma*q_next - self.q_tables[i][str((obss[i],actions[i]))])
 
     def schedule_hyperparameters(self, timestep: int, max_timestep: int):
         """Updates the hyperparameters
