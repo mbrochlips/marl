@@ -11,12 +11,93 @@ FIG_WSPACE=0.3
 FIG_HSPACE=0.2
 
 
-def visualise_q_tables(q_tables):
+def visualise_q_tables(q_tables, max_states=10, show_all_actions=True):
+    """
+    Visualize Q-tables for all agents.
+    
+    Handles various Q-table structures:
+    - IQL: keys are str((state, action))
+    - JAL/joint: keys may be str((state, own_action, other_actions)) or similar
+    
+    :param q_tables: List of Q-tables (defaultdicts), one per agent
+    :param max_states: Maximum number of unique states to display per agent
+    :param show_all_actions: If True, group by state and show all action Q-values together
+    """
+    from collections import defaultdict
+    import ast
+    
     for i, q_table in enumerate(q_tables):
-        print(f"Q-table for Agent {i + 1}:")
-        for a in range(2):
-            print(f"Q({a + 1}) = {q_table[str((0, a))]:.2f}")
-        print()
+        print(f"\n{'='*60}")
+        print(f"Q-table for Agent {i + 1}")
+        print(f"{'='*60}")
+        
+        if not q_table:
+            print("  (empty)")
+            continue
+        
+        # Group entries by state
+        # Key format: str((state, action)) or str((state, action, other_action))
+        state_action_values = defaultdict(dict)
+        
+        for key_str, q_value in q_table.items():
+            try:
+                # Parse the string key back to tuple
+                key_tuple = ast.literal_eval(key_str)
+                
+                if len(key_tuple) == 2:
+                    # IQL format: (state, action)
+                    state, action = key_tuple
+                    state_key = str(state)
+                    action_key = action
+                elif len(key_tuple) == 3:
+                    # Joint action format: (state, own_action, other_action)
+                    state, own_action, other_action = key_tuple
+                    state_key = f"{state} | other={other_action}"
+                    action_key = own_action
+                else:
+                    # Unknown format - use as-is
+                    state_key = str(key_tuple[:-1])
+                    action_key = key_tuple[-1]
+                
+                state_action_values[state_key][action_key] = q_value
+            except:
+                # Fallback for unparseable keys
+                state_action_values["unparsed"][key_str] = q_value
+        
+        # Sort states by max Q-value (most valuable states first)
+        sorted_states = sorted(
+            state_action_values.items(),
+            key=lambda x: max(x[1].values()) if x[1] else 0,
+            reverse=True
+        )
+        
+        # Display
+        displayed_states = 0
+        for state_key, action_values in sorted_states:
+            if displayed_states >= max_states:
+                remaining = len(sorted_states) - displayed_states
+                print(f"\n  ... and {remaining} more states")
+                break
+            
+            print(f"\n  State: {state_key}")
+            
+            # Sort actions by Q-value
+            sorted_actions = sorted(action_values.items(), key=lambda x: x[1], reverse=True)
+            best_action = sorted_actions[0][0] if sorted_actions else None
+            
+            for action, q_val in sorted_actions:
+                marker = " *" if action == best_action else ""
+                print(f"    Action {action}: {q_val:8.4f}{marker}")
+            
+            displayed_states += 1
+        
+        # Summary statistics
+        if q_table:
+            values = list(q_table.values())
+            print(f"\n  {'─'*40}")
+            print(f"  Summary: {len(q_table)} entries across {len(state_action_values)} states")
+            print(f"  Q-range: [{min(values):.4f}, {max(values):.4f}]")
+            print(f"  Mean Q: {np.mean(values):.4f}, Std: {np.std(values):.4f}")
 
 
 def visualise_evaluation_returns(means, stds, config, dirpath:str):

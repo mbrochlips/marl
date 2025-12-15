@@ -5,17 +5,13 @@ from datetime import datetime
 import gymnasium as gym
 import numpy as np
 
-from agent.random_agent import Random
-from agent.iql import IQL
-from agent.jal import JAL
-
 from utils.visualizations import (
     visualise_q_tables,
     visualise_q_convergence,
     visualise_evaluation_returns,
 )
 
-from train import train
+from train import train_agents
 from envs.matrix_game import create_matrix_game
 from envs.custom_foraging_env import CustomForagingEnv
 dirpath = "tabular_marl/"
@@ -23,33 +19,34 @@ dirpath = "tabular_marl/"
 
 CONFIG = {
     "runname": datetime.now().strftime("%d%b%Y").lower(),  # e.g."15dec2025"
-    "algorithm": IQL, # how the agents learn
-    "env": "cf", #game type: "f" = foraging, "cf" = costum_foraging or "m" = matrix
+    "algorithm": "IQL", # how the agents learn
+    "env": "m", #game type: "f" = foraging, "cf" = costum_foraging or "m" = matrix
 
     "save": True,
     "visualise": False, #not working for now
     "output": True, #flag whether mean evaluation performance should be printed
 
-    "ep_length": 50, # how long each episode is (max step for env)
-    "total_eps": 20, # total episodes
-    "eval_freq": 10, # how often it is evaluated (of total_eps)
+    "ep_length": 100, # how long each episode is (max step for env)
+    "total_eps": 10000, # total episodes
+    "eval_freq": 500, # how often it is evaluated (of total_eps)
+    "eval_episodes": 100, # number of episodes to run during evaluation
 
     "seed": None,
-    "lr": 0.5, # learning rate
-    "init_epsilon": 0.9,
+    "lr": 0.1, # learning rate
+    "init_epsilon": 0.5,
     "eval_epsilon": 0.05,
     "num_agents": 2,
-    "gamma": 0.99,
+    "gamma": 0.9,
 
     "food_pos": [[1,1],[3,3]],
     "player_pos": [[0,4],[4,0]],
-    "payoff_matrix": np.array([[[3, 3], [0, 2]], 
-                               [[2, 0], [1, 1]]])
+    "payoff_matrix": np.array([[[4, 4], [0, 3]], 
+                               [[3, 0], [2, 2]]])
 }
 
 if CONFIG["save"]:
-    CONFIG["runname"] = f"{CONFIG['total_eps']}eps_{CONFIG['ep_length']}epL_{CONFIG['runname']}_{CONFIG['algorithm'].__name__}"
-    save_dir = f"{dirpath}output/{CONFIG['algorithm'].__name__}/{CONFIG['runname']}"
+    CONFIG["runname"] = f"{CONFIG['total_eps']}eps_{CONFIG['ep_length']}epL_{CONFIG['runname']}_{CONFIG['algorithm']}"
+    save_dir = f"{dirpath}output/{CONFIG['algorithm']}/{CONFIG['runname']}"
     CONFIG["dir"] = save_dir
 
     if CONFIG["env"][-1] == "f":
@@ -80,24 +77,24 @@ if __name__ == "__main__":
             render_mode="rgb_array" if CONFIG.get("visualise") else None,
             )   
         env.reset()
-        
     
     elif CONFIG["env"] == "f":
         env = gym.make("lbforaging:Foraging-5x5-2p-1f-v3", render_mode="rgb_array" if CONFIG.get("visualise") else None)
 
-
     elif CONFIG["env"] == "m":
         env = create_matrix_game(CONFIG["payoff_matrix"], CONFIG["ep_length"])
         CONFIG["video"] = False
+        CONFIG["gamma"] = 0.0  # No bootstrapping for stateless matrix games
     
     else:
         assert "A non-valid env was chosen"
     
     
-    evaluation_return_means, evaluation_return_stds, eval_q_tables, q_tables = train(
+    evaluation_return_means, evaluation_return_stds, eval_q_tables, final_q_tables = train_agents(
         env, CONFIG
     )
 
-    #q = visualise_q_tables(q_tables)
     fig = visualise_evaluation_returns(evaluation_return_means, evaluation_return_stds, CONFIG, dirpath)
+    visualise_q_tables(final_q_tables, max_states=10, show_all_actions=True)
+    print(len(final_q_tables[0].values()))
     #visualise_q_convergence(eval_q_tables, env)

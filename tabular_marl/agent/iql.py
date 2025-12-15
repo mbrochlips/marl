@@ -16,7 +16,7 @@ class IQL:
         action_spaces: List[Space],
         gamma: float,
         learning_rate: float = 0.5,
-        epsilon: float = 1.0,
+        init_epsilon: float = 1.0,
         **kwargs,
     ):
         """Constructor of IQL
@@ -27,7 +27,7 @@ class IQL:
         :param action_spaces (List[Space]): action spaces of the environment for each agent
         :param gamma (float): discount factor (gamma)
         :param learning_rate (float): learning rate for Q-learning updates
-        :param epsilon (float): epsilon value for all agents
+        :param init_epsilon (float): initial epsilon value for all agents
 
         :attr n_acts (List[int]): number of actions for each agent
         :attr q_tables (List[DefaultDict]): tables for Q-values mapping actions ACTs
@@ -39,8 +39,9 @@ class IQL:
 
         self.gamma: float = gamma
         self.learning_rate = learning_rate
-        self.epsilon = epsilon
-
+        self.init_epsilon = init_epsilon
+        self.epsilon = init_epsilon
+        
         # initialise Q-tables for all agents
         # access value of Q_i(o, a) with self.q_tables[i][str((o, a))] (str conversion for hashable obs)
         self.q_tables: List[DefaultDict] = [
@@ -65,11 +66,9 @@ class IQL:
             else:
                 q_values = [self.q_tables[i][str((obss[i],a))] for a in range(self.n_acts[i])]
                 
-                if sum(q_values) == 0:
-                    actions.append(random.randrange(self.n_acts[i]))
-                    # for better start, otherwise alot of no-ops
-                else:
-                    actions.append(np.argmax(q_values))
+                max_q = max(q_values)
+                best_actions = [a for a, q in enumerate(q_values) if q == max_q]
+                actions.append(random.choice(best_actions))
         
         return actions
 
@@ -110,4 +109,5 @@ class IQL:
         :param timestep (int): current timestep at the beginning of the episode
         :param max_timestep (int): maximum timesteps that the training loop will run for
         """
-        self.epsilon = 1.0 - (min(1.0, timestep / (0.8 * max_timestep))) * 0.99
+        self.epsilon = (1.0 - (min(1.0, timestep / (0.8 * max_timestep))) * 0.99) * self.init_epsilon
+        #self.epsilon = (1.0 - (min(1.0, timestep / (0.8 * max_timestep))) * 0.99)

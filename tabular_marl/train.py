@@ -1,13 +1,19 @@
 import numpy as np
 import copy
 from utils.video import VideoRecorder
-from utils.eval import eval
+from utils.eval import evaluate
 
 from agent.random_agent import Random
 from agent.iql import IQL
 from agent.jal import JAL
 
-def train(env, config):
+algorithms = {
+    "IQL": IQL,
+    "JAL": JAL,
+    "Random": Random,
+}
+
+def train_agents(env, config):
     """
     Train and evaluate independent Q-learning in env with provided hyperparameters
 
@@ -16,12 +22,12 @@ def train(env, config):
     :param output (bool): flag if mean evaluation results should be printed
     :return (List[List[float]], List[List[float]], List[Dict[Act, float]]):
     """
-    agents = config["algorithm"](
+    agents = algorithms[config["algorithm"]](
         num_agents=len(config["player_pos"]),
         action_spaces=env.action_space,
         gamma=config["gamma"],
         learning_rate=config["lr"],
-        epsilon=config["init_epsilon"],
+        init_epsilon=config["init_epsilon"],
     )
 
     step_counter = 0
@@ -59,8 +65,12 @@ def train(env, config):
             if config["video"]:
                 video.save(f"{config['dir']}/video/run-{eps_num}.mp4")
                 video.reset()
+                
+            print(f"episilon: {agents.epsilon}")
+            print(f"q-tables agent_1: {agents.q_tables[0].values()}")
+            print(f"q-tables agent_2: {agents.q_tables[1].values()}")
 
-            mean_return, std_return = eval(
+            mean_return, std_return = evaluate(
                 env, config, agents.q_tables
             )
             evaluation_return_means.append(mean_return)
@@ -70,12 +80,9 @@ def train(env, config):
             if config["video"]:
                 video.reset()
 
-    #print(agents.q_tables[0].values())
-    #print(agents.q_tables[1].values())
-
     return (
         evaluation_return_means,
         evaluation_return_stds,
         evaluation_q_tables,
-        agents.q_tables[0], # only for one agent
+        agents.q_tables,  # all agents' Q-tables
     )
