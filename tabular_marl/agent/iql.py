@@ -95,8 +95,9 @@ class IQL:
                 q_next = 0
                 #print(self.q_tables)
             else:
-                q_values_next = [self.q_tables[i][str((obss[i],a))] for a in range(self.n_acts[i])]
+                q_values_next = [self.q_tables[i][str((n_obss[i],a))] for a in range(self.n_acts[i])]
                 q_next = max(q_values_next)
+                #q_next = self.q_tables[i][str((n_obss[i],a_next))]
                 
             self.q_tables[i][str((obss[i],actions[i]))] += self.learning_rate * (rewards[i] + self.gamma*q_next - self.q_tables[i][str((obss[i],actions[i]))])
 

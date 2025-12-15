@@ -1,35 +1,37 @@
 import copy
 import random
 import os
+from datetime import datetime
 
 import gymnasium as gym
 import numpy as np
 
-from random_agent import Random
-from iql import IQL
-from jal import JAL
+from agent.random_agent import Random
+from agent.iql import IQL
+from agent.jal import JAL
 
-from utils import (
+from utils.visualizations import (
     visualise_q_tables,
     visualise_q_convergence,
     visualise_evaluation_returns,
 )
-from matrix_game import create_stag_game
-from custom_foraging_env import CustomForagingEnv
+from env.matrix_game import create_stag_game
+from env.custom_foraging_env import CustomForagingEnv
 dirpath = "tabular_marl/"
 
-from video import VideoRecorder
+from utils.video import VideoRecorder
 
 
 CONFIG = {
-    "runname": '5dec2025',
+    "runname": datetime.now().strftime("%d%b%Y").lower(),  # e.g."15dec2025"
     "save": True,
+    "visualise": False, #not working for now
     "algorithm": IQL, # how the agents learn
     "env": "cf", #game type: "f" = foraging, "cf" = costum_foraging or "m" = matrix
 
     "ep_length": 50, # how long each episode is (max step for env)
-    "total_eps": 10, # total episodes
-    "eval_freq": 9, # how often it is evaluated (of total_eps)
+    "total_eps": 20, # total episodes
+    "eval_freq": 10, # how often it is evaluated (of total_eps)
 
     "seed": None,
     "lr": 0.5, # learning rate
@@ -40,8 +42,8 @@ CONFIG = {
 
     "food_pos": [[1,1],[3,3]],
     "player_pos": [[0,4],[4,0]],
-    "payoff_matrix": np.array([[[3, 3], [0, 1]], 
-                               [[1, 0], [1, 1]]])
+    "payoff_matrix": np.array([[[3, 3], [0, 2]], 
+                               [[2, 0], [1, 1]]])
 }
 
 
@@ -164,8 +166,8 @@ def train(env, config, output=True):
             if config["video"]:
                 video.reset()
 
-    print(agents.q_tables[0].values())
-    print(agents.q_tables[1].values())
+    #print(agents.q_tables[0].values())
+    #print(agents.q_tables[1].values())
 
     return (
         evaluation_return_means,
@@ -193,12 +195,13 @@ if __name__ == "__main__":
             force_coop=False,
             pos_foods=CONFIG["food_pos"],
             pos_players=CONFIG["player_pos"],
+            render_mode="rgb_array" if CONFIG.get("visualise") else None,
             )   
         env.reset()
         
     
     elif CONFIG["env"] == "f":
-        env = gym.make("lbforaging:Foraging-5x5-2p-1f-v3")
+        env = gym.make("lbforaging:Foraging-5x5-2p-1f-v3", render_mode="rgb_array" if CONFIG.get("visualise") else None)
 
 
     elif CONFIG["env"] == "m":
