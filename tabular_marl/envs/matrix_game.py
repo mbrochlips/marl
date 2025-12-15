@@ -42,6 +42,6 @@ class MatrixGame(gym.Env):
         print(f"Step {self.t} - actions: {self.last_actions}")
 
 
-def create_stag_game(payoff_matrix, ep_length):
+def create_matrix_game(payoff_matrix, ep_length):
     return MatrixGame(payoff_matrix, ep_length)
 

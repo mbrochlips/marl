@@ -15,8 +15,8 @@ from utils.visualizations import (
     visualise_q_convergence,
     visualise_evaluation_returns,
 )
-from env.matrix_game import create_stag_game
-from env.custom_foraging_env import CustomForagingEnv
+from envs.matrix_game import create_matrix_game
+from envs.custom_foraging_env import CustomForagingEnv
 dirpath = "tabular_marl/"
 
 from utils.video import VideoRecorder
@@ -205,7 +205,7 @@ if __name__ == "__main__":
 
 
     elif CONFIG["env"] == "m":
-        env = create_stag_game(CONFIG["payoff_matrix"], CONFIG["ep_length"])
+        env = create_matrix_game(CONFIG["payoff_matrix"], CONFIG["ep_length"])
         CONFIG["video"] = False
     
     else:
