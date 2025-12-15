@@ -1,11 +1,5 @@
-from collections import defaultdict
 import random
-from typing import List, DefaultDict
-
-import numpy as np
-from gymnasium.spaces import Space
-from gymnasium.spaces.utils import flatdim
-from iql import IQL
+from agent.iql import IQL
 
 class Random(IQL):
 
