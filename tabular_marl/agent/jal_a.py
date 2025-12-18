@@ -7,7 +7,7 @@ from gymnasium.spaces import Space
 from gymnasium.spaces.utils import flatdim
 
 
-class Jal_mixed:
+class JAL:
     """Agent using the Independent Q-Learning algorithm"""
 
     def __init__(
@@ -17,7 +17,7 @@ class Jal_mixed:
         gamma: float,
         learning_rate: float = 0.5,
         epsilon: float = 1.0,
-
+        randomact = 0.8,
         **kwargs,
     ):
         """Constructor of IQL
@@ -37,12 +37,13 @@ class Jal_mixed:
         self.num_agents = num_agents
         self.action_spaces = action_spaces
         self.n_acts = [flatdim(action_space) for action_space in action_spaces]
-        self.agent_model = [[1/num_agents for _ in range(self.n_acts[i])] for i in range(num_agents)]
-        self.history = [[] for _ in range(self.num_agents)] #previous moves in each state for each agent
+        self.agent_model = [1/num_agents for _ in range(self.n_acts[1])]
+        self.actioncount_history = [0 for _ in range(self.num_agents)]
 
         self.gamma: float = gamma
         self.learning_rate = learning_rate
         self.epsilon = epsilon
+        self.randomact = randomact
 
         # initialise Q-tables for all agents
         # access value of Q_i(o, a) with self.q_tables[i][str((o, a))] (str conversion for hashable obs)
@@ -51,27 +52,28 @@ class Jal_mixed:
         ]
 
     def act(self, obss) -> List[int]:
-        """
+        """Implement the epsilon-greedy action selection here for stateless task
+
+        **IMPLEMENT THIS FUNCTION**
+
         :param obss (List): list of observations for each agent
         :return (List[int]): index of selected action for each agent
         """
         actions = []
-
-        for i in range(self.num_agents):
-            if self.epsilon < np.random.rand():
-                actions.append(random.randrange(self.n_acts[i]))
-            else:
-                for j in range(self.n_acts[i]):
-                    if j != i:
-                        q_values_all_j = [] #???s 132
-                        for aj in range(self.n_acts[j]):
-                            q_values = [self.q_tables[i][str((obss[i],[ai,aj]))] for ai in range(self.n_acts[i])]
-                            q_values_all_j.append(q_values)
-
-                        AV = sum(q_values*a_weight for a_weight in self.agent_model[j]) # only for two agents!
-                            #????????
-        actions.append(np.argmax(AV))
         
+        # Agent JAL_AM, index 0
+        if self.epsilon < np.random.rand():
+            actions.append(random.randrange(self.n_acts[0]))
+        else:
+            q_values = [self.q_tables[0][str((obss[0],a))] for a in range(self.n_acts[0])]
+            actions.append(np.argmax(q_values))
+
+        # RANDOM agent
+        if self.randomact > np.random.rand():
+            actions.append(0) # cooperative
+        else:
+            actions.append(1) # defects
+
         return actions
 
     def learn(
@@ -82,7 +84,10 @@ class Jal_mixed:
         n_obss: List[np.ndarray],
         done: bool,
     ):
-        """
+        """Updates the Q-tables based on agents' experience
+
+        **IMPLEMENT THIS FUNCTION**
+
         :param obss (List[np.ndarray]): list of observations for each agent
         :param action (List[int]): index of applied action of each agent
         :param rewards (List[float]): received reward for each agent
@@ -90,6 +95,7 @@ class Jal_mixed:
         :param done (bool): flag indicating whether a terminal state has been reached
         :return (List[float]): updated Q-values for current actions of each agent
         """
+        #update Agent model of the opponent (index 1)
         self.actioncount_history[actions[-1]] += 1
         self.agent_model = [self.actioncount_history[i] / sum(self.actioncount_history) for i in range(self.n_acts[1])]
 
@@ -103,6 +109,8 @@ class Jal_mixed:
             AV = max(q_values_next)
                 
         self.q_tables[i][str((obss[i],actions[i]))] += self.learning_rate * (rewards[i] + self.gamma*AV - self.q_tables[i][str((obss[i],actions[i]))])
+
+        #raise NotImplementedError("Need to implement the learn() function of IQL")
 
     def schedule_hyperparameters(self, timestep: int, max_timestep: int):
         """Updates the hyperparameters

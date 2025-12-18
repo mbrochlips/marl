@@ -49,9 +49,7 @@ class IQL:
         ]
 
     def act(self, obss) -> List[int]:
-        """Implement the epsilon-greedy action selection here for stateless task
-
-        **IMPLEMENT THIS FUNCTION**
+        """
 
         :param obss (List): list of observations for each agent
         :return (List[int]): index of selected action for each agent

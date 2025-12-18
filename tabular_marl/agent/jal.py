@@ -1,14 +1,17 @@
+# agent/jal_learner.py
 from collections import defaultdict
 import random
 from typing import List, DefaultDict
-
 import numpy as np
 from gymnasium.spaces import Space
 from gymnasium.spaces.utils import flatdim
 
 
-class JAL:
-    """Agent using the Independent Q-Learning algorithm"""
+class JalAM:
+    """
+    Joint Action Learner (JAL) - learns Q-values over joint actions Q(s, a_i, a_{-i})
+    and maintains an opponent model to compute expected values.
+    """
 
     def __init__(
         self,
@@ -16,65 +19,79 @@ class JAL:
         action_spaces: List[Space],
         gamma: float,
         learning_rate: float = 0.5,
-        epsilon: float = 1.0,
-        randomact = 0.8,
+        init_epsilon: float = 1.0,
         **kwargs,
     ):
-        """Constructor of IQL
-
-        Initializes variables for independent Q-learning agents
-
-        :param num_agents (int): number of agents
-        :param action_spaces (List[Space]): action spaces of the environment for each agent
-        :param gamma (float): discount factor (gamma)
-        :param learning_rate (float): learning rate for Q-learning updates
-        :param epsilon (float): epsilon value for all agents
-
-        :attr n_acts (List[int]): number of actions for each agent
-        :attr q_tables (List[DefaultDict]): tables for Q-values mapping actions ACTs
-            to respective Q-values for all agents
-        """
         self.num_agents = num_agents
         self.action_spaces = action_spaces
         self.n_acts = [flatdim(action_space) for action_space in action_spaces]
-        self.agent_model = [1/num_agents for _ in range(self.n_acts[1])]
-        self.actioncount_history = [0 for _ in range(self.num_agents)]
-
-        self.gamma: float = gamma
-        self.learning_rate = learning_rate
-        self.epsilon = epsilon
-        self.randomact = randomact
-
-        # initialise Q-tables for all agents
-        # access value of Q_i(o, a) with self.q_tables[i][str((o, a))] (str conversion for hashable obs)
-        self.q_tables: List[DefaultDict] = [
-            defaultdict(lambda: 0) for _ in range(self.num_agents)
-        ]
-
-    def act(self, obss) -> List[int]:
-        """Implement the epsilon-greedy action selection here for stateless task
-
-        **IMPLEMENT THIS FUNCTION**
-
-        :param obss (List): list of observations for each agent
-        :return (List[int]): index of selected action for each agent
-        """
-        actions = []
         
-        # Agent JAL_AM, index 0
-        if self.epsilon < np.random.rand():
-            actions.append(random.randrange(self.n_acts[0]))
-        else:
-            q_values = [self.q_tables[0][str((obss[0],a))] for a in range(self.n_acts[0])]
-            actions.append(np.argmax(q_values))
+        self.gamma = gamma
+        self.learning_rate = learning_rate
+        self.init_epsilon = init_epsilon
+        self.epsilon = init_epsilon
+        
+        # Q-table stores Q(s, a_self, a_opponent) for the learning agent
+        # Key: str((obs, my_action, opponent_action))
+        self.q_table: DefaultDict = defaultdict(lambda: 0)
+        
+        # Opponent model: tracks action frequencies
+        # opponent_counts[obs][action] = count
+        self.opponent_counts: DefaultDict = defaultdict(lambda: defaultdict(int))
+        self.total_opponent_obs: DefaultDict = defaultdict(int)
+        
+        # For compatibility with MixedPlay wrapper
+        self.q_tables = [self.q_table]
 
-        # RANDOM agent
-        if self.randomact > np.random.rand():
-            actions.append(0) # cooperative
-        else:
-            actions.append(1) # defects
+    def _get_opponent_model(self, obs) -> np.ndarray:
+        """Get opponent's estimated policy (probability distribution over actions)."""
+        obs_key = str(obs)
+        total = self.total_opponent_obs[obs_key]
+        
+        if total == 0:
+            # Uniform prior if no observations
+            return np.ones(self.n_acts[0]) / self.n_acts[0]
+        
+        probs = np.array([
+            self.opponent_counts[obs_key][a] / total 
+            for a in range(self.n_acts[0])
+        ])
+        return probs
 
-        return actions
+    def _get_expected_q(self, obs, my_action) -> float:
+        """Compute expected Q-value for my_action given opponent model."""
+        opponent_probs = self._get_opponent_model(obs)
+        expected_q = 0.0
+        
+        for opp_action, prob in enumerate(opponent_probs):
+            q_key = str((obs, my_action, opp_action))
+            expected_q += prob * self.q_table[q_key]
+        
+        return expected_q
+
+    def act(self, obss: List) -> List[int]:
+        """
+        Select action using epsilon-greedy over expected Q-values.
+        
+        :param obss: list of observations (uses obss[0] for single agent)
+        :return: list with single action
+        """
+        obs = obss[0]
+        
+        if self.epsilon > np.random.rand():
+            # Explore
+            action = random.randrange(self.n_acts[0])
+        else:
+            # Exploit: choose action with highest expected Q
+            expected_qs = [
+                self._get_expected_q(obs, a) 
+                for a in range(self.n_acts[0])
+            ]
+            max_q = max(expected_qs)
+            best_actions = [a for a, q in enumerate(expected_qs) if q == max_q]
+            action = random.choice(best_actions)
+        
+        return [action]
 
     def learn(
         self,
@@ -83,42 +100,48 @@ class JAL:
         rewards: List[float],
         n_obss: List[np.ndarray],
         done: bool,
+        opponent_action: int = None,  # Must be provided for JAL!
     ):
-        """Updates the Q-tables based on agents' experience
-
-        **IMPLEMENT THIS FUNCTION**
-
-        :param obss (List[np.ndarray]): list of observations for each agent
-        :param action (List[int]): index of applied action of each agent
-        :param rewards (List[float]): received reward for each agent
-        :param n_obss (List[np.ndarray]): list of observations after taking the action for each agent
-        :param done (bool): flag indicating whether a terminal state has been reached
-        :return (List[float]): updated Q-values for current actions of each agent
         """
-        #update Agent model of the opponent (index 1)
-        self.actioncount_history[actions[-1]] += 1
-        self.agent_model = [self.actioncount_history[i] / sum(self.actioncount_history) for i in range(self.n_acts[1])]
-
-        # only one state, so we end up in the same state/observation
+        Update Q-table for joint action and opponent model.
         
-        i = 0 # one learning agent
+        :param obss: observations
+        :param actions: my actions
+        :param rewards: my rewards  
+        :param n_obss: next observations
+        :param done: terminal flag
+        :param opponent_action: the opponent's action (required for JAL)
+        """
+        obs = obss[0]
+        my_action = actions[0]
+        reward = rewards[0]
+        n_obs = n_obss[0]
+        
+        if opponent_action is None:
+            raise ValueError("JAL requires opponent_action to be provided!")
+        
+        # Update opponent model
+        obs_key = str(obs)
+        self.opponent_counts[obs_key][opponent_action] += 1
+        self.total_opponent_obs[obs_key] += 1
+        
+        # Q-learning update for joint action Q(s, a_me, a_opp)
+        q_key = str((obs, my_action, opponent_action))
+        
         if done:
-            AV = 0
+            q_next = 0
         else:
-            q_values_next = [self.q_tables[i][str((obss[i],a))] * self.agent_model[i] for a in range(self.n_acts[i])]
-            AV = max(q_values_next)
-                
-        self.q_tables[i][str((obss[i],actions[i]))] += self.learning_rate * (rewards[i] + self.gamma*AV - self.q_tables[i][str((obss[i],actions[i]))])
-
-        #raise NotImplementedError("Need to implement the learn() function of IQL")
+            # Max expected Q over my actions in next state
+            q_next = max(
+                self._get_expected_q(n_obs, a) 
+                for a in range(self.n_acts[0])
+            )
+        
+        # TD update
+        td_target = reward + self.gamma * q_next
+        td_error = td_target - self.q_table[q_key]
+        self.q_table[q_key] += self.learning_rate * td_error
 
     def schedule_hyperparameters(self, timestep: int, max_timestep: int):
-        """Updates the hyperparameters
-
-        This function is called before every episode and allows you to schedule your
-        hyperparameters.
-
-        :param timestep (int): current timestep at the beginning of the episode
-        :param max_timestep (int): maximum timesteps that the training loop will run for
-        """
-        self.epsilon = 1.0 - (min(1.0, timestep / (0.8 * max_timestep))) * 0.99
+        """Decay epsilon over time."""
+        self.epsilon = (1.0 - min(1.0, timestep / (0.8 * max_timestep)) * 0.99) * self.init_epsilon

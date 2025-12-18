@@ -20,7 +20,7 @@ dirpath = "tabular_marl/"
 CONFIG = {
     "runname": datetime.now().strftime("%d%b%Y").lower(),  # e.g."15dec2025"
     "algorithm": "IQL", # how the agents learn
-    "env": "m", #game type: "f" = foraging, "cf" = costum_foraging or "m" = matrix
+    "env": "cf", #game type: "f" = foraging, "cf" = costum_foraging or "m" = matrix
 
     "save": True,
     "visualise": False, #not working for now
@@ -33,10 +33,10 @@ CONFIG = {
 
     "seed": None,
     "lr": 0.1, # learning rate
-    "init_epsilon": 0.5,
+    "init_epsilon": 0.9,
     "eval_epsilon": 0.05,
     "num_agents": 2,
-    "gamma": 0.9,
+    "gamma": 0.95,
 
     "food_pos": [[1,1],[3,3]],
     "player_pos": [[0,4],[4,0]],
@@ -66,7 +66,7 @@ if __name__ == "__main__":
             players=len(CONFIG["player_pos"]),       
             min_player_level=2,
             max_player_level=3,
-            min_food_level=2,
+            min_food_level=1,
             max_food_level=4,
             max_num_food=len(CONFIG["food_pos"]),  
             sight=5,         
@@ -76,7 +76,8 @@ if __name__ == "__main__":
             pos_players=CONFIG["player_pos"],
             render_mode="rgb_array" if CONFIG.get("visualise") else None,
             )   
-        env.reset()
+        obbs, _ = env.reset()
+        print(obbs)
     
     elif CONFIG["env"] == "f":
         env = gym.make("lbforaging:Foraging-5x5-2p-1f-v3", render_mode="rgb_array" if CONFIG.get("visualise") else None)
@@ -87,7 +88,7 @@ if __name__ == "__main__":
         CONFIG["gamma"] = 0.0  # No bootstrapping for stateless matrix games
     
     else:
-        assert "A non-valid env was chosen"
+        raise ValueError(f"Invalid env '{CONFIG['env']}'. Choose 'f', 'cf', or 'm'.")
     
     
     evaluation_return_means, evaluation_return_stds, eval_q_tables, final_q_tables = train_agents(
