@@ -20,6 +20,7 @@ from agent.jal import JalAM
 
 from envs.matrix_game import create_matrix_game
 from envs.custom_foraging_env import CustomForagingEnv
+from envs.move_game import MoveChairGame
 
 dirpath = "tabular_marl/"
 
@@ -39,14 +40,14 @@ CONFIG = {
     "algorithm_1_kwargs": {},  # Extra kwargs for algorithm 1
     "algorithm_2_kwargs": {}, #"p": 0.9},  # Extra kwargs for algorithm 2 (e.g., Random's p)
     
-    "env": "m",  # game type: "f" = foraging, "cf" = custom_foraging or "m" = matrix
+    "env": "mc",  # game type: "f" = foraging, "cf" = custom_foraging, "m" = matrix, "mc" = MoveChairGame
 
     "save": True,
     "visualise": False,
     "output": True,
 
     "ep_length": 50,
-    "total_eps": 10000,
+    "total_eps": 1000,
     "eval_freq": 10,
     "eval_episodes": 50,
 
@@ -251,6 +252,10 @@ if __name__ == "__main__":
         CONFIG["video"] = False
         CONFIG["gamma"] = 0.0  # No bootstrapping for stateless matrix games
     
+    elif CONFIG["env"] == "mc":
+        env = MoveChairGame(ep_length=CONFIG["ep_length"])
+        CONFIG["video"] = False
+
     else:
         raise ValueError(f"Invalid env '{CONFIG['env']}'. Choose 'f', 'cf', or 'm'.")
     
