@@ -35,8 +35,8 @@ CONFIG = {
     "runname": datetime.now().strftime("%d%b%Y").lower(),  # e.g."15dec2025"
     
     # Mixed play configuration
-    "algorithm_1": "IQL",   # Algorithm for agent 1
-    "algorithm_2": "IQL",   # Algorithm for agent 2
+    "algorithm_1": "JalAM",   # Algorithm for agent 1
+    "algorithm_2": "JalAM",   # Algorithm for agent 2
     "algorithm_1_kwargs": {},  # Extra kwargs for algorithm 1
     "algorithm_2_kwargs": {}, #"p": 0.9},  # Extra kwargs for algorithm 2 (e.g., Random's p)
     
@@ -218,11 +218,11 @@ if __name__ == "__main__":
             CONFIG["video"] = False
             os.makedirs(f"{save_dir}", exist_ok=True)
 
-    # Set seeds
+    #set seeds
     random.seed(CONFIG["seed"])
     np.random.seed(CONFIG["seed"])
 
-    # Create environment
+    #Environments
     if CONFIG["env"] == "cf":
         env = CustomForagingEnv(
             field_size=(5, 5),  

@@ -8,6 +8,8 @@ from gymnasium.spaces.utils import flatdim
 
 
 class JalAM:
+    #[page 132, algorithm 8] by Albrecht and co. (marl-book)
+    # only works with mixed play and 2v2!!
     """
     Joint Action Learner (JAL) - learns Q-values over joint actions Q(s, a_i, a_{-i})
     and maintains an opponent model to compute expected values.
@@ -35,16 +37,23 @@ class JalAM:
         # Key: str((obs, my_action, opponent_action))
         self.q_table: DefaultDict = defaultdict(lambda: 0)
         
-        # Opponent model: tracks action frequencies
-        # opponent_counts[obs][action] = count
+       
+        #opponent_counts[obs][action] = count
         self.opponent_counts: DefaultDict = defaultdict(lambda: defaultdict(int))
+        
+        #used for normalization 
         self.total_opponent_obs: DefaultDict = defaultdict(int)
         
         # For compatibility with MixedPlay wrapper
         self.q_tables = [self.q_table]
 
-    def _get_opponent_model(self, obs) -> np.ndarray:
-        """Get opponent's estimated policy (probability distribution over actions)."""
+    def opp_probs(self, obs) -> np.ndarray:
+        # for easier implementation, it only works for one opponent:
+        if self.num_agents != 2:
+            raise ValueError("JAL requires only one opponent!")
+
+        # probability distribution over actions:
+
         obs_key = str(obs)
         total = self.total_opponent_obs[obs_key]
         
@@ -58,33 +67,31 @@ class JalAM:
         ])
         return probs
 
-    def _get_expected_q(self, obs, my_action) -> float:
-        """Compute expected Q-value for my_action given opponent model."""
-        opponent_probs = self._get_opponent_model(obs)
+    def get_expected_q(self, obs, my_action) -> float:
+        # expected Q-value for my_action given opponent model:
+
+        opponent_probs = self.opp_probs(obs)
         expected_q = 0.0
         
         for opp_action, prob in enumerate(opponent_probs):
             q_key = str((obs, my_action, opp_action))
+
+            #AV_i (6.17)
             expected_q += prob * self.q_table[q_key]
+
         
         return expected_q
 
     def act(self, obss: List) -> List[int]:
-        """
-        Select action using epsilon-greedy over expected Q-values.
-        
-        :param obss: list of observations (uses obss[0] for single agent)
-        :return: list with single action
-        """
+        # for easier implementation, it only learns JAL_AM for agent[0]
+        # param obss: list of observations (uses obss[0] for single agent)
         obs = obss[0]
         
         if self.epsilon > np.random.rand():
-            # Explore
             action = random.randrange(self.n_acts[0])
         else:
-            # Exploit: choose action with highest expected Q
             expected_qs = [
-                self._get_expected_q(obs, a) 
+                self.get_expected_q(obs, a) 
                 for a in range(self.n_acts[0])
             ]
             max_q = max(expected_qs)
@@ -120,12 +127,12 @@ class JalAM:
         if opponent_action is None:
             raise ValueError("JAL requires opponent_action to be provided!")
         
-        # Update opponent model
+        # Update opponent prob model
         obs_key = str(obs)
         self.opponent_counts[obs_key][opponent_action] += 1
         self.total_opponent_obs[obs_key] += 1
         
-        # Q-learning update for joint action Q(s, a_me, a_opp)
+        #Q-learning update for joint action Q(s, a_me, a_opp)
         q_key = str((obs, my_action, opponent_action))
         
         if done:
@@ -133,14 +140,12 @@ class JalAM:
         else:
             # Max expected Q over my actions in next state
             q_next = max(
-                self._get_expected_q(n_obs, a) 
+                self.get_expected_q(n_obs, a) 
                 for a in range(self.n_acts[0])
             )
         
-        # TD update
-        td_target = reward + self.gamma * q_next
-        td_error = td_target - self.q_table[q_key]
-        self.q_table[q_key] += self.learning_rate * td_error
+        # Q-update
+        self.q_table[q_key] += self.learning_rate * (reward + self.gamma * q_next - self.q_table[q_key])
 
     def schedule_hyperparameters(self, timestep: int, max_timestep: int):
         """Decay epsilon over time."""
