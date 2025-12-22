@@ -35,21 +35,21 @@ CONFIG = {
     "runname": datetime.now().strftime("%d%b%Y").lower(),  # e.g."15dec2025"
     
     # Mixed play configuration
-    "algorithm_1": "JalAM",   # Algorithm for agent 1
-    "algorithm_2": "JalAM",   # Algorithm for agent 2
+    "algorithm_1": "IQL",   # Algorithm for agent 1
+    "algorithm_2": "IQL",   # Algorithm for agent 2
     "algorithm_1_kwargs": {},  # Extra kwargs for algorithm 1
     "algorithm_2_kwargs": {}, #"p": 0.9},  # Extra kwargs for algorithm 2 (e.g., Random's p)
     
-    "env": "mc",  # game type: "f" = foraging, "cf" = custom_foraging, "m" = matrix, "mc" = MoveChairGame
+    "env": "cf",  # game type: "f" = foraging, "cf" = custom_foraging, "m" = matrix, "mc" = MoveChairGame
 
     "save": True,
     "visualise": False,
     "output": True,
 
     "ep_length": 100,
-    "total_eps": 10000,
-    "eval_freq": 1000,
-    "eval_episodes": 100,
+    "total_eps": 100,
+    "eval_freq": 10,
+    "eval_episodes": 10,
 
     "seed": None,
     "lr": 0.1,
@@ -88,8 +88,6 @@ def train_mixed_agents(env, config):
 
     step_counter = 0
     max_steps = config["total_eps"] * config["ep_length"]
-    
-    video = VideoRecorder()
 
     evaluation_return_means = []
     evaluation_return_stds = []
@@ -117,13 +115,7 @@ def train_mixed_agents(env, config):
             episodic_return += rewards
             obss = n_obss
 
-            if config.get("video"):
-                video.record_frame(env)
-
         if eps_num > 0 and (eps_num) % config["eval_freq"] == 0:
-            if config.get("video"):
-                video.save(f"{config['dir']}/video/run-{eps_num}.mp4")
-                video.reset()
                 
             print(f"Episode {eps_num}/{config['total_eps']}")
             print(f"  {config['algorithm_1']} (Agent 1) epsilon: {agents.agent_1.epsilon:.4f}")
@@ -131,13 +123,11 @@ def train_mixed_agents(env, config):
             #print(f"  Q-tables agent_1 ({config['algorithm_1']}): {list(agents.q_tables[0].values())}")
             #print(f"  Q-tables agent_2 ({config['algorithm_2']}): {list(agents.q_tables[1].values())}")
 
-            mean_return, std_return = evaluate_mixed(env, config, agents)
+            mean_return, std_return = evaluate_mixed(env, config, agents, eps_num)
             evaluation_return_means.append(mean_return)
             evaluation_return_stds.append(std_return)
             evaluation_q_tables.append(copy.deepcopy(agents.q_tables))
-        else:
-            if config.get("video"):
-                video.reset()
+
 
     return (
         evaluation_return_means,
@@ -147,7 +137,7 @@ def train_mixed_agents(env, config):
     )
 
 
-def evaluate_mixed(env, config, trained_agents):
+def evaluate_mixed(env, config, trained_agents, eps_num):
     """
     Evaluate mixed play agents using their trained Q-tables.
 
@@ -158,6 +148,8 @@ def evaluate_mixed(env, config, trained_agents):
     """
     num_agents = len(config["player_pos"])
     eval_episodes = config["eval_episodes"]
+
+    video = VideoRecorder()
     
     # Create evaluation agents with low epsilon (greedy)
     eval_agents = MixedPlay(
@@ -176,15 +168,23 @@ def evaluate_mixed(env, config, trained_agents):
     eval_agents.q_tables = trained_agents.q_tables
 
     episodic_returns = []
-    for _ in range(eval_episodes):
+    for i in range(eval_episodes):
         obss, _ = env.reset()
         episodic_return = np.zeros(num_agents)
         done = False
 
         while not done:
+            if config.get("video") and i == eval_episodes - 1:
+                video.record_frame(env)
             actions = eval_agents.act(obss)
             obss, rewards, done, _, _ = env.step(actions)
             episodic_return += rewards
+
+            
+        if config.get("video") and i == eval_episodes - 1:
+            video.record_frame(env)
+            video.save(f"{config['dir']}/video/eval-run-{eps_num}.mp4")
+            video.reset()
 
         episodic_returns.append(episodic_return)
 
@@ -271,6 +271,6 @@ if __name__ == "__main__":
 
     # Visualize results
     fig = visualise_evaluation_returns(evaluation_return_means, evaluation_return_stds, CONFIG, dirpath)
-    visualise_q_tables(final_q_tables, max_states=10, show_all_actions=True)
+    visualise_q_tables(final_q_tables, save_path=CONFIG.get("dir") if CONFIG.get("save") else None)
     print(f"\nFinal Q-table sizes: Agent 1: {len(final_q_tables[0])}, Agent 2: {len(final_q_tables[1])}")
 

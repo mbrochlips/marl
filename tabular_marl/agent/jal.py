@@ -48,8 +48,8 @@ class JalAM:
         self.q_tables = [self.q_table]
 
     def opp_probs(self, obs) -> np.ndarray:
-        # for easier implementation, it only works for one opponent:
-        if self.num_agents != 2:
+        # for easier implementation, it only works for agent at a time:
+        if self.num_agents != 1:
             raise ValueError("JAL requires only one opponent!")
 
         # probability distribution over actions:

@@ -13,9 +13,8 @@ class MixedPlay:
     """
     A wrapper class that allows two different MARL self-play algorithms 
     to play against each other.
-    
-    Agent 1 (controlled by algorithm_1) plays as the first agent.
-    Agent 2 (controlled by algorithm_2) plays as the second agent.
+
+    Only two agents.
     """
 
     def __init__(
@@ -31,19 +30,7 @@ class MixedPlay:
         algorithm_2_kwargs: Dict[str, Any] = None,
         **kwargs,
     ):
-        """
-        Constructor of MixedPlay
-        
-        :param num_agents (int): total number of agents (should be 2 for typical mixed play)
-        :param action_spaces (List[Space]): action spaces of the environment for each agent
-        :param gamma (float): discount factor
-        :param learning_rate (float): learning rate for Q-learning updates
-        :param init_epsilon (float): initial epsilon value
-        :param algorithm_1 (Type): the algorithm class for agent 1
-        :param algorithm_2 (Type): the algorithm class for agent 2
-        :param algorithm_1_kwargs (Dict): additional kwargs for algorithm 1
-        :param algorithm_2_kwargs (Dict): additional kwargs for algorithm 2
-        """
+
         self.num_agents = num_agents
         self.action_spaces = action_spaces
         self.gamma = gamma
@@ -51,11 +38,11 @@ class MixedPlay:
         self.init_epsilon = init_epsilon
         self.epsilon = init_epsilon
         
-        # Default empty dicts for extra kwargs
+        #Default empty dicts for extra kwargs
         algorithm_1_kwargs = algorithm_1_kwargs or {}
         algorithm_2_kwargs = algorithm_2_kwargs or {}
         
-        # Create agent 1 using algorithm_1 (controls first agent)
+        #Create agent 1 using algorithm_1 (controls first agent)
         self.agent_1 = algorithm_1(
             num_agents=1,
             action_spaces=[action_spaces[0]],
@@ -82,7 +69,7 @@ class MixedPlay:
 
     @property
     def q_tables(self) -> List[DefaultDict]:
-        """Combined Q-tables from both agents for evaluation/logging."""
+        """Combined Q-tables from both agents for evaluation."""
         return self.agent_1.q_tables + self.agent_2.q_tables
 
     @q_tables.setter
@@ -96,12 +83,6 @@ class MixedPlay:
             self.agent_2.q_tables = [defaultdict(lambda: 0)]
 
     def act(self, obss: List) -> List[int]:
-        """
-        Get actions from both agents.
-        
-        :param obss (List): list of observations for each agent
-        :return (List[int]): index of selected action for each agent
-        """
         # Get action from agent 1 for obs[0]
         action_1 = self.agent_1.act([obss[0]])
         
@@ -124,15 +105,7 @@ class MixedPlay:
         n_obss: List[np.ndarray],
         done: bool,
     ):
-        """
-        Update both agents based on their individual experiences.
-        
-        :param obss (List[np.ndarray]): list of observations for each agent
-        :param actions (List[int]): index of applied action of each agent
-        :param rewards (List[float]): received reward for each agent
-        :param n_obss (List[np.ndarray]): list of observations after taking the action
-        :param done (bool): flag indicating whether a terminal state has been reached
-        """
+
         learn_kwargs_1 = {
             "obss": [obss[0]],
             "actions": [actions[0]],
@@ -160,16 +133,11 @@ class MixedPlay:
         
 
     def schedule_hyperparameters(self, timestep: int, max_timestep: int):
-        """
-        Schedule hyperparameters for both agents.
         
-        :param timestep (int): current timestep at the beginning of the episode
-        :param max_timestep (int): maximum timesteps that the training loop will run for
-        """
         self.agent_1.schedule_hyperparameters(timestep, max_timestep)
         self.agent_2.schedule_hyperparameters(timestep, max_timestep)
         
-        # Update shared epsilon for logging purposes
+        #Update shared epsilon for logging purposes
         self.epsilon = self.agent_1.epsilon
 
     def __repr__(self) -> str:

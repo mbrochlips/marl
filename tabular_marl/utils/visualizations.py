@@ -11,58 +11,42 @@ FIG_WSPACE=0.3
 FIG_HSPACE=0.2
 
 
-def visualise_q_tables(q_tables, max_states=10, show_all_actions=True):
+def visualise_q_tables(q_tables, save_path=None, max_states=None):
     """
-    Visualize Q-tables for all agents.
+    Visualize Q-tables for all agents and save to file.
     
     Handles various Q-table structures:
     - IQL: keys are str((state, action))
     - JAL/joint: keys may be str((state, own_action, other_actions)) or similar
     
     :param q_tables: List of Q-tables (defaultdicts), one per agent
-    :param max_states: Maximum number of unique states to display per agent
-    :param show_all_actions: If True, group by state and show all action Q-values together
+    :param save_path: Directory path to save Q-table files. If None, prints to terminal.
+    :param max_states: Maximum number of unique states to display per agent. None = show all.
     """
     from collections import defaultdict
-    import ast
     
     for i, q_table in enumerate(q_tables):
-        print(f"\n{'='*60}")
-        print(f"Q-table for Agent {i + 1}")
-        print(f"{'='*60}")
+        lines = []
+        lines.append(f"{'='*70}")
+        lines.append(f"Q-table for Agent {i + 1}")
+        lines.append(f"{'='*70}")
         
         if not q_table:
-            print("  (empty)")
+            lines.append("  (empty)")
+            _output_lines(lines, save_path, f"q_table_agent_{i+1}.txt")
             continue
         
         # Group entries by state
         # Key format: str((state, action)) or str((state, action, other_action))
+        # State can be a list or numpy array
         state_action_values = defaultdict(dict)
+        unique_base_states = set()  # Track actual unique states (without action info)
         
         for key_str, q_value in q_table.items():
-            try:
-                # Parse the string key back to tuple
-                key_tuple = ast.literal_eval(key_str)
-                
-                if len(key_tuple) == 2:
-                    # IQL format: (state, action)
-                    state, action = key_tuple
-                    state_key = str(state)
-                    action_key = action
-                elif len(key_tuple) == 3:
-                    # Joint action format: (state, own_action, other_action)
-                    state, own_action, other_action = key_tuple
-                    state_key = f"{state} | other={other_action}"
-                    action_key = own_action
-                else:
-                    # Unknown format - use as-is
-                    state_key = str(key_tuple[:-1])
-                    action_key = key_tuple[-1]
-                
-                state_action_values[state_key][action_key] = q_value
-            except:
-                # Fallback for unparseable keys
-                state_action_values["unparsed"][key_str] = q_value
+            state_key, action_key, base_state = _parse_q_key(key_str)
+            state_action_values[state_key][action_key] = q_value
+            if base_state:
+                unique_base_states.add(base_state)
         
         # Sort states by max Q-value (most valuable states first)
         sorted_states = sorted(
@@ -71,33 +55,117 @@ def visualise_q_tables(q_tables, max_states=10, show_all_actions=True):
             reverse=True
         )
         
-        # Display
+        # Summary statistics first
+        values = list(q_table.values())
+        lines.append(f"\nSUMMARY")
+        lines.append(f"{'─'*70}")
+        lines.append(f"  Total entries: {len(q_table)}")
+        lines.append(f"  Unique states visited: {len(unique_base_states)}")
+        lines.append(f"  Q-value range: [{min(values):.4f}, {max(values):.4f}]")
+        lines.append(f"  Mean Q-value:  {np.mean(values):.4f}")
+        lines.append(f"  Std Q-value:   {np.std(values):.4f}")
+        lines.append("")
+        
+        # Display states
+        lines.append(f"STATES (sorted by max Q-value)")
+        lines.append(f"{'─'*70}")
+        
         displayed_states = 0
         for state_key, action_values in sorted_states:
-            if displayed_states >= max_states:
+            if max_states is not None and displayed_states >= max_states:
                 remaining = len(sorted_states) - displayed_states
-                print(f"\n  ... and {remaining} more states")
+                lines.append(f"\n  ... and {remaining} more states (use max_states=None to show all)")
                 break
             
-            print(f"\n  State: {state_key}")
+            lines.append(f"\n  State: {state_key}")
             
             # Sort actions by Q-value
             sorted_actions = sorted(action_values.items(), key=lambda x: x[1], reverse=True)
             best_action = sorted_actions[0][0] if sorted_actions else None
             
             for action, q_val in sorted_actions:
-                marker = " *" if action == best_action else ""
-                print(f"    Action {action}: {q_val:8.4f}{marker}")
+                marker = " <-- best" if action == best_action else ""
+                lines.append(f"    Action {action}: {q_val:10.4f}{marker}")
             
             displayed_states += 1
         
-        # Summary statistics
-        if q_table:
-            values = list(q_table.values())
-            print(f"\n  {'─'*40}")
-            print(f"  Summary: {len(q_table)} entries across {len(state_action_values)} states")
-            print(f"  Q-range: [{min(values):.4f}, {max(values):.4f}]")
-            print(f"  Mean Q: {np.mean(values):.4f}, Std: {np.std(values):.4f}")
+        _output_lines(lines, save_path, f"q_table_agent_{i+1}.txt")
+
+
+def _parse_q_key(key_str):
+    """
+    Parse Q-table key string into (state_key, action_key, base_state).
+    
+    Handles formats:
+    - IQL with lists: "([1, 0, 1, 0], 2)"
+    - IQL with numpy: "(array([1., 0., 1., 0.], dtype=float32), 2)"
+    - JAL with lists: "([1, 0, 1, 0], 2, 3)"
+    - JAL with numpy: "(array([...]), 2, 3)"
+    
+    Returns (state_key, action_key, base_state_str)
+    """
+    import re
+    import ast
+    
+    try:
+        # Try standard ast parsing first (works for list-based states)
+        key_tuple = ast.literal_eval(key_str)
+        if len(key_tuple) == 2:
+            state, action = key_tuple
+            state_str = str(state)
+            return state_str, action, state_str
+        elif len(key_tuple) == 3:
+            state, own_action, opp_action = key_tuple
+            state_str = str(state)
+            return f"{state_str} | opp_action={opp_action}", own_action, state_str
+        else:
+            return str(key_tuple[:-1]), key_tuple[-1], str(key_tuple[0])
+    except:
+        pass
+    
+    # Handle numpy array format: "(array([...], dtype=...), action)" or "(array([...]), action, opp_action)"
+    try:
+        # Extract the array content
+        array_match = re.search(r'array\(\[(.*?)\]', key_str, re.DOTALL)
+        if array_match:
+            array_content = array_match.group(1)
+            # Clean up the array values (remove newlines, extra spaces)
+            array_values = re.sub(r'\s+', ' ', array_content).strip()
+            state_str = f"[{array_values}]"
+            
+            # Find actions at the end - look for numbers after the array closes
+            # Format: "...), action)" or "...), action, opp_action)"
+            after_array = key_str[key_str.rfind(']'):]
+            numbers = re.findall(r'(\d+)', after_array)
+            
+            if len(numbers) >= 2:
+                # JAL format: (state, own_action, opp_action)
+                own_action = int(numbers[-2])
+                opp_action = int(numbers[-1])
+                return f"{state_str} | opp_action={opp_action}", own_action, state_str
+            elif len(numbers) == 1:
+                # IQL format: (state, action)
+                action = int(numbers[0])
+                return state_str, action, state_str
+    except:
+        pass
+    
+    # Final fallback
+    return "unparsed", key_str, None
+
+
+def _output_lines(lines, save_path, filename):
+    """Helper to either print lines or save to file."""
+    content = "\n".join(lines)
+    
+    if save_path is None:
+        print(content)
+    else:
+        os.makedirs(save_path, exist_ok=True)
+        filepath = os.path.join(save_path, filename)
+        with open(filepath, "w") as f:
+            f.write(content)
+        print(f"Saved: {filepath}")
 
 
 def visualise_evaluation_returns(means, stds, config, dirpath:str):
