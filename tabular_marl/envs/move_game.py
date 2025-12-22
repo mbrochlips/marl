@@ -11,50 +11,56 @@ class MoveChairGame(gym.Env):
         :param payoff_matrix: np.array of shape (n_actions_1, n_actions_2, 2)
         :param ep_length: length of episode (before done is True)
         """
-        self.terminal_states = [gym.spaces.Tuple([
-            [2,1,2,0,2,1],[2,0,2,1,2,1]]),
-            gym.spaces.Tuple([
-            [2,0,2,1,2,1],[2,1,2,0,2,1]])]
+        # Terminal: agent with chair at open door --> successful exit
+        self.terminal_states = [
+            [[2,1,2,0,2,1], [2,0,2,1,2,1]],
+            [[2,0,2,1,2,1], [2,1,2,0,2,1]]
+        ]
 
-        self.step_cost = step_cost
+        self.step_cost = -step_cost
 
         self.n_agents = 2
-        n_actions_1, n_actions_2, _ = [4,4]
+        n_actions_1, n_actions_2 = 4, 4
         # noop/HoldDoor, Left, Right, Pickup/PutDown
 
+        # Observation space: each agent observes [self_Pos, self_HasChair, opp_Pos, opp_HasChair, ChairPos, DoorOpen]
         self.observation_space = gym.spaces.Tuple([
-            [gym.spaces.Discrete(3),
-            gym.spaces.Discrete(2),
-            gym.spaces.Discrete(3),
-            gym.spaces.Discrete(2),
-            gym.spaces.Discrete(3),
-            gym.spaces.Discrete(2)] for _ in range(self.n_agents)])
-        # self_Pos, self_HasChair, opp_Pos, opp_HasChair, ChairPos, DoorOpen
+            gym.spaces.Tuple([
+                gym.spaces.Discrete(3),
+                gym.spaces.Discrete(2),
+                gym.spaces.Discrete(3),
+                gym.spaces.Discrete(2),
+                gym.spaces.Discrete(3),
+                gym.spaces.Discrete(2)
+            ]) for _ in range(self.n_agents)
+        ])
 
         self.action_space = gym.spaces.Tuple([gym.spaces.Discrete(n_actions_1), gym.spaces.Discrete(n_actions_2)])
         self.ep_length = ep_length
         self.last_actions = None
 
         self.t = 0
-        self.init_state = gym.spaces.Tuple([
-            [1,0,1,0,0,0] for _ in range(self.n_agents)])
+        # Initial state is an actual state value, not a Space object
+        self.init_state = [[1,0,1,0,0,0] for _ in range(self.n_agents)]
         
     
     def reset(self, seed=None):
         self.t = 0
-        self.state = self.init_state
-        return [0] * self.n_agents, {}
+        # Deep copy to avoid mutating init_state
+        self.state = [row.copy() for row in self.init_state]
+        return self.state, {}
 
     def step(self, actions):
         assert len(actions) == self.n_agents, f"Expected {self.n_agents} actions, got {len(actions)}"
         self.t += 1
         self.last_actions = actions
-        rewards = [self.step_cost for _ in self.n_agents]
+        rewards = [self.step_cost for _ in range(self.n_agents)]
 
         #handle both reaching for chair
         try_chair = [False, False]
 
         common_state = self.state[0].copy()
+        common_state[5] = 0
 
         #update the state:
         for i, a in enumerate(actions):
@@ -94,17 +100,18 @@ class MoveChairGame(gym.Env):
                 else:
                     continue
         
+        # Update common_state with chair pickup (before building self.state)
         if not try_chair[0] and try_chair[1]:
-            self.state[1][1] = 1
+            common_state[3] = 1  # agent 1 picks up chair
         if try_chair[0] and not try_chair[1]:
-            self.state[0][1] = 1
+            common_state[1] = 1  # agent 0 picks up chair
 
         # use common_state to update the state
-        self.state[0] = common_state
+        self.state[0] = common_state.copy()
         self.state[1] = common_state[2:4] + common_state[0:2] + common_state[4:6]
 
         if self.state in self.terminal_states:
-            rewards += 1
+            rewards = [r + 100 for r in rewards]
             done = True
         elif self.t >= self.ep_length:
             done = True
@@ -114,4 +121,6 @@ class MoveChairGame(gym.Env):
         return self.state, rewards, done, False, {}
 
     def render(self):
-        print(f"Step {self.t} - actions: {self.last_actions}")
+        print(f"State: {self.state}")
+        print(f"Step {self.t} - Last actions: {self.last_actions}")
+        print("-----------------")

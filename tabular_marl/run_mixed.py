@@ -35,7 +35,7 @@ CONFIG = {
     "runname": datetime.now().strftime("%d%b%Y").lower(),  # e.g."15dec2025"
     
     # Mixed play configuration
-    "algorithm_1": "JalAM",   # Algorithm for agent 1
+    "algorithm_1": "IQL",   # Algorithm for agent 1
     "algorithm_2": "IQL",   # Algorithm for agent 2
     "algorithm_1_kwargs": {},  # Extra kwargs for algorithm 1
     "algorithm_2_kwargs": {}, #"p": 0.9},  # Extra kwargs for algorithm 2 (e.g., Random's p)
@@ -46,10 +46,10 @@ CONFIG = {
     "visualise": False,
     "output": True,
 
-    "ep_length": 50,
-    "total_eps": 1000,
-    "eval_freq": 10,
-    "eval_episodes": 50,
+    "ep_length": 100,
+    "total_eps": 10000,
+    "eval_freq": 1000,
+    "eval_episodes": 100,
 
     "seed": None,
     "lr": 0.1,
@@ -128,8 +128,8 @@ def train_mixed_agents(env, config):
             print(f"Episode {eps_num}/{config['total_eps']}")
             print(f"  {config['algorithm_1']} (Agent 1) epsilon: {agents.agent_1.epsilon:.4f}")
             print(f"  {config['algorithm_2']} (Agent 2) epsilon: {agents.agent_2.epsilon:.4f}")
-            print(f"  Q-tables agent_1 ({config['algorithm_1']}): {list(agents.q_tables[0].values())}")
-            print(f"  Q-tables agent_2 ({config['algorithm_2']}): {list(agents.q_tables[1].values())}")
+            #print(f"  Q-tables agent_1 ({config['algorithm_1']}): {list(agents.q_tables[0].values())}")
+            #print(f"  Q-tables agent_2 ({config['algorithm_2']}): {list(agents.q_tables[1].values())}")
 
             mean_return, std_return = evaluate_mixed(env, config, agents)
             evaluation_return_means.append(mean_return)
