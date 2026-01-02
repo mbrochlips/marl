@@ -111,7 +111,7 @@ class MoveChairGame(gym.Env):
         self.state[1] = common_state[2:4] + common_state[0:2] + common_state[4:6]
 
         if self.state in self.terminal_states:
-            rewards = [r + 100 for r in rewards]
+            rewards = [r + 1 for r in rewards]
             done = True
         elif self.t >= self.ep_length:
             done = True
