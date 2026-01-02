@@ -168,13 +168,18 @@ def _output_lines(lines, save_path, filename):
         print(f"Saved: {filepath}")
 
 
-def visualise_evaluation_returns(means, stds, config, dirpath:str):
+def visualise_evaluation_returns(returns, config, dirpath:str):
     """
     Plot evaluation returns
 
-    :param means (List[List[float]]): mean evaluation returns for each agent
-    :param stds (List[List[float]]): standard deviation of evaluation returns for each agent
-    """
+    :param returns (List[List[List]]): returns for each agent [ [ [returni_eval1_1, returni_eval1_2,,,] , 
+                                                                   [returnj_eval1_1, returnj_eval1_2,,,]] ,
+                                                                [ [returni_eval1_1, returni_eval1_2,,,] , 
+                                                                [returnj_eval1_1, returnj_eval1_2,,,]]
+    """ 
+    means = [np.mean(episodic_returns, axis=0) for episodic_returns in returns]
+    stds = [np.std(episodic_returns, axis=0) for episodic_returns in returns]
+
     n_agents = len(means[0])
     n_evals = len(means)
 
@@ -203,6 +208,7 @@ def visualise_evaluation_returns(means, stds, config, dirpath:str):
                 for a in range(n_agents):
                     header.append(f"agent{a+1}_mean")
                     header.append(f"agent{a+1}_std")
+                    header.append(f"agent{a+1}_returns")
                 writer.writerow(header)
 
                 for idx in range(n_evals):
@@ -210,6 +216,7 @@ def visualise_evaluation_returns(means, stds, config, dirpath:str):
                     for a in range(n_agents):
                         row.append(float(means[idx][a]))
                         row.append(float(stds[idx][a]))
+                        row.append(list(r[a] for r in returns[idx]))
                     writer.writerow(row)
         except Exception as e:
             # don't raise from plotting helper; just print a warning

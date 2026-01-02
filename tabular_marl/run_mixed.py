@@ -32,12 +32,12 @@ ALGORITHMS = {
 }
 
 CONFIG = {
-    "runname": datetime.now().strftime("%d%b%Y").lower(),  # e.g."15dec2025"
+    "runname": datetime.now().strftime("%d%b%Y").lower(),  #e.g."15dec2025"
     
     # Mixed play configuration
     "algorithm_1": "IQL",   # Algorithm for agent 1
     "algorithm_2": "IQL",   # Algorithm for agent 2
-    "algorithm_1_kwargs": {},  # Extra kwargs for algorithm 1
+    "algorithm_1_kwargs": {},  #extra kwargs for algorithm 1
     "algorithm_2_kwargs": {}, #"p": 0.9},  # Extra kwargs for algorithm 2 (e.g., Random's p)
     
     "env": "cf",  # game type: "f" = foraging, "cf" = custom_foraging, "m" = matrix, "mc" = MoveChairGame
@@ -89,8 +89,7 @@ def train_mixed_agents(env, config):
     step_counter = 0
     max_steps = config["total_eps"] * config["ep_length"]
 
-    evaluation_return_means = []
-    evaluation_return_stds = []
+    evaluation_returns = []
     evaluation_q_tables = []
 
     all_rewards = 0
@@ -123,15 +122,13 @@ def train_mixed_agents(env, config):
             #print(f"  Q-tables agent_1 ({config['algorithm_1']}): {list(agents.q_tables[0].values())}")
             #print(f"  Q-tables agent_2 ({config['algorithm_2']}): {list(agents.q_tables[1].values())}")
 
-            mean_return, std_return = evaluate_mixed(env, config, agents, eps_num)
-            evaluation_return_means.append(mean_return)
-            evaluation_return_stds.append(std_return)
+            episodic_return = evaluate_mixed(env, config, agents, eps_num)
+            evaluation_returns.append(episodic_return)
             evaluation_q_tables.append(copy.deepcopy(agents.q_tables))
 
 
     return (
-        evaluation_return_means,
-        evaluation_return_stds,
+        evaluation_returns,
         evaluation_q_tables,
         agents.q_tables,
     )
@@ -198,7 +195,7 @@ def evaluate_mixed(env, config, trained_agents, eps_num):
     
     print("--------------------------------")
 
-    return mean_return, std_return
+    return episodic_returns
 
 
 if __name__ == "__main__":
@@ -265,12 +262,12 @@ if __name__ == "__main__":
     print("-" * 50)
 
     # Train mixed play agents
-    evaluation_return_means, evaluation_return_stds, eval_q_tables, final_q_tables = train_mixed_agents(
+    evaluation_returns, eval_q_tables, final_q_tables = train_mixed_agents(
         env, CONFIG
     )
 
     # Visualize results
-    fig = visualise_evaluation_returns(evaluation_return_means, evaluation_return_stds, CONFIG, dirpath)
+    fig = visualise_evaluation_returns(evaluation_returns, CONFIG, dirpath)
     visualise_q_tables(final_q_tables, save_path=CONFIG.get("dir") if CONFIG.get("save") else None)
     print(f"\nFinal Q-table sizes: Agent 1: {len(final_q_tables[0])}, Agent 2: {len(final_q_tables[1])}")
 
