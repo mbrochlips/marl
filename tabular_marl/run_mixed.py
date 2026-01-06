@@ -17,6 +17,7 @@ from agent.mixed_play_wrapper import MixedPlay
 from agent.iql import IQL
 from agent.random_agent import Random
 from agent.jal import JalAM
+from agent.jal_unc import JalUnc
 
 from envs.matrix_game import create_matrix_game
 from envs.custom_foraging_env import CustomForagingEnv
@@ -28,7 +29,8 @@ dirpath = "tabular_marl/"
 ALGORITHMS = {
     "Random": Random,
     "IQL": IQL,
-    "JalAM": JalAM
+    "JalAM": JalAM,
+    "JalUnc": JalUnc
 }
 
 CONFIG = {
@@ -40,16 +42,16 @@ CONFIG = {
     "algorithm_1_kwargs": {},  #extra kwargs for algorithm 1
     "algorithm_2_kwargs": {}, #"p": 0.9},  # Extra kwargs for algorithm 2 (e.g., Random's p)
     
-    "env": "cf",  # game type: "f" = foraging, "cf" = custom_foraging, "m" = matrix, "mc" = MoveChairGame
+    "env": "mc",  # game type: "f" = foraging, "cf" = custom_foraging, "m" = matrix, "mc" = MoveChairGame
 
-    "save": True,
-    "visualise": False,
-    "output": True,
+    "save": True, #save the videos and csv
+    "visualise": True, #render
+    "output": True, #save the 
 
-    "ep_length": 100,
-    "total_eps": 100,
-    "eval_freq": 10,
-    "eval_episodes": 10,
+    "ep_length": 50,
+    "total_eps": 20000,
+    "eval_freq": 1000,
+    "eval_episodes": 50,
 
     "seed": None,
     "lr": 0.1,
@@ -161,8 +163,8 @@ def evaluate_mixed(env, config, trained_agents, eps_num):
         algorithm_2_kwargs=config.get("algorithm_2_kwargs", {}),
     )
     
-    # Copy trained Q-tables to evaluation agents
-    eval_agents.q_tables = trained_agents.q_tables
+    # Copy trained model (Q-tables + opponent model for JAL) to evaluation agents
+    eval_agents.copy_model_from(trained_agents)
 
     episodic_returns = []
     for i in range(eval_episodes):
@@ -224,10 +226,10 @@ if __name__ == "__main__":
         env = CustomForagingEnv(
             field_size=(5, 5),  
             players=len(CONFIG["player_pos"]),       
-            min_player_level=2,
+            min_player_level=3,
             max_player_level=3,
             min_food_level=1,
-            max_food_level=4,
+            max_food_level=5,
             max_num_food=len(CONFIG["food_pos"]),  
             sight=5,         
             max_episode_steps=CONFIG["ep_length"],  

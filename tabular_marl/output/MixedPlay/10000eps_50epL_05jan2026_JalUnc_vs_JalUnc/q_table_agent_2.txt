@@ -1,0 +1,3480 @@
+======================================================================
+Q-table for Agent 2
+======================================================================
+
+SUMMARY
+──────────────────────────────────────────────────────────────────────
+  Total entries: 2308
+  Unique states visited: 146
+  Q-value range: [-0.0975, 1.0247]
+  Mean Q-value:  0.0176
+  Std Q-value:   0.1003
+
+STATES (sorted by max Q-value)
+──────────────────────────────────────────────────────────────────────
+
+  State: [1, 1, 2, 0, 1, 1] | opp_action=0
+    Action 3:     1.0247 <-- best
+    Action 2:     1.0232
+    Action 1:     0.8893
+    Action 0:     0.0247
+
+  State: [0, 1, 1, 0, 0, 0] | opp_action=0
+    Action 3:     0.8847 <-- best
+    Action 0:     0.0006
+    Action 1:     0.0000
+    Action 2:     0.0000
+
+  State: [0, 1, 1, 0, 0, 0] | opp_action=2
+    Action 3:     0.8821 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 2:     0.0000
+
+  State: [0, 1, 1, 0, 0, 0] | opp_action=1
+    Action 3:     0.8804 <-- best
+    Action 0:     0.0000
+    Action 2:     0.0000
+    Action 1:    -0.0044
+
+  State: [0, 1, 1, 0, 0, 0] | opp_action=3
+    Action 3:     0.8655 <-- best
+    Action 1:     0.0176
+    Action 0:     0.0000
+    Action 2:     0.0000
+
+  State: [0, 1, 2, 0, 0, 0] | opp_action=2
+    Action 3:     0.8261 <-- best
+    Action 0:     0.0009
+    Action 2:     0.0000
+    Action 1:    -0.0134
+
+  State: [0, 1, 2, 0, 0, 0] | opp_action=3
+    Action 3:     0.8201 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 2:     0.0000
+
+  State: [0, 1, 0, 0, 0, 0] | opp_action=1
+    Action 3:     0.8132 <-- best
+    Action 1:     0.0002
+    Action 0:     0.0000
+    Action 2:     0.0000
+
+  State: [0, 1, 0, 0, 0, 0] | opp_action=3
+    Action 3:     0.8074 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 2:     0.0000
+
+  State: [0, 1, 0, 0, 0, 0] | opp_action=0
+    Action 3:     0.8070 <-- best
+    Action 0:     0.0006
+    Action 1:     0.0000
+    Action 2:     0.0000
+
+  State: [1, 1, 2, 0, 1, 0] | opp_action=3
+    Action 2:     0.7917 <-- best
+    Action 3:     0.7817
+    Action 1:     0.0191
+    Action 0:     0.0142
+
+  State: [1, 1, 2, 0, 1, 0] | opp_action=2
+    Action 2:     0.7771 <-- best
+    Action 3:     0.7584
+    Action 1:     0.5965
+    Action 0:     0.5620
+
+  State: [1, 1, 1, 0, 1, 0] | opp_action=3
+    Action 3:     0.7072 <-- best
+    Action 2:     0.6892
+    Action 1:     0.5478
+    Action 0:     0.2571
+
+  State: [1, 1, 1, 0, 1, 0] | opp_action=1
+    Action 3:     0.7064 <-- best
+    Action 2:     0.6251
+    Action 1:     0.5696
+    Action 0:     0.0145
+
+  State: [1, 1, 1, 0, 1, 0] | opp_action=0
+    Action 2:     0.7048 <-- best
+    Action 1:     0.5807
+    Action 3:     0.5570
+    Action 0:     0.4999
+
+  State: [1, 1, 1, 0, 1, 0] | opp_action=2
+    Action 3:     0.7021 <-- best
+    Action 2:     0.6837
+    Action 1:     0.5739
+    Action 0:     0.0213
+
+  State: [1, 1, 0, 0, 1, 0] | opp_action=1
+    Action 3:     0.6808 <-- best
+    Action 2:     0.6772
+    Action 1:     0.5159
+    Action 0:     0.3675
+
+  State: [1, 1, 0, 0, 1, 0] | opp_action=3
+    Action 3:     0.6703 <-- best
+    Action 1:     0.4912
+    Action 2:     0.0136
+    Action 0:     0.0031
+
+  State: [1, 1, 0, 0, 1, 0] | opp_action=0
+    Action 2:     0.6666 <-- best
+    Action 3:     0.6465
+    Action 1:     0.5119
+    Action 0:     0.0016
+
+  State: [0, 1, 2, 0, 0, 1] | opp_action=0
+    Action 3:     0.5358 <-- best
+    Action 0:     0.0060
+    Action 1:     0.0038
+    Action 2:     0.0000
+
+  State: [2, 0, 2, 1, 2, 1] | opp_action=2
+    Action 0:     0.5000 <-- best
+
+  State: [2, 1, 2, 0, 2, 1] | opp_action=0
+    Action 2:     0.5000 <-- best
+    Action 3:     0.3971
+
+  State: [2, 0, 2, 1, 2, 1] | opp_action=3
+    Action 0:     0.4992 <-- best
+
+  State: [2, 1, 2, 0, 2, 0] | opp_action=3
+    Action 2:     0.4026 <-- best
+    Action 3:     0.3863
+    Action 0:     0.0000
+    Action 1:     0.0000
+
+  State: [2, 1, 2, 0, 2, 0] | opp_action=2
+    Action 3:     0.3402 <-- best
+    Action 2:     0.3290
+    Action 0:     0.0021
+    Action 1:     0.0000
+
+  State: [2, 1, 1, 1, 2, 0] | opp_action=3
+    Action 2:     0.3322 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 1, 2, 0] | opp_action=0
+    Action 2:     0.2948 <-- best
+    Action 0:     0.0149
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 0, 2, 0] | opp_action=2
+    Action 3:     0.2589 <-- best
+    Action 2:     0.2308
+    Action 0:     0.0000
+    Action 1:     0.0000
+
+  State: [2, 1, 1, 1, 2, 0] | opp_action=2
+    Action 2:     0.2477 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 0, 2, 0] | opp_action=0
+    Action 2:     0.2364 <-- best
+    Action 3:     0.1873
+    Action 0:     0.0020
+    Action 1:     0.0000
+
+  State: [2, 1, 1, 0, 2, 0] | opp_action=3
+    Action 2:     0.2252 <-- best
+    Action 3:     0.1891
+    Action 0:     0.0000
+    Action 1:     0.0000
+
+  State: [2, 1, 2, 1, 2, 0] | opp_action=2
+    Action 3:     0.2205 <-- best
+    Action 2:     0.1373
+    Action 0:     0.0000
+    Action 1:     0.0000
+
+  State: [1, 0, 2, 0, 0, 1] | opp_action=0
+    Action 1:     0.2195 <-- best
+    Action 0:     0.2170
+    Action 3:     0.2164
+    Action 2:     0.2106
+
+  State: [2, 1, 1, 0, 2, 0] | opp_action=1
+    Action 2:     0.2100 <-- best
+    Action 3:     0.1084
+    Action 0:     0.0000
+    Action 1:     0.0000
+
+  State: [1, 1, 0, 1, 1, 0] | opp_action=3
+    Action 2:     0.1827 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 0, 1] | opp_action=1
+    Action 0:     0.1754 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 0, 1] | opp_action=3
+    Action 0:     0.1748 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 0, 1] | opp_action=0
+    Action 0:     0.1746 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 0, 1] | opp_action=2
+    Action 0:     0.1707 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 0, 2, 0] | opp_action=1
+    Action 3:     0.1512 <-- best
+    Action 2:     0.1416
+    Action 0:     0.0018
+    Action 1:     0.0000
+
+  State: [2, 1, 2, 0, 1, 1] | opp_action=0
+    Action 2:     0.1469 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 1, 1] | opp_action=0
+    Action 1:     0.1389 <-- best
+    Action 3:     0.1318
+    Action 0:     0.1310
+    Action 2:     0.1184
+
+  State: [2, 1, 0, 0, 2, 0] | opp_action=3
+    Action 2:     0.1366 <-- best
+    Action 3:     0.0698
+    Action 0:     0.0000
+    Action 1:     0.0000
+
+  State: [2, 1, 2, 1, 2, 0] | opp_action=3
+    Action 2:     0.1361 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 1, 1, 1, 0] | opp_action=2
+    Action 3:     0.1177 <-- best
+    Action 0:     0.0523
+    Action 1:     0.0126
+    Action 2:     0.0000
+
+  State: [2, 1, 0, 0, 2, 0] | opp_action=0
+    Action 2:     0.1175 <-- best
+    Action 3:     0.0335
+    Action 0:     0.0000
+    Action 1:     0.0000
+
+  State: [2, 0, 1, 1, 1, 1] | opp_action=1
+    Action 0:     0.1135 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 1, 1] | opp_action=3
+    Action 0:     0.1103 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 1, 1] | opp_action=2
+    Action 0:     0.1026 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 1, 1, 1, 0] | opp_action=0
+    Action 3:     0.1019 <-- best
+    Action 0:     0.0017
+    Action 2:     0.0000
+    Action 1:    -0.0311
+
+  State: [2, 0, 1, 0, 1, 1] | opp_action=0
+    Action 0:     0.0989 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 1, 1] | opp_action=1
+    Action 0:     0.0968 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 1, 1] | opp_action=2
+    Action 0:     0.0932 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 1, 1] | opp_action=3
+    Action 0:     0.0898 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 1, 3, 0] | opp_action=2
+    Action 2:     0.0821 <-- best
+    Action 0:     0.0198
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 3, 0] | opp_action=3
+    Action 2:     0.0772 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 1, 0] | opp_action=2
+    Action 2:     0.0699 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 0, 1] | opp_action=0
+    Action 3:     0.0653 <-- best
+    Action 2:     0.0622
+    Action 0:     0.0518
+    Action 1:     0.0000
+
+  State: [2, 0, 2, 0, 0, 1] | opp_action=2
+    Action 0:     0.0644 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 0, 1] | opp_action=3
+    Action 0:     0.0628 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 3, 1] | opp_action=0
+    Action 2:     0.0497 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 2, 1] | opp_action=2
+    Action 0:     0.0470 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 2, 1] | opp_action=3
+    Action 0:     0.0467 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 2, 1] | opp_action=1
+    Action 0:     0.0462 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 2, 1] | opp_action=0
+    Action 0:     0.0419 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 2, 1] | opp_action=3
+    Action 0:     0.0418 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 2, 1] | opp_action=0
+    Action 2:     0.0413 <-- best
+    Action 1:     0.0403
+    Action 0:     0.0385
+    Action 3:     0.0350
+
+  State: [2, 1, 1, 1, 3, 0] | opp_action=2
+    Action 2:     0.0397 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 3, 1] | opp_action=2
+    Action 0:     0.0392 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 0, 1, 0] | opp_action=1
+    Action 2:     0.0388 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 0, 1, 0] | opp_action=3
+    Action 2:     0.0375 <-- best
+    Action 0:     0.0006
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 2, 1] | opp_action=2
+    Action 0:     0.0359 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 2, 1] | opp_action=0
+    Action 0:     0.0349 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 0, 1] | opp_action=1
+    Action 0:     0.0323 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 1, 1] | opp_action=0
+    Action 0:     0.0315 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 2, 1] | opp_action=0
+    Action 2:     0.0309 <-- best
+    Action 0:     0.0238
+    Action 3:     0.0199
+    Action 1:     0.0000
+
+  State: [2, 0, 2, 0, 1, 1] | opp_action=3
+    Action 0:     0.0308 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 1, 0] | opp_action=3
+    Action 2:     0.0286 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 0, 0, 0] | opp_action=2
+    Action 2:     0.0282 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 1, 1] | opp_action=2
+    Action 0:     0.0275 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 3, 0] | opp_action=2
+    Action 2:     0.0268 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 1, 1] | opp_action=0
+    Action 2:     0.0266 <-- best
+    Action 3:     0.0248
+    Action 0:     0.0194
+    Action 1:     0.0000
+
+  State: [2, 1, 0, 1, 2, 0] | opp_action=0
+    Action 3:     0.0246 <-- best
+    Action 2:     0.0167
+    Action 0:     0.0000
+    Action 1:     0.0000
+
+  State: [2, 1, 0, 0, 1, 0] | opp_action=0
+    Action 2:     0.0242 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 2, 1] | opp_action=0
+    Action 0:     0.0225 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 1, 1, 1, 0] | opp_action=1
+    Action 3:     0.0220 <-- best
+    Action 2:     0.0059
+    Action 0:     0.0000
+    Action 1:    -0.0095
+
+  State: [2, 0, 1, 1, 3, 1] | opp_action=2
+    Action 0:     0.0212 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 2, 1] | opp_action=3
+    Action 0:     0.0202 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 3, 0] | opp_action=3
+    Action 2:     0.0200 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 4, 1] | opp_action=2
+    Action 0:     0.0198 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 2, 1] | opp_action=1
+    Action 0:     0.0193 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 0, 0, 0] | opp_action=0
+    Action 2:     0.0193 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 0, 0, 0] | opp_action=1
+    Action 2:     0.0185 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 0, 0, 0] | opp_action=3
+    Action 2:     0.0178 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 1, 1, 1, 0] | opp_action=3
+    Action 0:     0.0175 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 0, 1, 0] | opp_action=0
+    Action 2:     0.0173 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 1, 1, 0] | opp_action=3
+    Action 2:     0.0172 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 0, 1, 0] | opp_action=1
+    Action 2:     0.0160 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 2, 1] | opp_action=0
+    Action 3:     0.0160 <-- best
+    Action 0:     0.0154
+    Action 1:     0.0146
+    Action 2:     0.0000
+
+  State: [1, 1, 2, 1, 1, 0] | opp_action=2
+    Action 3:     0.0141 <-- best
+    Action 0:     0.0000
+    Action 2:     0.0000
+    Action 1:    -0.0458
+
+  State: [1, 1, 2, 0, 2, 0] | opp_action=3
+    Action 0:     0.0132 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0072
+
+  State: [2, 1, 1, 0, 1, 0] | opp_action=2
+    Action 2:     0.0122 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 1, 4, 0] | opp_action=2
+    Action 2:     0.0104 <-- best
+    Action 0:     0.0050
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 1, 2, 0] | opp_action=2
+    Action 2:     0.0100 <-- best
+    Action 1:     0.0002
+    Action 0:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 1, 1, 2, 0] | opp_action=2
+    Action 0:     0.0099 <-- best
+    Action 1:     0.0008
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 3, 1] | opp_action=1
+    Action 0:     0.0083 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 2, 1] | opp_action=1
+    Action 0:     0.0079 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 0, 0, 0] | opp_action=3
+    Action 2:     0.0072 <-- best
+    Action 1:     0.0000
+    Action 3:     0.0000
+    Action 0:    -0.0097
+
+  State: [2, 1, 2, 1, 2, 0] | opp_action=0
+    Action 0:     0.0064 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 2, 1] | opp_action=1
+    Action 0:     0.0059 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 2, 1] | opp_action=0
+    Action 0:     0.0059 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0057
+
+  State: [1, 1, 0, 1, 1, 0] | opp_action=0
+    Action 1:     0.0057 <-- best
+    Action 0:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 1, 2, 0] | opp_action=1
+    Action 3:     0.0050 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 2:     0.0000
+
+  State: [0, 1, 2, 1, 0, 0] | opp_action=2
+    Action 0:     0.0050 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 1, 1, 0, 0] | opp_action=0
+    Action 3:     0.0050 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 2:     0.0000
+
+  State: [1, 1, 1, 1, 2, 0] | opp_action=3
+    Action 2:     0.0050 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 0, 0, 0, 0] | opp_action=0
+    Action 2:     0.0050 <-- best
+    Action 0:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0094
+
+  State: [1, 1, 2, 1, 3, 0] | opp_action=2
+    Action 0:     0.0050 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0045
+
+  State: [2, 1, 1, 0, 3, 0] | opp_action=1
+    Action 2:     0.0050 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 0, 1] | opp_action=3
+    Action 0:     0.0049 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 4, 1] | opp_action=0
+    Action 0:     0.0046 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 1, 1] | opp_action=2
+    Action 0:     0.0040 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 0, 1] | opp_action=0
+    Action 3:     0.0035 <-- best
+    Action 1:     0.0033
+    Action 0:     0.0024
+    Action 2:     0.0000
+
+  State: [0, 1, 2, 1, 1, 0] | opp_action=2
+    Action 1:     0.0035 <-- best
+    Action 0:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 0, 1, 1, 0] | opp_action=1
+    Action 0:     0.0032 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 1, 1] | opp_action=0
+    Action 3:     0.0028 <-- best
+    Action 1:     0.0026
+    Action 0:     0.0024
+    Action 2:     0.0000
+
+  State: [2, 0, 0, 1, 0, 1] | opp_action=0
+    Action 0:     0.0021 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 1, 1] | opp_action=0
+    Action 0:     0.0021 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 1, 2, 0] | opp_action=3
+    Action 0:     0.0020 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 0, 1] | opp_action=0
+    Action 0:     0.0014 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 0, 1] | opp_action=3
+    Action 0:     0.0014 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 3, 1] | opp_action=0
+    Action 0:     0.0013 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 0, 1] | opp_action=1
+    Action 0:     0.0013 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 2, 0] | opp_action=2
+    Action 0:     0.0011 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 1, 3, 0] | opp_action=0
+    Action 2:     0.0007 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 1, 1] | opp_action=1
+    Action 0:     0.0007 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 1, 1] | opp_action=0
+    Action 0:     0.0007 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 1, 1] | opp_action=3
+    Action 0:     0.0006 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 0, 3, 0] | opp_action=0
+    Action 2:     0.0004 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 1, 1, 0, 0] | opp_action=1
+    Action 3:     0.0003 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 0:    -0.0050
+
+  State: [1, 1, 1, 1, 2, 0] | opp_action=0
+    Action 0:     0.0002 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 0, 0, 0, 0] | opp_action=1
+    Action 0:     0.0001 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0436
+
+  State: [1, 0, 1, 0, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 0, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 0, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 0, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 1, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 1, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 1, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 1, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 1, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 1, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 1, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 1, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 0, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 0, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 0, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 0, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 0, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 0, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 0, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 0, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 0, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 0, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 1, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 1, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 1, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 1, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 0, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 0, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 0, 0, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 0, 0, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 0, 0, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 0, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 0, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 0, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 0, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 0, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 0, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 0, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 1, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 0, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 0, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 0, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 0, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 1, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 1, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 1, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 1, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 1, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 1, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 1, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 0, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 2, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 0, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 0, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 0, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 0, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 0, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 0, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 0, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 0, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 1, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 1, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 1, 1, 0] | opp_action=1
+    Action 1:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0234
+    Action 2:    -0.0266
+
+  State: [2, 1, 0, 1, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 1, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 1, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 0, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 0, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 0, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 0, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 0, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 2, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 0, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 0, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 0, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 0, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 0, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 1, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 0, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 0, 0, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 1, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 1, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 1, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 1, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 1, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 1, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 1, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 1, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 1, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 1, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 1, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 0, 0, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 0, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 0, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 0, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 0, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 0, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 0, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 0, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 0, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 1, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 1, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 1, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 1, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 0, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 0, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 0, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 0, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 3, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 3, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 3, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 3, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 2, 1] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 2, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 2, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 3, 1] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 3, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 3, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 1, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 1, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 1, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 1, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 1, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 1, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 1, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 1, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 1, 3, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 1, 3, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 1, 3, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 1, 3, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 1, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 1, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 1, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 1, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 1, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0095
+
+  State: [1, 1, 2, 1, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 1, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0452
+
+  State: [2, 1, 0, 0, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 1, 0, -1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 1, 0, -1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0050
+
+  State: [1, 1, 1, 0, -1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0086
+
+  State: [1, 1, 1, 0, -1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 1, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 1, 1, 0] | opp_action=1
+    Action 1:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0050
+    Action 2:    -0.0166
+
+  State: [2, 1, 1, 1, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 1, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 1, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 1, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 1, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 1, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 0, 1, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 0, 1, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0100
+
+  State: [0, 1, 0, 1, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 0, 1, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 1, 1, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0091
+
+  State: [1, 1, 1, 1, 0, 0] | opp_action=1
+    Action 2:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0306
+    Action 1:    -0.0958
+
+  State: [1, 1, 1, 1, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 1, 1, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0417
+
+  State: [0, 1, 1, 1, -1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0050
+
+  State: [0, 1, 1, 1, -1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 1, 1, -1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 1, 1, -1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 1, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 1, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 1, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 1, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 1, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 1, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 1, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 2, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 2, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 0, 2, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 2, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 2, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 0, 2, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 1, 0, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0436
+
+  State: [1, 1, 1, 0, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0095
+
+  State: [1, 1, 1, 0, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0205
+
+  State: [1, 1, 1, 0, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0903
+
+  State: [0, 0, 2, 1, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 1, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 1, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 1, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 1, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 1, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 1, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 1, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 0, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 1, 3, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 1, 3, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 0, 1, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0373
+
+  State: [1, 1, 0, 1, 0, 0] | opp_action=1
+    Action 2:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0172
+    Action 1:    -0.0975
+
+  State: [1, 1, 0, 1, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 0, 1, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 1, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 1, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 1, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 3, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 3, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 3, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 1, 1, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 1, 1, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 1, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 1, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 0, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 0, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 0, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0050
+
+  State: [0, 1, 2, 0, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 1, 0, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 1, 0, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 1, 0, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 1, 0, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 1, 1, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 0, 1, 0] | opp_action=3
+    Action 1:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0136
+    Action 2:    -0.0477
+
+  State: [2, 0, 0, 1, 2, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 2, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 3, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 3, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 3, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 3, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 1, 4, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 1, 4, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 1, 4, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 2, 1, 4, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 3, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 4, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 4, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 0, 1] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0081
+
+  State: [1, 1, 2, 0, 0, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 0, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 0, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 4, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 4, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 4, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 4, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 1, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 2, 1, 1, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 3, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 3, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 3, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 3, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 3, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 0, 3, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 0, 3, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0460
+
+  State: [1, 1, 2, 0, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0050
+
+  State: [1, 1, 0, 0, -1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 0, 0, -1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0172
+
+  State: [1, 1, 0, 0, -1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 0, 0, -1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0972
+
+  State: [2, 1, 0, 1, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 1, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 1, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 1, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 0, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 0, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 0, 0, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 0, 0, 0, 0] | opp_action=3
+    Action 2:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0060
+    Action 1:    -0.0095
+
+  State: [0, 0, 0, 0, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 0, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 0, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 0, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 1, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 1, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 1, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 0, 1, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 1, 3, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 1, 3, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 1, 3, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 0, 1, 1, 3, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 0, 1, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 1, 3, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 1, 3, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 1, 3, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 1, 1, 3, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 0, 1, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 1, 3, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 1, 3, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 1, 3, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 1, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 1, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 1, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0050
+
+  State: [0, 1, 2, 1, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 1, 1, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 1, 1, 1, 0] | opp_action=1
+    Action 1:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 0:    -0.0050
+
+  State: [0, 1, 1, 1, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 1, 1, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 1, 1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 1, 1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 1, 1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 1, 1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 0, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 0, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 0, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 0, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 0, 0, -1, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 0, 0, -1, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 0, 0, -1, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 0, 0, -1, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0190
+
+  State: [2, 1, 2, 0, 1, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 1, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 0, 1, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 1, 0, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 1, 0, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0050
+
+  State: [1, 1, 1, 0, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 1, 0, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0050
+
+  State: [2, 1, 1, 1, 3, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 1, 3, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 1, 1, 3, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 1, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 1, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 1, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 0, 1, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 2, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 2, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 2, 0, 2, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 1, 4, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 1, 4, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 1, 4, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 1, 4, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 1, 3, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 1, 3, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 1, 3, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 0, 2, 1, 3, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 0, 1, 1] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0030
+
+  State: [0, 1, 2, 0, 1, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 0, 1, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [0, 1, 2, 0, 1, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 1, 4, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 1, 4, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 2, 1, 4, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 0, 3, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 0, 3, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 0, 3, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 1, 0, 0, 3, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 0, 0, 2, 0] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0050
+
+  State: [1, 1, 0, 0, 2, 0] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 0, 0, 2, 0] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [1, 1, 0, 0, 2, 0] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 0, 1] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 0, 1] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 0, 1] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+
+  State: [2, 0, 1, 1, 0, 1] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000

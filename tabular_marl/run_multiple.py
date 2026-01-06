@@ -9,6 +9,8 @@ import numpy as np
 from utils.visualizations import (
     visualise_q_tables,
     visualise_evaluation_returns,
+    visualise_repetition_returns,
+    visualise_learning_curve,
 )
 from utils.video import VideoRecorder
 
@@ -16,18 +18,23 @@ from agent.mixed_play_wrapper import MixedPlay
 from agent.iql import IQL
 from agent.random_agent import Random
 from agent.jal import JalAM
+from agent.jal_unc import JalUnc
+from agent.p_random import pRandom
 
 from envs.matrix_game import create_matrix_game
 from envs.custom_foraging_env import CustomForagingEnv
 from envs.move_game import MoveChairGame
+from envs.move_chair_simple import MoveChairSimple
 
 dirpath = "tabular_marl/"
 
 # Available algorithms for mixed play
 ALGORITHMS = {
     "Random": Random,
+    "pRandom": pRandom,
     "IQL": IQL,
-    "JalAM": JalAM
+    "JalAM": JalAM,
+    "JalUnc": JalUnc
 }
 
 CONFIG = {
@@ -37,7 +44,7 @@ CONFIG = {
     "algorithm_1": "IQL",   # Algorithm for agent 1
     "algorithm_2": "IQL",   # Algorithm for agent 2
     "algorithm_1_kwargs": {},  # extra kwargs for algorithm 1
-    "algorithm_2_kwargs": {},  # Extra kwargs for algorithm 2
+    "algorithm_2_kwargs": {}, #{"p": 0.9},  # Extra kwargs for algorithm 2
 
     "env": "cf",  # game type: "f" = foraging, "cf" = custom_foraging, "m" = matrix, "mc" = MoveChairGame
 
@@ -45,10 +52,11 @@ CONFIG = {
     "visualise": False,
     "output": True,
 
-    "repetitions": 50,  # Number of independent runs
-    "ep_length": 100,
-    "total_eps": 100,
-    "eval_episodes": 30,
+    "repetitions": 30 ,  # Number of independent runs
+    "ep_length": 25, 
+    "total_eps": 500,
+    "eval_episodes": 500, #in total across one rep.
+    "eval_spread": "full",  # "last10" = checkpoints at 91-100%, "full" = evenly spaced 10-100%
 
     "seed": None,
     "lr": 0.1,
@@ -60,18 +68,18 @@ CONFIG = {
     "food_pos": [[1, 1], [3, 3]],
     "player_pos": [[0, 4], [4, 0]],
     "payoff_matrix": np.array([[[4, 4], [0, 3]], 
-                               [[3, 0], [2, 2]]])
+                               [[3, 0], [2, 2]]]) * 1/9
 }
 
 
 def train_agents(env, config, rep_num=0):
     """
-    Train agents without intermediate evaluation.
+    Train agents with evaluation during the last 10% of training.
 
     :param env (gym.Env): environment to train on
     :param config (Dict[str, float]): configuration dictionary containing hyperparameters
     :param rep_num (int): repetition number for logging
-    :return: trained agents
+    :return: trained agents and evaluation results from last 10% checkpoints
     """
     # Create mixed play agents
     agents = MixedPlay(
@@ -88,8 +96,27 @@ def train_agents(env, config, rep_num=0):
 
     step_counter = 0
     max_steps = config["total_eps"] * config["ep_length"]
+    total_eps = config["total_eps"]
+    
+    # Determine evaluation checkpoints based on eval_spread config
+    eval_spread = config.get("eval_spread", "last10")
+    
+    if eval_spread == "full":
+        # Evenly spaced checkpoints at 10%, 20%, ..., 100% of training
+        eval_checkpoints = set(int(total_eps * pct / 100) for pct in range(10, 101, 10))
+        eval_checkpoints.discard(0)  # Remove 0 if total_eps is very small
+    else:  # "last10" (default)
+        # Checkpoints at 91%, 92%, ..., 100% of training
+        eval_start = int(0.9 * total_eps)
+        eval_checkpoints = set(range(eval_start + 1, total_eps + 1))
+    
+    # Evaluation episodes per checkpoint
+    num_checkpoints = len(eval_checkpoints)
+    eval_eps_per_checkpoint = max(1, config["eval_episodes"] // num_checkpoints)
+    
+    checkpoint_returns = []  # Store returns from each checkpoint
 
-    for eps_num in range(1, 1 + config["total_eps"]):
+    for eps_num in range(1, 1 + total_eps):
         obss, _ = env.reset()
         done = False
 
@@ -102,13 +129,24 @@ def train_agents(env, config, rep_num=0):
             step_counter += 1
             obss = n_obss
 
-        if config.get("output") and eps_num % (config["total_eps"] // 10) == 0:
-            print(f"  Rep {rep_num + 1}: Episode {eps_num}/{config['total_eps']}")
+        # Evaluate at checkpoints during last 10%
+        if eps_num in eval_checkpoints:
+            checkpoint_eval = evaluate_agents(
+                env, config, agents, rep_num, 
+                eval_episodes=eval_eps_per_checkpoint,
+                checkpoint_pct=int(100 * eps_num / total_eps),
+                verbose=False
+            )
+            checkpoint_returns.extend(checkpoint_eval)
+            
+            if config.get("output"):
+                pct = int(100 * eps_num / total_eps)
+                print(f"  Rep {rep_num + 1}: Episode {eps_num}/{total_eps} ({pct}%) - Evaluated")
 
-    return agents
+    return agents, checkpoint_returns
 
 
-def evaluate_agents(env, config, trained_agents, rep_num=0):
+def evaluate_agents(env, config, trained_agents, rep_num=0, eval_episodes=None, checkpoint_pct=None, verbose=True):
     """
     Evaluate trained agents.
 
@@ -116,10 +154,13 @@ def evaluate_agents(env, config, trained_agents, rep_num=0):
     :param config (Dict): configuration dictionary
     :param trained_agents (MixedPlay): the trained mixed play agents
     :param rep_num (int): repetition number for video naming
+    :param eval_episodes (int): number of evaluation episodes (overrides config if provided)
+    :param checkpoint_pct (int): training percentage at this checkpoint (for logging)
+    :param verbose (bool): whether to print detailed evaluation results
     :return (list): list of episodic returns per evaluation episode
     """
     num_agents = len(config["player_pos"])
-    eval_episodes = config["eval_episodes"]
+    eval_episodes = eval_episodes if eval_episodes is not None else config["eval_episodes"]
 
     video = VideoRecorder()
     
@@ -136,8 +177,8 @@ def evaluate_agents(env, config, trained_agents, rep_num=0):
         algorithm_2_kwargs=config.get("algorithm_2_kwargs", {}),
     )
     
-    # Copy trained Q-tables to evaluation agents
-    eval_agents.q_tables = trained_agents.q_tables
+    # Copy trained model (Q-tables + opponent model for JAL) to evaluation agents
+    eval_agents.copy_model_from(trained_agents)
 
     episodic_returns = []
     for i in range(eval_episodes):
@@ -146,13 +187,13 @@ def evaluate_agents(env, config, trained_agents, rep_num=0):
         done = False
 
         while not done:
-            if config.get("video") and i == eval_episodes - 1:
+            if config.get("video") and i == eval_episodes - 1 and checkpoint_pct == 100:
                 video.record_frame(env)
             actions = eval_agents.act(obss)
             obss, rewards, done, _, _ = env.step(actions)
             episodic_return += rewards
 
-        if config.get("video") and i == eval_episodes - 1:
+        if config.get("video") and i == eval_episodes - 1 and checkpoint_pct == 100:
             video.record_frame(env)
             video.save(f"{config['dir']}/video/eval-rep-{rep_num}.mp4")
             video.reset()
@@ -162,8 +203,9 @@ def evaluate_agents(env, config, trained_agents, rep_num=0):
     mean_return = np.mean(episodic_returns, axis=0)
     std_return = np.std(episodic_returns, axis=0)
 
-    if config.get("output", True):
-        print(f"  Rep {rep_num + 1} EVALUATION:")
+    if verbose and config.get("output", True):
+        checkpoint_str = f" (at {checkpoint_pct}%)" if checkpoint_pct else ""
+        print(f"  Rep {rep_num + 1} EVALUATION{checkpoint_str}:")
         print(f"    Agent 1 ({config['algorithm_1']}): {mean_return[0]:.2f} ± {std_return[0]:.2f}")
         print(f"    Agent 2 ({config['algorithm_2']}): {mean_return[1]:.2f} ± {std_return[1]:.2f}")
 
@@ -173,6 +215,7 @@ def evaluate_agents(env, config, trained_agents, rep_num=0):
 def run_multiple_repetitions(env, config):
     """
     Run multiple independent training repetitions and aggregate results.
+    Evaluates during the last 10% of training at 10 checkpoints.
 
     :param env (gym.Env): environment to use
     :param config (Dict): configuration dictionary
@@ -192,13 +235,9 @@ def run_multiple_repetitions(env, config):
             random.seed(rep_seed)
             np.random.seed(rep_seed)
 
-        # Train agents
-        trained_agents = train_agents(env, config, rep)
+        trained_agents, checkpoint_returns = train_agents(env, config, rep)
         
-        # Evaluate only at the end
-        eval_returns = evaluate_agents(env, config, trained_agents, rep)
-        
-        all_eval_returns.append(eval_returns)
+        all_eval_returns.append(checkpoint_returns)
         all_q_tables.append(copy.deepcopy(trained_agents.q_tables))
 
     return all_eval_returns, all_q_tables
@@ -234,7 +273,7 @@ def print_summary(all_eval_returns, config):
     :param all_eval_returns: list of evaluation returns per repetition
     :param config: configuration dictionary
     """
-    # Flatten all returns: shape (repetitions, eval_episodes, num_agents)
+    # Flatten all returns: shape (repetitions, eval_episodes_total, num_agents)
     all_returns = np.array(all_eval_returns)
     
     # Mean per repetition, then mean across repetitions
@@ -243,13 +282,30 @@ def print_summary(all_eval_returns, config):
     overall_mean = np.mean(rep_means, axis=0)
     overall_std = np.std(rep_means, axis=0)
     
+    # Calculate checkpoint info based on eval_spread
+    eval_spread = config.get("eval_spread", "last10")
+    total_eps = config["total_eps"]
+    
+    if eval_spread == "full":
+        num_checkpoints = 10
+        checkpoint_desc = "10 (evenly spaced at 10-100%)"
+    else:
+        eval_start = int(0.9 * total_eps)
+        num_checkpoints = total_eps - eval_start
+        checkpoint_desc = f"{num_checkpoints} (at 91-100% of training)"
+    
+    eval_eps_per_checkpoint = max(1, config["eval_episodes"] // num_checkpoints)
+    total_eval_eps = eval_eps_per_checkpoint * num_checkpoints
+    
     print(f"\n{'='*50}")
     print("SUMMARY ACROSS ALL REPETITIONS")
     print(f"{'='*50}")
     print(f"Agent 1 ({config['algorithm_1']}): {overall_mean[0]:.2f} ± {overall_std[0]:.2f}")
     print(f"Agent 2 ({config['algorithm_2']}): {overall_mean[1]:.2f} ± {overall_std[1]:.2f}")
-    print(f"Total repetitions: {config['repetitions']}")
-    print(f"Eval episodes per rep: {config['eval_episodes']}")
+    print(f"Total repetitions: {len(all_eval_returns)}")
+    print(f"Eval checkpoints: {checkpoint_desc}")
+    print(f"Eval episodes per checkpoint: {eval_eps_per_checkpoint}")
+    print(f"Total eval episodes per rep: {total_eval_eps}")
 
 
 if __name__ == "__main__":
@@ -278,10 +334,10 @@ if __name__ == "__main__":
         env = CustomForagingEnv(
             field_size=(5, 5),  
             players=len(CONFIG["player_pos"]),       
-            min_player_level=2,
+            min_player_level=3,
             max_player_level=3,
             min_food_level=1,
-            max_food_level=4,
+            max_food_level=5,
             max_num_food=len(CONFIG["food_pos"]),  
             sight=5,         
             max_episode_steps=CONFIG["ep_length"],  
@@ -306,14 +362,28 @@ if __name__ == "__main__":
     elif CONFIG["env"] == "mc":
         env = MoveChairGame(ep_length=CONFIG["ep_length"])
         CONFIG["video"] = False
+    
+    elif CONFIG["env"] == "mcs":
+        env = MoveChairSimple(ep_length=CONFIG["ep_length"])
+        CONFIG["video"] = False
 
     else:
         raise ValueError(f"Invalid env '{CONFIG['env']}'. Choose 'f', 'cf', 'm', or 'mc'.")
+    
+    eval_spread = CONFIG.get("eval_spread", "last10")
+    if eval_spread == "full":
+        num_checkpoints = 10
+        checkpoint_desc = "10 checkpoints at 10-100%"
+    else:
+        num_checkpoints = CONFIG["total_eps"] - int(0.9 * CONFIG["total_eps"])
+        checkpoint_desc = f"{num_checkpoints} checkpoints at 91-100%"
+    eval_eps_per_checkpoint = max(1, CONFIG["eval_episodes"] // num_checkpoints)
     
     print(f"Starting Multiple Repetitions: {CONFIG['algorithm_1']} vs {CONFIG['algorithm_2']}")
     print(f"Environment: {CONFIG['env']}")
     print(f"Repetitions: {CONFIG['repetitions']}")
     print(f"Episodes per repetition: {CONFIG['total_eps']}")
+    print(f"Evaluation: {checkpoint_desc} ({eval_eps_per_checkpoint} eps each)")
     print("-" * 50)
 
     # Run multiple repetitions
@@ -324,6 +394,12 @@ if __name__ == "__main__":
         save_results(all_eval_returns, CONFIG)
     
     print_summary(all_eval_returns, CONFIG)
+    
+    # Visualize evaluation returns across repetitions
+    visualise_repetition_returns(all_eval_returns, CONFIG)
+    
+    # Visualize learning curve (performance vs training progress)
+    visualise_learning_curve(all_eval_returns, CONFIG)
 
     # Visualize final Q-tables from last repetition
     if CONFIG.get("visualise"):

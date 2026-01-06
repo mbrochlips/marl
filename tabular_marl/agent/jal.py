@@ -35,17 +35,14 @@ class JalAM:
         
         # Q-table stores Q(s, a_self, a_opponent) for the learning agent
         # Key: str((obs, my_action, opponent_action))
-        self.q_table: DefaultDict = defaultdict(lambda: 0)
+        # Use q_tables[0] for compatibility with MixedPlay wrapper
+        self.q_tables: List[DefaultDict] = [defaultdict(lambda: 0)]
         
-       
         #opponent_counts[obs][action] = count
         self.opponent_counts: DefaultDict = defaultdict(lambda: defaultdict(int))
         
         #used for normalization 
         self.total_opponent_obs: DefaultDict = defaultdict(int)
-        
-        # For compatibility with MixedPlay wrapper
-        self.q_tables = [self.q_table]
 
     def opp_probs(self, obs) -> np.ndarray:
         # for easier implementation, it only works for agent at a time:
@@ -67,18 +64,17 @@ class JalAM:
         ])
         return probs
 
-    def get_expected_q(self, obs, my_action) -> float:
+    def get_expected_q(self, obs, my_action, opponent_probs: np.ndarray = None) -> float:
         # expected Q-value for my_action given opponent model:
-
-        opponent_probs = self.opp_probs(obs)
-        expected_q = 0.0
         
+        if opponent_probs is None:
+            opponent_probs = self.opp_probs(obs)
+        
+        expected_q = 0.0
         for opp_action, prob in enumerate(opponent_probs):
             q_key = str((obs, my_action, opp_action))
-
             #AV_i (6.17)
-            expected_q += prob * self.q_table[q_key]
-
+            expected_q += prob * self.q_tables[0][q_key]
         
         return expected_q
 
@@ -90,8 +86,10 @@ class JalAM:
         if self.epsilon > np.random.rand():
             action = random.randrange(self.n_acts[0])
         else:
+            # Compute opponent probs ONCE for this observation
+            opponent_probs = self.opp_probs(obs)
             expected_qs = [
-                self.get_expected_q(obs, a) 
+                self.get_expected_q(obs, a, opponent_probs) 
                 for a in range(self.n_acts[0])
             ]
             max_q = max(expected_qs)
@@ -139,13 +137,15 @@ class JalAM:
             q_next = 0
         else:
             # Max expected Q over my actions in next state
+            # Compute opponent probs ONCE for next observation
+            next_opponent_probs = self.opp_probs(n_obs)
             q_next = max(
-                self.get_expected_q(n_obs, a) 
+                self.get_expected_q(n_obs, a, next_opponent_probs) 
                 for a in range(self.n_acts[0])
             )
         
         # Q-update
-        self.q_table[q_key] += self.learning_rate * (reward + self.gamma * q_next - self.q_table[q_key])
+        self.q_tables[0][q_key] += self.learning_rate * (reward + self.gamma * q_next - self.q_tables[0][q_key])
 
     def schedule_hyperparameters(self, timestep: int, max_timestep: int):
         """Decay epsilon over time."""

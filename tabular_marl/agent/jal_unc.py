@@ -37,9 +37,9 @@ class JalUnc:
         
         # Q-table stores Q(s, a_self, a_opponent) for the learning agent
         # Key: str((obs, my_action, opponent_action))
-        self.q_table: DefaultDict = defaultdict(lambda: 0)
+        # Use q_tables[0] for compatibility with MixedPlay wrapper
+        self.q_tables: List[DefaultDict] = [defaultdict(lambda: 0)]
         
-       
         #opponent_counts[obs][action] = count
         self.opponent_counts: DefaultDict = defaultdict(lambda: defaultdict(int))
         
@@ -48,9 +48,6 @@ class JalUnc:
 
         self.q_history: DefaultDict = defaultdict(list)
         self.q_history_length = history_length
-        
-        # For compatibility with MixedPlay wrapper
-        self.q_tables = [self.q_table]
 
     def opp_probs(self, obs) -> np.ndarray:
         # for easier implementation, it only works for agent at a time:
@@ -72,27 +69,28 @@ class JalUnc:
         ])
         return probs
 
-    def get_expected_q(self, obs, my_action) -> float:
+    def get_expected_q(self, obs, my_action, opponent_probs: np.ndarray = None) -> float:
         # expected Q-value for my_action given opponent model:
-
-        opponent_probs = self.opp_probs(obs)
+        
+        if opponent_probs is None:
+            opponent_probs = self.opp_probs(obs)
+        
         expected_q = 0.0
+        unc_q = 0.0  # Initialize outside loop to accumulate
         
         for opp_action, prob in enumerate(opponent_probs):
             q_key = str((obs, my_action, opp_action))
 
             #AV_i (6.17)
-            expected_q += prob * self.q_table[q_key]
-
-            #new
+            expected_q += prob * self.q_tables[0][q_key]
+            
+            # Uncertainty estimation
             if len(self.q_history[q_key]) > 1:
                 unc_q += prob * 2 * (self.q_history[q_key][0] * self.q_history[q_key][1])**2
-                #ALT: sum((qi-qj)**2 for qi in self.q_history[q_key] for qj in self.q_history[q_key])
             elif len(self.q_history[q_key]) == 1:
                 unc_q += prob * self.q_history[q_key][0]
-                #ALT: sum((qi-qj)**2 for qi in self.q_history[q_key] for qj in self.q_history[q_key])
             else:
-                unc_q += prob #*1 only works with a maximum reward of 1
+                unc_q += prob  # *1, only works with a maximum reward of 1
         
         return expected_q, unc_q
 
@@ -100,16 +98,18 @@ class JalUnc:
         # for easier implementation, it only learns JAL_AM for agent[0]
         # param obss: list of observations (uses obss[0] for single agent)
         obs = obss[0]
-        expected_qs, unc_qs = [
-                self.get_expected_q(obs, a) 
+        
+        # Compute opponent probs ONCE for this observation
+        opponent_probs = self.opp_probs(obs)
+        qs = [self.get_expected_q(obs, a, opponent_probs) 
                 for a in range(self.n_acts[0])]
+        expected_qs = [q[0] for q in qs]
+        unc_qs = [q[1] for q in qs]
 
         if self.epsilon > np.random.rand():
-            #action = random.randrange(self.n_acts[0])
             max_unc_q = max(unc_qs)
             most_unc_actions = [a for a, q in enumerate(unc_qs) if q == max_unc_q]
             action = random.choice(most_unc_actions)
-
         else:
             max_q = max(expected_qs)
             best_actions = [a for a, q in enumerate(expected_qs) if q == max_q]
@@ -156,17 +156,19 @@ class JalUnc:
         if done:
             q_next = 0
         else:
-            # Max expected Q over my actions in next state
+            # Max expected Q over my actions in next state (use only expected_q, not unc_q)
+            # Compute opponent probs ONCE for next observation
+            next_opponent_probs = self.opp_probs(n_obs)
             q_next = max(
-                self.get_expected_q(n_obs, a) 
+                self.get_expected_q(n_obs, a, next_opponent_probs)[0]
                 for a in range(self.n_acts[0])
             )
         
         # Q-update
-        self.q_table[q_key] += self.learning_rate * (reward + self.gamma * q_next - self.q_table[q_key])
+        self.q_tables[0][q_key] += self.learning_rate * (reward + self.gamma * q_next - self.q_tables[0][q_key])
 
         # Update Q-history
-        self.q_history[q_key] += [self.q_table[q_key]]
+        self.q_history[q_key] += [self.q_tables[0][q_key]]
         if len(self.q_history[q_key]) > self.q_history_length:
             self.q_history[q_key] = self.q_history[q_key][1:]
 

@@ -168,6 +168,137 @@ def _output_lines(lines, save_path, filename):
         print(f"Saved: {filepath}")
 
 
+def visualise_repetition_returns(all_eval_returns, config):
+    """
+    Visualize evaluation returns across multiple repetitions.
+    Shows mean ± std across repetitions for each agent.
+
+    :param all_eval_returns: List[List[np.array]] - shape (repetitions, eval_episodes_per_rep, num_agents)
+    :param config: Configuration dictionary with algorithm names
+    """
+    # Convert to numpy array: (repetitions, eval_episodes, num_agents)
+    all_returns = np.array(all_eval_returns)
+    n_reps, n_eval_eps, n_agents = all_returns.shape
+    
+    # Calculate mean per repetition: (repetitions, num_agents)
+    rep_means = np.mean(all_returns, axis=1)
+    
+    # Mean and std across repetitions
+    overall_mean = np.mean(rep_means, axis=0)  # (num_agents,)
+    overall_std = np.std(rep_means, axis=0)    # (num_agents,)
+    
+    # Create figure
+    fig, axes = plt.subplots(1, n_agents, figsize=(FIG_WIDTH * n_agents, FIG_HEIGHT * 2))
+    if n_agents == 1:
+        axes = [axes]
+    
+    colors = ["#2196F3", "#F44336", "#4CAF50", "#FF9800"]  # Blue, Red, Green, Orange
+    algorithm_names = [config.get('algorithm_1', 'Agent 1'), config.get('algorithm_2', 'Agent 2')]
+    
+    for i in range(n_agents):
+        ax = axes[i]
+        agent_rep_means = rep_means[:, i]  # (repetitions,)
+        
+        # Plot individual repetition means as scatter
+        ax.scatter(range(len(agent_rep_means)), agent_rep_means, 
+                   alpha=0.5, color=colors[i % len(colors)], s=30, label='Rep means')
+        
+        # Plot overall mean as horizontal line
+        ax.axhline(overall_mean[i], color=colors[i % len(colors)], 
+                   linestyle='-', linewidth=2, label=f'Mean: {overall_mean[i]:.2f}')
+        
+        # Plot std band
+        ax.axhspan(overall_mean[i] - overall_std[i], overall_mean[i] + overall_std[i], 
+                   alpha=FIG_ALPHA, color=colors[i % len(colors)], 
+                   label=f'Std: ±{overall_std[i]:.2f}')
+        
+        ax.set_xlabel('Repetition')
+        ax.set_ylabel('Mean Evaluation Return')
+        ax.set_title(f'{algorithm_names[i]} (Agent {i+1})')
+        ax.legend(loc='best', fontsize=8)
+        ax.set_xlim(-0.5, len(agent_rep_means) - 0.5)
+    
+    fig.suptitle(f'Evaluation Returns Across {n_reps} Repetitions', fontsize=12)
+    plt.tight_layout()
+    plt.show()
+    
+    return fig
+
+
+def visualise_learning_curve(all_eval_returns, config):
+    """
+    Visualize learning curve: mean return across repetitions at each evaluation checkpoint.
+    Shows how performance evolves during training.
+
+    :param all_eval_returns: List[List[np.array]] - shape (repetitions, total_eval_eps, num_agents)
+                             where total_eval_eps = num_checkpoints * eval_eps_per_checkpoint
+    :param config: Configuration dictionary with algorithm names and eval settings
+    """
+    # Convert to numpy array: (repetitions, total_eval_eps, num_agents)
+    all_returns = np.array(all_eval_returns)
+    n_reps, total_eval_eps, n_agents = all_returns.shape
+    
+    # Determine number of checkpoints and checkpoint percentages based on eval_spread
+    eval_spread = config.get("eval_spread", "last10")
+    total_eps = config.get("total_eps", 100)
+    
+    if eval_spread == "full":
+        # Evenly spaced: 10%, 20%, ..., 100%
+        n_checkpoints = 10
+        checkpoint_pcts = list(range(10, 101, 10))
+    else:
+        # Last 10%: 91%, 92%, ..., 100%
+        eval_start = int(0.9 * total_eps)
+        n_checkpoints = total_eps - eval_start
+        checkpoint_pcts = list(range(91, 101))[:n_checkpoints]
+    
+    # Calculate eval episodes per checkpoint
+    eval_eps_per_checkpoint = total_eval_eps // n_checkpoints
+    
+    # Reshape to group by checkpoint: (repetitions, n_checkpoints, eval_eps_per_checkpoint, num_agents)
+    # Then average within each checkpoint
+    all_returns_reshaped = all_returns.reshape(n_reps, n_checkpoints, eval_eps_per_checkpoint, n_agents)
+    
+    # Mean within each checkpoint: (repetitions, n_checkpoints, num_agents)
+    checkpoint_returns = np.mean(all_returns_reshaped, axis=2)
+    
+    # Mean and std across repetitions for each checkpoint: (n_checkpoints, num_agents)
+    checkpoint_means = np.mean(checkpoint_returns, axis=0)
+    checkpoint_stds = np.std(checkpoint_returns, axis=0)
+    
+    # Create figure
+    fig, ax = plt.subplots(figsize=(FIG_WIDTH * 1.5, FIG_HEIGHT * 2.5))
+    
+    colors = ["#2196F3", "#F44336", "#4CAF50", "#FF9800"]  # Blue, Red, Green, Orange
+    algorithm_names = [config.get('algorithm_1', 'Agent 1'), config.get('algorithm_2', 'Agent 2')]
+    
+    for i in range(n_agents):
+        color = colors[i % len(colors)]
+        means = checkpoint_means[:, i]
+        stds = checkpoint_stds[:, i]
+        
+        # Plot mean line
+        ax.plot(checkpoint_pcts[:len(means)], means, 
+                color=color, linewidth=2, marker='o', markersize=5,
+                label=f'{algorithm_names[i]}')
+        
+        # Plot std band
+        ax.fill_between(checkpoint_pcts[:len(means)], means - stds, means + stds,
+                        alpha=FIG_ALPHA, color=color)
+    
+    ax.set_xlabel('Training Progress (%)')
+    ax.set_ylabel('Mean Evaluation Return')
+    ax.set_title(f'Learning Curve (mean ± std across {n_reps} repetitions)')
+    ax.legend(loc='best')
+    ax.set_xlim(checkpoint_pcts[0] - 2, checkpoint_pcts[-1] + 2)
+    ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.show()
+    
+    return fig
+
+
 def visualise_evaluation_returns(returns, config, dirpath:str):
     """
     Plot evaluation returns

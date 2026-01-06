@@ -81,6 +81,18 @@ class MixedPlay:
         elif len(value) == 1:
             self.agent_1.q_tables = value
             self.agent_2.q_tables = [defaultdict(lambda: 0)]
+    
+    def copy_model_from(self, other: "MixedPlay"):
+        """Copy full model state from another MixedPlay instance (including opponent models for JAL)."""
+        self.q_tables = other.q_tables
+        
+        # Copy opponent model for JAL agents
+        if hasattr(other.agent_1, 'opponent_counts'):
+            self.agent_1.opponent_counts = other.agent_1.opponent_counts
+            self.agent_1.total_opponent_obs = other.agent_1.total_opponent_obs
+        if hasattr(other.agent_2, 'opponent_counts'):
+            self.agent_2.opponent_counts = other.agent_2.opponent_counts
+            self.agent_2.total_opponent_obs = other.agent_2.total_opponent_obs
 
     def act(self, obss: List) -> List[int]:
         # Get action from agent 1 for obs[0]

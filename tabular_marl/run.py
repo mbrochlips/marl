@@ -64,10 +64,10 @@ if __name__ == "__main__":
         env = CustomForagingEnv(
             field_size=(5, 5),  
             players=len(CONFIG["player_pos"]),       
-            min_player_level=2,
+            min_player_level=3,
             max_player_level=3,
             min_food_level=1,
-            max_food_level=4,
+            max_food_level=5,
             max_num_food=len(CONFIG["food_pos"]),  
             sight=5,         
             max_episode_steps=CONFIG["ep_length"],  
