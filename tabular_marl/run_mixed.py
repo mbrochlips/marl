@@ -37,25 +37,25 @@ CONFIG = {
     "runname": datetime.now().strftime("%d%b%Y").lower(),  #e.g."15dec2025"
     
     # Mixed play configuration
-    "algorithm_1": "IQL",   # Algorithm for agent 1
-    "algorithm_2": "IQL",   # Algorithm for agent 2
+    "algorithm_1": "JalUnc",   # Algorithm for agent 1
+    "algorithm_2": "JalUnc",   # Algorithm for agent 2
     "algorithm_1_kwargs": {},  #extra kwargs for algorithm 1
     "algorithm_2_kwargs": {}, #"p": 0.9},  # Extra kwargs for algorithm 2 (e.g., Random's p)
     
-    "env": "mc",  # game type: "f" = foraging, "cf" = custom_foraging, "m" = matrix, "mc" = MoveChairGame
+    "env": "m",  # game type: "f" = foraging, "cf" = custom_foraging, "m" = matrix, "mc" = MoveChairGame
 
     "save": True, #save the videos and csv
     "visualise": True, #render
     "output": True, #save the 
 
     "ep_length": 50,
-    "total_eps": 20000,
-    "eval_freq": 1000,
+    "total_eps": 100,
+    "eval_freq": 10,
     "eval_episodes": 50,
 
     "seed": None,
     "lr": 0.1,
-    "init_epsilon": 0.7,
+    "init_epsilon": 0.9,
     "eval_epsilon": 0.05,
     "num_agents": 2,
     "gamma": 0.95,

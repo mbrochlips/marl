@@ -5,6 +5,7 @@ from typing import List, DefaultDict
 import numpy as np
 from gymnasium.spaces import Space
 from gymnasium.spaces.utils import flatdim
+from agent.iql import IQL
 
 
 class JalAM:
@@ -22,6 +23,9 @@ class JalAM:
         gamma: float,
         learning_rate: float = 0.5,
         init_epsilon: float = 1.0,
+        decay_fraction: float = 0.9,
+        epsilon_min: float = 0.05,
+        eps_decay = True,
         **kwargs,
     ):
         self.num_agents = num_agents
@@ -32,6 +36,9 @@ class JalAM:
         self.learning_rate = learning_rate
         self.init_epsilon = init_epsilon
         self.epsilon = init_epsilon
+        self.decay_fraction = decay_fraction
+        self.epsilon_min = epsilon_min
+        self.eps_decay = eps_decay
         
         # Q-table stores Q(s, a_self, a_opponent) for the learning agent
         # Key: str((obs, my_action, opponent_action))

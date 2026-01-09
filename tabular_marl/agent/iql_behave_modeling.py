@@ -28,15 +28,17 @@ class RewardGroup:
     def increase_total(self):
         self.total += 1
 
+    def score(self,c):
+        return self.reward * self.success / self.total * c * self.reward / np.sqrt(self.total)
+        # times c * boost (Proportional to reward, shrinks with more visits.)
 
 class QBM(IQL):
-    def __init__(self, num_agents: int, action_spaces: List[Space], gamma: float, learning_rate: float = 0.5, eps_decay=True, init_epsilon: float = 0.9, epsilon_min: float = 0.05, decay_fraction: float = 0.9, r_threshold=0.09, boost=True, boost_c=1.0, **kwargs):
+    def __init__(self, num_agents: int, action_spaces: List[Space], gamma: float, learning_rate: float = 0.5, eps_decay=True, init_epsilon: float = 0.9, epsilon_min: float = 0.05, decay_fraction: float = 0.9, r_threshold=0.09, c_boost = 2.0, **kwargs):
         super().__init__(num_agents, action_spaces, gamma, learning_rate, eps_decay, init_epsilon, epsilon_min, decay_fraction, **kwargs)
         self.groups: List[RewardGroup] = []
         self.obs_to_group: dict = {}
         self.r_threshold = r_threshold
-        self.boost = boost
-        self.boost_c = boost_c
+        self.c_boost = c_boost
 
     def find_matching_group(self, r: float) -> Optional[int]:
         for i, group in enumerate(self.groups):
@@ -48,17 +50,11 @@ class QBM(IQL):
         if len(self.groups) <= 1:
             return True
         
-        total_visits = sum(g.total for g in self.groups)
-        
-        def score(g):
-            bonus = self.boost_c * np.sqrt(np.log(total_visits) / g.total) if self.boost else 0
-            return (g.reward + bonus) * g.success / g.total
-        
-        normalizer = sum(score(g) for j, g in enumerate(self.groups) if j != i)
+        normalizer = sum(g.score(self.c_boost) for j, g in enumerate(self.groups) if j != i)
         if normalizer == 0:
             return True
         
-        top = score(self.groups[i])
+        top = self.groups[i].score(self.c_boost)
         return top / (normalizer / len(self.groups)) <= 1
 
     def update_reward_model(self, r: float, obs_a: str):

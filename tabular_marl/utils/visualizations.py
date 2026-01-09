@@ -201,7 +201,7 @@ def visualise_repetition_returns(all_eval_returns, config):
         
         # Plot individual repetition means as scatter
         ax.scatter(range(len(agent_rep_means)), agent_rep_means, 
-                   alpha=0.5, color=colors[i % len(colors)], s=30, label='Rep means')
+                   alpha=0.5, color=colors[i % len(colors)], s=30)
         
         # Plot overall mean as horizontal line
         ax.axhline(overall_mean[i], color=colors[i % len(colors)], 
@@ -212,13 +212,13 @@ def visualise_repetition_returns(all_eval_returns, config):
                    alpha=FIG_ALPHA, color=colors[i % len(colors)], 
                    label=f'Std: ±{overall_std[i]:.2f}')
         
-        ax.set_xlabel('Repetition')
-        ax.set_ylabel('Mean Evaluation Return')
-        ax.set_title(f'{algorithm_names[i]} (Agent {i+1})')
-        ax.legend(loc='best', fontsize=8)
+        ax.set_xlabel('Repetition', fontsize=14)
+        ax.set_ylabel('Mean Evaluation Return', fontsize=14)
+        ax.set_title(f'{algorithm_names[i]} (Agent {i+1})', fontsize=16)
+        ax.legend(loc='upper left', fontsize=12)
+        ax.tick_params(labelsize=14)
         ax.set_xlim(-0.5, len(agent_rep_means) - 0.5)
     
-    fig.suptitle(f'Evaluation Returns Across {n_reps} Repetitions', fontsize=12)
     plt.tight_layout()
     plt.show()
     
@@ -239,8 +239,11 @@ def visualise_learning_curve(all_eval_returns, config):
     n_reps, total_eval_eps, n_agents = all_returns.shape
     
     # Determine number of checkpoints and checkpoint percentages based on eval_spread
-    eval_spread = config.get("eval_spread", "last10")
-    total_eps = config.get("total_eps", 100)
+    eval_spread = config.get("eval_spread")
+
+    total_eps = config.get("total_eps")
+    ep_length = config.get("ep_length")
+    max_steps = total_eps * ep_length
     
     if eval_spread == "full":
         # Evenly spaced: 10%, 20%, ..., 100%
@@ -251,6 +254,9 @@ def visualise_learning_curve(all_eval_returns, config):
         eval_start = int(0.9 * total_eps)
         n_checkpoints = total_eps - eval_start
         checkpoint_pcts = list(range(91, 101))[:n_checkpoints]
+    
+    # Convert checkpoint percentages to total steps
+    checkpoint_steps = [int(pct / 100 * max_steps) for pct in checkpoint_pcts]
     
     # Calculate eval episodes per checkpoint
     eval_eps_per_checkpoint = total_eval_eps // n_checkpoints
@@ -278,19 +284,20 @@ def visualise_learning_curve(all_eval_returns, config):
         stds = checkpoint_stds[:, i]
         
         # Plot mean line
-        ax.plot(checkpoint_pcts[:len(means)], means, 
+        ax.plot(checkpoint_steps[:len(means)], means, 
                 color=color, linewidth=2, marker='o', markersize=5,
-                label=f'{algorithm_names[i]}')
+                label=f'{algorithm_names[i]} (Agent {i+1})')
         
         # Plot std band
-        ax.fill_between(checkpoint_pcts[:len(means)], means - stds, means + stds,
+        ax.fill_between(checkpoint_steps[:len(means)], means - stds, means + stds,
                         alpha=FIG_ALPHA, color=color)
     
-    ax.set_xlabel('Training Progress (%)')
-    ax.set_ylabel('Mean Evaluation Return')
-    ax.set_title(f'Learning Curve (mean ± std across {n_reps} repetitions)')
-    ax.legend(loc='best')
-    ax.set_xlim(checkpoint_pcts[0] - 2, checkpoint_pcts[-1] + 2)
+    ax.set_xlabel('Training Steps', fontsize=16)
+    ax.set_ylabel('Mean Evaluation Return', fontsize=16)
+    ax.legend(loc='best', fontsize=16)
+    ax.tick_params(labelsize=16)
+    step_margin = max_steps * 0.02  # 2% margin
+    ax.set_xlim(checkpoint_steps[0] - step_margin, checkpoint_steps[-1] + step_margin)
     ax.grid(True, alpha=0.3)
     
     plt.tight_layout()

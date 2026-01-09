@@ -19,12 +19,15 @@ from agent.iql import IQL
 from agent.random_agent import Random
 from agent.jal import JalAM
 from agent.jal_unc import JalUnc
+from agent.iql_behave_modeling import QBM
 from agent.p_random import pRandom
 
 from envs.matrix_game import create_matrix_game
 from envs.custom_foraging_env import CustomForagingEnv
+from envs.custom_foraging_oneFood import CustomForagingOneFood
 from envs.move_game import MoveChairGame
 from envs.move_chair_simple import MoveChairSimple
+from envs.move_game_cor import MoveChairCoordination
 
 dirpath = "tabular_marl/"
 
@@ -34,41 +37,43 @@ ALGORITHMS = {
     "pRandom": pRandom,
     "IQL": IQL,
     "JalAM": JalAM,
-    "JalUnc": JalUnc
+    "JalUnc": JalUnc,
+    "QBM": QBM
 }
 
 CONFIG = {
     "runname": datetime.now().strftime("%d%b%Y").lower(),  # e.g. "15dec2025"
     
     # Mixed play configuration
-    "algorithm_1": "IQL",   # Algorithm for agent 1
-    "algorithm_2": "IQL",   # Algorithm for agent 2
-    "algorithm_1_kwargs": {},  # extra kwargs for algorithm 1
-    "algorithm_2_kwargs": {}, #{"p": 0.9},  # Extra kwargs for algorithm 2
+    "algorithm_1": "JalUnc",   # Algorithm for agent 1
+    "algorithm_2": "JalUnc",   # Algorithm for agent 2
+    "algorithm_1_kwargs": {"p": 0.},  # extra kwargs for algorithm 1
+    "algorithm_2_kwargs": {"p": 0.5},  # Extra kwargs for algorithm 2
 
-    "env": "cf",  # game type: "f" = foraging, "cf" = custom_foraging, "m" = matrix, "mc" = MoveChairGame
+    "env": "cf",  # game type: "f" = foraging, "cf" = custom_foraging, "cf1f" = OneFood, "m" = matrix, "mc" = MoveChairGame
 
     "save": True,
     "visualise": False,
     "output": True,
 
-    "repetitions": 30 ,  # Number of independent runs
-    "ep_length": 25, 
-    "total_eps": 500,
-    "eval_episodes": 500, #in total across one rep.
-    "eval_spread": "full",  # "last10" = checkpoints at 91-100%, "full" = evenly spaced 10-100%
+    "repetitions": 2,  # Number of independent runs
+    "ep_length": 50,
+    "total_eps": 300,
+    "eval_episodes": 50, #in total across one rep.
+    "eval_spread": "both",  # "last10", "full", or "both" (saves 2 CSVs, uses last10 for repetition plot, full for learning curve)
 
     "seed": None,
     "lr": 0.1,
-    "init_epsilon": 0.7,
+    "init_epsilon": 0.9,
+    "eps_decay": True, # False sets epsilon to 0.1
     "eval_epsilon": 0.05,
     "num_agents": 2,
     "gamma": 0.95,
 
     "food_pos": [[1, 1], [3, 3]],
     "player_pos": [[0, 4], [4, 0]],
-    "payoff_matrix": np.array([[[4, 4], [0, 3]], 
-                               [[3, 0], [2, 2]]]) * 1/9
+    "payoff_matrix": np.array([[[5, 5], [0, 3]], 
+                               [[3, 0], [2, 2]]]) * 1/10
 }
 
 
@@ -88,6 +93,8 @@ def train_agents(env, config, rep_num=0):
         gamma=config["gamma"],
         learning_rate=config["lr"],
         init_epsilon=config["init_epsilon"],
+        eps_decay=config["eps_decay"],
+        env=config["env"],
         algorithm_1=ALGORITHMS[config["algorithm_1"]],
         algorithm_2=ALGORITHMS[config["algorithm_2"]],
         algorithm_1_kwargs=config.get("algorithm_1_kwargs", {}),
@@ -98,23 +105,31 @@ def train_agents(env, config, rep_num=0):
     max_steps = config["total_eps"] * config["ep_length"]
     total_eps = config["total_eps"]
     
-    # Determine evaluation checkpoints based on eval_spread config
+    # Compute both checkpoint sets (used for "both" mode and individual modes)
+    full_checkpoints = set(int(total_eps * pct / 100) for pct in range(10, 101, 10))
+    full_checkpoints.discard(0)
+    eval_start = int(0.9 * total_eps)
+    last10_checkpoints = set(range(eval_start + 1, total_eps + 1))
+    
+    # Determine which checkpoints to evaluate at
     eval_spread = config.get("eval_spread", "last10")
     
-    if eval_spread == "full":
-        # Evenly spaced checkpoints at 10%, 20%, ..., 100% of training
-        eval_checkpoints = set(int(total_eps * pct / 100) for pct in range(10, 101, 10))
-        eval_checkpoints.discard(0)  # Remove 0 if total_eps is very small
+    if eval_spread == "both":
+        eval_checkpoints = full_checkpoints | last10_checkpoints
+        num_checkpoints = 10  # Use full's count for budget
+    elif eval_spread == "full":
+        eval_checkpoints = full_checkpoints
+        num_checkpoints = len(eval_checkpoints)
     else:  # "last10" (default)
-        # Checkpoints at 91%, 92%, ..., 100% of training
-        eval_start = int(0.9 * total_eps)
-        eval_checkpoints = set(range(eval_start + 1, total_eps + 1))
+        eval_checkpoints = last10_checkpoints
+        num_checkpoints = len(eval_checkpoints)
     
     # Evaluation episodes per checkpoint
-    num_checkpoints = len(eval_checkpoints)
     eval_eps_per_checkpoint = max(1, config["eval_episodes"] // num_checkpoints)
     
     checkpoint_returns = []  # Store returns from each checkpoint
+    full_returns = [] if eval_spread == "both" else None
+    last10_returns = [] if eval_spread == "both" else None
 
     for eps_num in range(1, 1 + total_eps):
         obss, _ = env.reset()
@@ -129,7 +144,7 @@ def train_agents(env, config, rep_num=0):
             step_counter += 1
             obss = n_obss
 
-        # Evaluate at checkpoints during last 10%
+        # Evaluate at checkpoints
         if eps_num in eval_checkpoints:
             checkpoint_eval = evaluate_agents(
                 env, config, agents, rep_num, 
@@ -137,12 +152,21 @@ def train_agents(env, config, rep_num=0):
                 checkpoint_pct=int(100 * eps_num / total_eps),
                 verbose=False
             )
-            checkpoint_returns.extend(checkpoint_eval)
+            
+            if eval_spread == "both":
+                if eps_num in full_checkpoints:
+                    full_returns.extend(checkpoint_eval)
+                if eps_num in last10_checkpoints:
+                    last10_returns.extend(checkpoint_eval)
+            else:
+                checkpoint_returns.extend(checkpoint_eval)
             
             if config.get("output"):
                 pct = int(100 * eps_num / total_eps)
                 print(f"  Rep {rep_num + 1}: Episode {eps_num}/{total_eps} ({pct}%) - Evaluated")
 
+    if eval_spread == "both":
+        return agents, {"full": full_returns, "last10": last10_returns}
     return agents, checkpoint_returns
 
 
@@ -171,6 +195,8 @@ def evaluate_agents(env, config, trained_agents, rep_num=0, eval_episodes=None, 
         gamma=config["gamma"],
         learning_rate=config["lr"],
         init_epsilon=config["eval_epsilon"],
+        eps_decay=config["eps_decay"],
+        env=config["env"],
         algorithm_1=ALGORITHMS[config["algorithm_1"]],
         algorithm_2=ALGORITHMS[config["algorithm_2"]],
         algorithm_1_kwargs=config.get("algorithm_1_kwargs", {}),
@@ -220,8 +246,14 @@ def run_multiple_repetitions(env, config):
     :param env (gym.Env): environment to use
     :param config (Dict): configuration dictionary
     :return: aggregated evaluation results and final Q-tables from all repetitions
+             When eval_spread=="both", returns dict with "full" and "last10" keys
     """
-    all_eval_returns = []
+    eval_spread = config.get("eval_spread", "last10")
+    
+    if eval_spread == "both":
+        all_eval_returns = {"full": [], "last10": []}
+    else:
+        all_eval_returns = []
     all_q_tables = []
 
     for rep in range(config["repetitions"]):
@@ -237,7 +269,11 @@ def run_multiple_repetitions(env, config):
 
         trained_agents, checkpoint_returns = train_agents(env, config, rep)
         
-        all_eval_returns.append(checkpoint_returns)
+        if eval_spread == "both":
+            all_eval_returns["full"].append(checkpoint_returns["full"])
+            all_eval_returns["last10"].append(checkpoint_returns["last10"])
+        else:
+            all_eval_returns.append(checkpoint_returns)
         all_q_tables.append(copy.deepcopy(trained_agents.q_tables))
 
     return all_eval_returns, all_q_tables
@@ -246,35 +282,44 @@ def run_multiple_repetitions(env, config):
 def save_results(all_eval_returns, config):
     """
     Save aggregated results to CSV with one row per repetition.
+    When eval_spread=="both", saves two separate files.
 
-    :param all_eval_returns: list of evaluation returns per repetition
+    :param all_eval_returns: list of evaluation returns per repetition, or dict with "full"/"last10" keys
     :param config: configuration dictionary
     """
     import csv
     
-    save_path = f"{config['dir']}/eval_returns.csv"
+    def _save_csv(returns_list, filepath):
+        with open(filepath, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['repetition', 'agent_1_returns', 'agent_2_returns'])
+            for rep_idx, rep_returns in enumerate(returns_list):
+                agent_1_returns = [returns[0] for returns in rep_returns]
+                agent_2_returns = [returns[1] for returns in rep_returns]
+                writer.writerow([rep_idx + 1, agent_1_returns, agent_2_returns])
+        print(f"Results saved to {filepath}")
     
-    with open(save_path, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['repetition', 'agent_1_returns', 'agent_2_returns'])
-        
-        for rep_idx, rep_returns in enumerate(all_eval_returns):
-            agent_1_returns = [returns[0] for returns in rep_returns]
-            agent_2_returns = [returns[1] for returns in rep_returns]
-            writer.writerow([rep_idx + 1, agent_1_returns, agent_2_returns])
-    
-    print(f"\nResults saved to {save_path}")
+    if config.get("eval_spread") == "both":
+        _save_csv(all_eval_returns["full"], f"{config['dir']}/eval_returns_full.csv")
+        _save_csv(all_eval_returns["last10"], f"{config['dir']}/eval_returns_last10.csv")
+    else:
+        _save_csv(all_eval_returns, f"{config['dir']}/eval_returns.csv")
 
 
 def print_summary(all_eval_returns, config):
     """
     Print summary statistics across all repetitions.
 
-    :param all_eval_returns: list of evaluation returns per repetition
+    :param all_eval_returns: list of evaluation returns per repetition, or dict with "full"/"last10" keys
     :param config: configuration dictionary
     """
+    eval_spread = config.get("eval_spread", "last10")
+    
+    # Use last10 returns for summary when "both" (final performance)
+    returns_for_summary = all_eval_returns["last10"] if eval_spread == "both" else all_eval_returns
+    
     # Flatten all returns: shape (repetitions, eval_episodes_total, num_agents)
-    all_returns = np.array(all_eval_returns)
+    all_returns = np.array(returns_for_summary)
     
     # Mean per repetition, then mean across repetitions
     rep_means = np.mean(all_returns, axis=1)  # (repetitions, num_agents)
@@ -283,39 +328,34 @@ def print_summary(all_eval_returns, config):
     overall_std = np.std(rep_means, axis=0)
     
     # Calculate checkpoint info based on eval_spread
-    eval_spread = config.get("eval_spread", "last10")
     total_eps = config["total_eps"]
     
-    if eval_spread == "full":
-        num_checkpoints = 10
+    if eval_spread == "both":
+        checkpoint_desc = "both: 10 (full) + last10%"
+    elif eval_spread == "full":
         checkpoint_desc = "10 (evenly spaced at 10-100%)"
     else:
         eval_start = int(0.9 * total_eps)
         num_checkpoints = total_eps - eval_start
         checkpoint_desc = f"{num_checkpoints} (at 91-100% of training)"
     
-    eval_eps_per_checkpoint = max(1, config["eval_episodes"] // num_checkpoints)
-    total_eval_eps = eval_eps_per_checkpoint * num_checkpoints
-    
     print(f"\n{'='*50}")
     print("SUMMARY ACROSS ALL REPETITIONS")
     print(f"{'='*50}")
     print(f"Agent 1 ({config['algorithm_1']}): {overall_mean[0]:.2f} ± {overall_std[0]:.2f}")
     print(f"Agent 2 ({config['algorithm_2']}): {overall_mean[1]:.2f} ± {overall_std[1]:.2f}")
-    print(f"Total repetitions: {len(all_eval_returns)}")
+    print(f"Total repetitions: {len(returns_for_summary)}")
     print(f"Eval checkpoints: {checkpoint_desc}")
-    print(f"Eval episodes per checkpoint: {eval_eps_per_checkpoint}")
-    print(f"Total eval episodes per rep: {total_eval_eps}")
 
 
 if __name__ == "__main__":
     # Setup save directory
     if CONFIG["save"]:
         CONFIG["runname"] = (
-            f"{CONFIG['repetitions']}reps_{CONFIG['total_eps']}eps_{CONFIG['ep_length']}epL_"
-            f"{CONFIG['runname']}_{CONFIG['algorithm_1']}_vs_{CONFIG['algorithm_2']}"
+            f"{CONFIG['algorithm_1']}_vs_{CONFIG['algorithm_2']}_env-{CONFIG['env']}_{CONFIG['repetitions']}reps_{CONFIG['total_eps']}eps_{CONFIG['ep_length']}epL_"
+            f"{CONFIG['runname']}"
         )
-        save_dir = f"{dirpath}output/MixedPlay/{CONFIG['runname']}"
+        save_dir = f"{dirpath}output/Multiple/{CONFIG['runname']}"
         CONFIG["dir"] = save_dir
 
         if CONFIG["env"][-1] == "f" and CONFIG["visualise"] == True:
@@ -347,7 +387,24 @@ if __name__ == "__main__":
             render_mode="rgb_array" if CONFIG.get("visualise") else None,
         )   
         env.reset()
-    
+    elif CONFIG["env"] == "cf1f":
+        env = CustomForagingOneFood(
+            field_size=(5, 5),  
+            players=len(CONFIG["player_pos"]),       
+            min_player_level=5,
+            max_player_level=5,
+            min_food_level=1,
+            max_food_level=9,
+            max_num_food=len(CONFIG["food_pos"]),  
+            sight=5,         
+            max_episode_steps=CONFIG["ep_length"],  
+            force_coop=False,
+            pos_foods=CONFIG["food_pos"],
+            pos_players=CONFIG["player_pos"],
+            render_mode="rgb_array" if CONFIG.get("visualise") else None,
+        )   
+        env.reset()
+
     elif CONFIG["env"] == "f":
         env = gym.make(
             "lbforaging:Foraging-5x5-2p-1f-v3", 
@@ -366,12 +423,18 @@ if __name__ == "__main__":
     elif CONFIG["env"] == "mcs":
         env = MoveChairSimple(ep_length=CONFIG["ep_length"])
         CONFIG["video"] = False
-
+    
+    elif CONFIG["env"] == "mcc":
+        env = MoveChairCoordination(ep_length=CONFIG["ep_length"])
+        CONFIG["video"] = False
     else:
         raise ValueError(f"Invalid env '{CONFIG['env']}'. Choose 'f', 'cf', 'm', or 'mc'.")
     
     eval_spread = CONFIG.get("eval_spread", "last10")
-    if eval_spread == "full":
+    if eval_spread == "both":
+        checkpoint_desc = "both: 10 at 10-100% (full) + last10%"
+        num_checkpoints = 10
+    elif eval_spread == "full":
         num_checkpoints = 10
         checkpoint_desc = "10 checkpoints at 10-100%"
     else:
@@ -395,11 +458,21 @@ if __name__ == "__main__":
     
     print_summary(all_eval_returns, CONFIG)
     
-    # Visualize evaluation returns across repetitions
-    visualise_repetition_returns(all_eval_returns, CONFIG)
+    # Visualize evaluation returns across repetitions (use last10 for "both")
+    rep_returns_data = all_eval_returns["last10"] if eval_spread == "both" else all_eval_returns
+    config_for_rep = {**CONFIG, "eval_spread": "last10"} if eval_spread == "both" else CONFIG
+    fig_rep = visualise_repetition_returns(rep_returns_data, config_for_rep)
+    if CONFIG["save"]:
+        fig_rep.savefig(f"{CONFIG['dir']}/{CONFIG['runname']}_repetition_returns.png", dpi=300, bbox_inches="tight")
+        print(f"Saved: {CONFIG['dir']}/{CONFIG['runname']}_repetition_returns.png")
     
-    # Visualize learning curve (performance vs training progress)
-    visualise_learning_curve(all_eval_returns, CONFIG)
+    # Visualize learning curve (use full for "both")
+    lc_returns_data = all_eval_returns["full"] if eval_spread == "both" else all_eval_returns
+    config_for_lc = {**CONFIG, "eval_spread": "full"} if eval_spread == "both" else CONFIG
+    fig_lc = visualise_learning_curve(lc_returns_data, config_for_lc)
+    if CONFIG["save"]:
+        fig_lc.savefig(f"{CONFIG['dir']}/{CONFIG['runname']}_learning_curve.png", dpi=300, bbox_inches="tight")
+        print(f"Saved: {CONFIG['dir']}/{CONFIG['runname']}_learning_curve.png")
 
     # Visualize final Q-tables from last repetition
     if CONFIG.get("visualise"):

@@ -24,6 +24,7 @@ class MixedPlay:
         gamma: float,
         learning_rate: float = 0.5,
         init_epsilon: float = 1.0,
+        eps_decay = True,
         algorithm_1: Type = IQL,
         algorithm_2: Type = Random,
         algorithm_1_kwargs: Dict[str, Any] = None,
@@ -37,6 +38,7 @@ class MixedPlay:
         self.learning_rate = learning_rate
         self.init_epsilon = init_epsilon
         self.epsilon = init_epsilon
+        self.eps_decay = eps_decay
         
         #Default empty dicts for extra kwargs
         algorithm_1_kwargs = algorithm_1_kwargs or {}
@@ -49,6 +51,7 @@ class MixedPlay:
             gamma=gamma,
             learning_rate=learning_rate,
             init_epsilon=init_epsilon,
+            eps_decay=eps_decay,
             **algorithm_1_kwargs,
             **kwargs,
         )
@@ -60,6 +63,7 @@ class MixedPlay:
             gamma=gamma,
             learning_rate=learning_rate,
             init_epsilon=init_epsilon,
+            eps_decay=eps_decay,
             **algorithm_2_kwargs,
             **kwargs,
         )

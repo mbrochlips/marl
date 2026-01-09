@@ -16,7 +16,10 @@ class IQL:
         action_spaces: List[Space],
         gamma: float,
         learning_rate: float = 0.5,
-        init_epsilon: float = 1.0,
+        eps_decay = True,
+        init_epsilon: float = 0.9,
+        epsilon_min: float = 0.05,  
+        decay_fraction: float = 0.9, # first 90%
         **kwargs,
     ):
         """Constructor of IQL
@@ -39,8 +42,12 @@ class IQL:
 
         self.gamma: float = gamma
         self.learning_rate = learning_rate
+        
         self.init_epsilon = init_epsilon
         self.epsilon = init_epsilon
+        self.eps_decay = eps_decay
+        self.decay_fraction = decay_fraction
+        self.epsilon_min = epsilon_min
         
         # initialise Q-tables for all agents
         # access value of Q_i(o, a) with self.q_tables[i][str((o, a))] (str conversion for hashable obs)
@@ -107,5 +114,13 @@ class IQL:
         :param timestep (int): current timestep at the beginning of the episode
         :param max_timestep (int): maximum timesteps that the training loop will run for
         """
-        self.epsilon = (1.0 - (min(1.0, timestep / (0.8 * max_timestep))) * 0.99) * self.init_epsilon
+        if self.eps_decay:
+            decay_steps = self.decay_fraction * max_timestep
+            self.epsilon = max(
+                self.epsilon_min,
+                self.init_epsilon  - (self.init_epsilon - self.epsilon_min) * (timestep / decay_steps)
+            )
+        else:
+            self.epsilon = 0.1
+        #self.epsilon = (1.0 - (min(1.0, timestep / (0.8 * max_timestep))) * 0.99) * self.init_epsilon
         #self.epsilon = (1.0 - (min(1.0, timestep / (0.8 * max_timestep))) * 0.99)

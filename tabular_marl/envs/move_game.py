@@ -3,7 +3,7 @@ import gymnasium as gym
 
 
 class MoveChairGame(gym.Env):
-    def __init__(self, ep_length, step_cost=0.0, reward_shaping=True):
+    def __init__(self, ep_length, step_cost=0.05, reward_shaping=False):
         """
         Create MoveChairGame environment
         :param ep_length: length of episode (before done is True)
@@ -52,7 +52,10 @@ class MoveChairGame(gym.Env):
     
     def reset(self, seed=None):
         self.t = 0
-        # Reset to initial values (both agents at pos 1, no chair, chair at 0, door closed)
+        spawn_poss = [0,1,2]
+        A1_pos = np.random.choice(spawn_poss)
+        # spawn_poss.pop(A1_pos)
+        A2_pos = np.random.choice(spawn_poss)
         self._state[:] = [1, 0, 1, 0, 0, 0]
         return self._get_obs(), {}
     
@@ -142,7 +145,6 @@ class MoveChairGame(gym.Env):
 
         if self._is_terminal():
             rewards = [r + 0.5 for r in rewards]
-            print("succes")
             done = True
         elif self.t >= self.ep_length:
             done = True

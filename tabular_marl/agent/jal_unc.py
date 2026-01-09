@@ -6,9 +6,10 @@ import numpy as np
 from gymnasium.spaces import Space
 from gymnasium.spaces.utils import flatdim
 from scipy.stats import entropy
+from agent.iql import IQL
 
 
-class JalUnc:
+class JalUnc(IQL):
     #[page 132, algorithm 8] by Albrecht and co. (marl-book)
     # only works with mixed play and 2v2!!
     """
@@ -22,8 +23,11 @@ class JalUnc:
         action_spaces: List[Space],
         gamma: float,
         learning_rate: float = 0.5,
-        init_epsilon: float = 1.0,
+        init_epsilon: float = 0.9,
+        epsilon_min: float = 0.05,  
+        decay_fraction: float = 0.9, # first 90%
         history_length: int = 2,
+        eps_decay = True,
         **kwargs,
     ):
         self.num_agents = num_agents
@@ -34,6 +38,9 @@ class JalUnc:
         self.learning_rate = learning_rate
         self.init_epsilon = init_epsilon
         self.epsilon = init_epsilon
+        self.decay_fraction = decay_fraction
+        self.epsilon_min = epsilon_min
+        self.eps_decay = eps_decay
         
         # Q-table stores Q(s, a_self, a_opponent) for the learning agent
         # Key: str((obs, my_action, opponent_action))
@@ -171,8 +178,3 @@ class JalUnc:
         self.q_history[q_key] += [self.q_tables[0][q_key]]
         if len(self.q_history[q_key]) > self.q_history_length:
             self.q_history[q_key] = self.q_history[q_key][1:]
-
-
-    def schedule_hyperparameters(self, timestep: int, max_timestep: int):
-        """Decay epsilon over time."""
-        self.epsilon = (1.0 - min(1.0, timestep / (0.8 * max_timestep)) * 0.99) * self.init_epsilon
