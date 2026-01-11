@@ -45,30 +45,30 @@ CONFIG = {
     "runname": datetime.now().strftime("%d%b%Y").lower(),  # e.g. "15dec2025"
     
     # Mixed play configuration
-    "algorithm_1": "JalUnc",   # Algorithm for agent 1
-    "algorithm_2": "JalUnc",   # Algorithm for agent 2
-    "algorithm_1_kwargs": {"p": 0.},  # extra kwargs for algorithm 1
-    "algorithm_2_kwargs": {"p": 0.5},  # Extra kwargs for algorithm 2
+    "algorithm_1": "JalAM",   # Algorithm for agent 1
+    "algorithm_2": "JalAM",   # Algorithm for agent 2
+    "algorithm_1_kwargs": {},# {"p": 0.},  # extra kwargs for algorithm 1
+    "algorithm_2_kwargs": {},# {"p": 0.5},  # Extra kwargs for algorithm 2
 
-    "env": "cf",  # game type: "f" = foraging, "cf" = custom_foraging, "cf1f" = OneFood, "m" = matrix, "mc" = MoveChairGame
+    "env": "cf1f",  # game type: "f" = foraging, "cf" = custom_foraging, "cf1f" = OneFood, "m" = matrix, "mc" = MoveChairGame
 
     "save": True,
     "visualise": False,
     "output": True,
 
-    "repetitions": 2,  # Number of independent runs
+    "repetitions": 30,  # Number of independent runs
     "ep_length": 50,
-    "total_eps": 300,
-    "eval_episodes": 50, #in total across one rep.
+    "total_eps": 1000,
+    "eval_episodes": 100, #in total across one rep.
     "eval_spread": "both",  # "last10", "full", or "both" (saves 2 CSVs, uses last10 for repetition plot, full for learning curve)
 
     "seed": None,
-    "lr": 0.1,
-    "init_epsilon": 0.9,
+    "lr": 0.1, # default 0.1 (for QBM: 0.25
+    "init_epsilon": 0.9, #default 0.9
     "eps_decay": True, # False sets epsilon to 0.1
     "eval_epsilon": 0.05,
     "num_agents": 2,
-    "gamma": 0.95,
+    "gamma": 0.95, #default 0.95
 
     "food_pos": [[1, 1], [3, 3]],
     "player_pos": [[0, 4], [4, 0]],
@@ -355,7 +355,11 @@ if __name__ == "__main__":
             f"{CONFIG['algorithm_1']}_vs_{CONFIG['algorithm_2']}_env-{CONFIG['env']}_{CONFIG['repetitions']}reps_{CONFIG['total_eps']}eps_{CONFIG['ep_length']}epL_"
             f"{CONFIG['runname']}"
         )
-        save_dir = f"{dirpath}output/Multiple/{CONFIG['runname']}"
+        if CONFIG.get("repetitions") == 30:
+            save_dir = f"{dirpath}output/Final/{CONFIG['runname']}"
+        else:
+            save_dir = f"{dirpath}output/Multiple/{CONFIG['runname']}"
+
         CONFIG["dir"] = save_dir
 
         if CONFIG["env"][-1] == "f" and CONFIG["visualise"] == True:

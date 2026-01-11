@@ -29,11 +29,11 @@ class RewardGroup:
         self.total += 1
 
     def score(self,c):
-        return self.reward * self.success / self.total * c * self.reward / np.sqrt(self.total)
+        return self.reward * self.success / self.total + c * self.reward  / np.sqrt(self.total)
         # times c * boost (Proportional to reward, shrinks with more visits.)
 
 class QBM(IQL):
-    def __init__(self, num_agents: int, action_spaces: List[Space], gamma: float, learning_rate: float = 0.5, eps_decay=True, init_epsilon: float = 0.9, epsilon_min: float = 0.05, decay_fraction: float = 0.9, r_threshold=0.09, c_boost = 2.0, **kwargs):
+    def __init__(self, num_agents: int, action_spaces: List[Space], gamma: float, learning_rate: float = 0.5, eps_decay=True, init_epsilon: float = 0.9, epsilon_min: float = 0.05, decay_fraction: float = 0.9, r_threshold=0.09, c_boost = 10.0, **kwargs):
         super().__init__(num_agents, action_spaces, gamma, learning_rate, eps_decay, init_epsilon, epsilon_min, decay_fraction, **kwargs)
         self.groups: List[RewardGroup] = []
         self.obs_to_group: dict = {}
@@ -50,12 +50,12 @@ class QBM(IQL):
         if len(self.groups) <= 1:
             return True
         
-        normalizer = sum(g.score(self.c_boost) for j, g in enumerate(self.groups) if j != i)
-        if normalizer == 0:
+        avg_score = sum(g.score(self.c_boost) for j, g in enumerate(self.groups) if j != i)
+        if avg_score == 0:
             return True
         
-        top = self.groups[i].score(self.c_boost)
-        return top / (normalizer / len(self.groups)) <= 1
+        score_i = self.groups[i].score(self.c_boost)
+        return score_i < (avg_score / (len(self.groups) - 1))
 
     def update_reward_model(self, r: float, obs_a: str):
         
