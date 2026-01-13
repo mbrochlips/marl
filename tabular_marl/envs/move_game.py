@@ -2,7 +2,7 @@ import numpy as np
 import gymnasium as gym
 
 
-class MoveChairGame(gym.Env):
+class MoveChairEnv(gym.Env):
     def __init__(self, ep_length, step_cost=0.05, reward_shaping=False):
         """
         Create MoveChairGame environment

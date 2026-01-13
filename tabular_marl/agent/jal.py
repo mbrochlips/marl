@@ -8,7 +8,7 @@ from gymnasium.spaces.utils import flatdim
 from agent.iql import IQL
 
 
-class JalAM:
+class JalAM(IQL):
     #[page 132, algorithm 8] by Albrecht and co. (marl-book)
     # only works with mixed play and 2v2!!
     """
@@ -154,6 +154,6 @@ class JalAM:
         # Q-update
         self.q_tables[0][q_key] += self.learning_rate * (reward + self.gamma * q_next - self.q_tables[0][q_key])
 
-    def schedule_hyperparameters(self, timestep: int, max_timestep: int):
-        """Decay epsilon over time."""
-        self.epsilon = (1.0 - min(1.0, timestep / (0.8 * max_timestep)) * 0.99) * self.init_epsilon
+    # def schedule_hyperparameters(self, timestep: int, max_timestep: int):
+    #     """Decay epsilon over time."""
+    #     self.epsilon = (1.0 - min(1.0, timestep / (0.8 * max_timestep)) * 0.99) * self.init_epsilon

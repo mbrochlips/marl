@@ -3,23 +3,19 @@ import gymnasium as gym
 
 
 class MoveChairCoordination(gym.Env):
-    def __init__(self, ep_length, step_cost=0.01, reward_shaping=False):
-        """
-        Create MoveChairGame environment
-        :param ep_length: length of episode (before done is True)
-        :param step_cost: cost per step (encourages faster solutions)
-        :param reward_shaping: if True, give intermediate rewards for progress
-        """
+    def __init__(self, ep_length, step_cost=0.01, random_spawn=False, reward_shaping=False):
+    
         # Terminal: agent with chair at open door --> successful exit
         # Format: [self_Pos, self_HasChair, opp_Pos, opp_HasChair, ChairPos, DoorOpen]
 
         self.step_cost = -step_cost
         self.reward_shaping = reward_shaping
+        self.random_spawn = random_spawn
         self.n_agents = 2
         n_actions_1, n_actions_2 = 4, 4
 
         # Actions:
-        # 0: noop (hold door if at pos 2 without chair, enter closet if at pos 2 with chair)
+        # 0: noop (open door if at pos 2 without chair, enter closet if at pos 2 with chair)
         # 1: left (exit closet to pos 2 if at pos 4)
         # 2: right (exit closet to pos 2 if at pos 4)
         # 3: pickup/putdown
@@ -43,6 +39,7 @@ class MoveChairCoordination(gym.Env):
         self.t = 0
         # Internal state as numpy array for efficient computation
         self._state = np.array([1, 0, 1, 0, 0, 0], dtype=np.int32)
+    
         
     
     def _get_obs(self):
@@ -56,16 +53,19 @@ class MoveChairCoordination(gym.Env):
     
     def reset(self, seed=None):
         self.t = 0
-        spawn_poss = [0,1,2,3]
-        A1_pos = np.random.choice(spawn_poss)
-        spawn_poss.pop(A1_pos)
-        A2_pos = np.random.choice(spawn_poss)
-        self._state[:] = [1, 0, 1, 0, 0, 0]
+        if self.random_spawn:  
+            spawn_poss = [0,1,2,3]
+            A1_pos = np.random.choice(spawn_poss)
+            spawn_poss.pop(A1_pos)
+            A2_pos = np.random.choice(spawn_poss)
+            self._state[:] = [A1_pos, 0, A2_pos, 0, 0, 0]
+        else:
+            self._state[:] = [1, 0, 1, 0, 0, 0]
         return self._get_obs(), {}
     
     def _is_terminal(self):
         """Check if current state matches terminal condition.
-        Terminal: one agent at door(2) with chair, other at door holding it open.
+        Terminal: chair at pos 3, door open, one agent has chair.
         """
         s = self._state
         # chair at door (pos 2), door open
@@ -98,7 +98,7 @@ class MoveChairCoordination(gym.Env):
         will_open_door = [False, False]
 
         for i, a in enumerate(actions):
-            if a == 0:  # noop / hold door / enter closet
+            if a == 0:  # noop / open door / enter closet
                 if pos[i] == 2 and has_chair[i] == 0:
                     will_open_door[i] = True
                 elif pos[i] == 2 and has_chair[i] == 1:
@@ -206,6 +206,12 @@ class MoveChairCoordination(gym.Env):
         self._state[3] = new_has_chair[1]
         self._state[4] = new_chair_pos
         self._state[5] = new_door_open
+
+        #Reward for sitting on the chair
+        # if self._state[0] == 0 and self._state[1] == 1:
+        #     rewards[0] += self.step_cost
+        # elif self._state[2] == 0 and self._state[3] == 1:
+        #     rewards[1] += self.step_cost 
 
         # Check termination and compute rewards
         if self._is_terminal():

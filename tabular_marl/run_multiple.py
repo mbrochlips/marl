@@ -18,16 +18,16 @@ from agent.mixed_play_wrapper import MixedPlay
 from agent.iql import IQL
 from agent.random_agent import Random
 from agent.jal import JalAM
-from agent.jal_unc import JalUnc
+from agent.jal_unc import JalAE
 from agent.iql_behave_modeling import QBM
 from agent.p_random import pRandom
 
 from envs.matrix_game import create_matrix_game
 from envs.custom_foraging_env import CustomForagingEnv
 from envs.custom_foraging_oneFood import CustomForagingOneFood
-from envs.move_game import MoveChairGame
+from envs.move_game import MoveChairEnv
 from envs.move_chair_simple import MoveChairSimple
-from envs.move_game_cor import MoveChairCoordination
+from envs.move_game_coor import MoveChairCoordination
 
 dirpath = "tabular_marl/"
 
@@ -37,7 +37,7 @@ ALGORITHMS = {
     "pRandom": pRandom,
     "IQL": IQL,
     "JalAM": JalAM,
-    "JalUnc": JalUnc,
+    "JalAE": JalAE,
     "QBM": QBM
 }
 
@@ -47,18 +47,18 @@ CONFIG = {
     # Mixed play configuration
     "algorithm_1": "JalAM",   # Algorithm for agent 1
     "algorithm_2": "JalAM",   # Algorithm for agent 2
-    "algorithm_1_kwargs": {},# {"p": 0.},  # extra kwargs for algorithm 1
-    "algorithm_2_kwargs": {},# {"p": 0.5},  # Extra kwargs for algorithm 2
+    "algorithm_1_kwargs": {"p": 0.5},  # pRandom here! extra kwargs for algorithm 1
+    "algorithm_2_kwargs": {},  # Extra kwargs for algorithm 2
 
-    "env": "cf1f",  # game type: "f" = foraging, "cf" = custom_foraging, "cf1f" = OneFood, "m" = matrix, "mc" = MoveChairGame
+    "env": "cf",  # game type: "f" = foraging, "cf" = custom_foraging, "cf1f" = OneFood, "m" = matrix, "mc" = MoveChairGame
 
     "save": True,
     "visualise": False,
     "output": True,
 
-    "repetitions": 30,  # Number of independent runs
+    "repetitions": 2,  # Number of independent runs
     "ep_length": 50,
-    "total_eps": 1000,
+    "total_eps": 300,
     "eval_episodes": 100, #in total across one rep.
     "eval_spread": "both",  # "last10", "full", or "both" (saves 2 CSVs, uses last10 for repetition plot, full for learning curve)
 
@@ -395,10 +395,10 @@ if __name__ == "__main__":
         env = CustomForagingOneFood(
             field_size=(5, 5),  
             players=len(CONFIG["player_pos"]),       
-            min_player_level=5,
-            max_player_level=5,
+            min_player_level=3,
+            max_player_level=3,
             min_food_level=1,
-            max_food_level=9,
+            max_food_level=5,
             max_num_food=len(CONFIG["food_pos"]),  
             sight=5,         
             max_episode_steps=CONFIG["ep_length"],  
@@ -421,7 +421,7 @@ if __name__ == "__main__":
         CONFIG["gamma"] = 0.0  # No bootstrapping for stateless matrix games
     
     elif CONFIG["env"] == "mc":
-        env = MoveChairGame(ep_length=CONFIG["ep_length"])
+        env = MoveChairEnv(ep_length=CONFIG["ep_length"])
         CONFIG["video"] = False
     
     elif CONFIG["env"] == "mcs":

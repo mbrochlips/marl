@@ -1,0 +1,1550 @@
+======================================================================
+Q-table for Agent 2
+======================================================================
+
+SUMMARY
+──────────────────────────────────────────────────────────────────────
+  Total entries: 1152
+  Unique states visited: 32
+  Q-value range: [0.0000, 0.4167]
+  Mean Q-value:  0.0220
+  Std Q-value:   0.0756
+
+STATES (sorted by max Q-value)
+──────────────────────────────────────────────────────────────────────
+
+  State: [1., 1., 5., 3., 3., 1., 2., 1., 3., 0., 1., 3.] | opp_action=5
+    Action 5:     0.4167 <-- best
+    Action 1:     0.3918
+    Action 0:     0.3916
+    Action 3:     0.3693
+    Action 2:     0.3678
+    Action 4:     0.3352
+
+  State: [1., 1., 5., 3., 3., 1., 3., 1., 3., 0., 1., 3.] | opp_action=5
+    Action 1:     0.3958 <-- best
+    Action 0:     0.3750
+    Action 5:     0.3718
+    Action 3:     0.3559
+    Action 2:     0.3556
+    Action 4:     0.3407
+
+  State: [1., 1., 5., 3., 3., 1., 2., 0., 3., 0., 1., 3.] | opp_action=5
+    Action 4:     0.3956 <-- best
+    Action 2:     0.3246
+    Action 3:     0.3198
+    Action 1:     0.3084
+    Action 0:     0.3043
+    Action 5:     0.2639
+
+  State: [1., 1., 5., 3., 3., 1., 2., 2., 3., 0., 1., 3.] | opp_action=5
+    Action 3:     0.3873 <-- best
+    Action 2:     0.1877
+    Action 0:     0.1229
+    Action 5:     0.1136
+    Action 1:     0.0741
+    Action 4:     0.0604
+
+  State: [1., 1., 5., 3., 3., 1., 1., 0., 3., 0., 1., 3.] | opp_action=5
+    Action 5:     0.3868 <-- best
+    Action 2:     0.1776
+    Action 3:     0.1503
+    Action 0:     0.1503
+    Action 4:     0.1238
+    Action 1:     0.0444
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 1., 3.] | opp_action=5
+    Action 4:     0.3760 <-- best
+    Action 1:     0.3735
+    Action 3:     0.3552
+    Action 5:     0.3543
+    Action 0:     0.3528
+    Action 2:     0.3339
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 1., 3.] | opp_action=5
+    Action 1:     0.3760 <-- best
+    Action 0:     0.3422
+    Action 5:     0.3267
+    Action 2:     0.3252
+    Action 3:     0.3150
+    Action 4:     0.2321
+
+  State: [1., 1., 5., 3., 3., 1., 3., 2., 3., 0., 1., 3.] | opp_action=5
+    Action 3:     0.3730 <-- best
+    Action 4:     0.2742
+    Action 1:     0.2484
+    Action 0:     0.2385
+    Action 2:     0.1771
+    Action 5:     0.1661
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 1., 3.] | opp_action=5
+    Action 1:     0.3572 <-- best
+    Action 4:     0.3452
+    Action 3:     0.3343
+    Action 5:     0.3313
+    Action 2:     0.3303
+    Action 0:     0.3093
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 2., 3.] | opp_action=3
+    Action 1:     0.3555 <-- best
+    Action 0:     0.2980
+    Action 4:     0.2958
+    Action 3:     0.2714
+    Action 5:     0.2609
+    Action 2:     0.2593
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 3., 3.] | opp_action=3
+    Action 5:     0.3353 <-- best
+    Action 2:     0.2777
+    Action 0:     0.2753
+    Action 3:     0.2276
+    Action 1:     0.1642
+    Action 4:     0.1513
+
+  State: [1., 1., 5., 3., 3., 1., 4., 2., 3., 0., 1., 3.] | opp_action=5
+    Action 1:     0.3189 <-- best
+    Action 3:     0.1975
+    Action 2:     0.1905
+    Action 5:     0.1431
+    Action 0:     0.1292
+    Action 4:     0.0872
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 4., 3.] | opp_action=3
+    Action 3:     0.3104 <-- best
+    Action 0:     0.2653
+    Action 2:     0.2648
+    Action 5:     0.2561
+    Action 4:     0.0711
+    Action 1:     0.0704
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 2., 3.] | opp_action=3
+    Action 5:     0.2884 <-- best
+    Action 3:     0.1774
+    Action 2:     0.1397
+    Action 4:     0.1361
+    Action 1:     0.0699
+    Action 0:     0.0683
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 2., 3.] | opp_action=3
+    Action 3:     0.2374 <-- best
+    Action 4:     0.1531
+    Action 5:     0.1423
+    Action 0:     0.1418
+    Action 1:     0.1029
+    Action 2:     0.0952
+
+  State: [1., 1., 5., 3., 3., 1., 0., 0., 3., 0., 1., 3.] | opp_action=5
+    Action 2:     0.1706 <-- best
+    Action 1:     0.0192
+    Action 3:     0.0162
+    Action 5:     0.0120
+    Action 0:     0.0043
+    Action 4:     0.0004
+
+  State: [1., 1., 5., 3., 3., 1., 1., 2., 3., 0., 1., 3.] | opp_action=5
+    Action 5:     0.1706 <-- best
+    Action 2:     0.0815
+    Action 3:     0.0075
+    Action 4:     0.0020
+    Action 0:     0.0000
+    Action 1:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 3., 3., 0., 1., 3.] | opp_action=5
+    Action 3:     0.1624 <-- best
+    Action 5:     0.1021
+    Action 0:     0.0563
+    Action 2:     0.0432
+    Action 1:     0.0404
+    Action 4:     0.0052
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 3., 3.] | opp_action=3
+    Action 3:     0.1365 <-- best
+    Action 5:     0.0649
+    Action 4:     0.0395
+    Action 0:     0.0345
+    Action 2:     0.0256
+    Action 1:     0.0078
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 3., 3.] | opp_action=3
+    Action 0:     0.1323 <-- best
+    Action 5:     0.0568
+    Action 3:     0.0408
+    Action 1:     0.0193
+    Action 4:     0.0009
+    Action 2:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 3., 3., 0., 1., 3.] | opp_action=5
+    Action 5:     0.1243 <-- best
+    Action 0:     0.0277
+    Action 3:     0.0150
+    Action 2:     0.0083
+    Action 4:     0.0007
+    Action 1:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 1., 3., 0., 2., 3.] | opp_action=3
+    Action 1:     0.1071 <-- best
+    Action 2:     0.1024
+    Action 4:     0.0599
+    Action 0:     0.0376
+    Action 3:     0.0041
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 0., 3., 0., 2., 3.] | opp_action=3
+    Action 3:     0.0561 <-- best
+    Action 5:     0.0341
+    Action 1:     0.0314
+    Action 0:     0.0000
+    Action 2:     0.0000
+    Action 4:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 4., 3., 0., 1., 3.] | opp_action=5
+    Action 3:     0.0276 <-- best
+    Action 2:     0.0031
+    Action 4:     0.0010
+    Action 0:     0.0002
+    Action 5:     0.0002
+    Action 1:     0.0001
+
+  State: [1., 1., 5., 3., 3., 1., 1., 3., 3., 0., 1., 3.] | opp_action=5
+    Action 3:     0.0236 <-- best
+    Action 2:     0.0110
+    Action 4:     0.0000
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 4., 3., 0., 1., 3.] | opp_action=5
+    Action 3:     0.0177 <-- best
+    Action 0:     0.0007
+    Action 1:     0.0001
+    Action 2:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 2., 3., 0., 1., 3.] | opp_action=5
+    Action 2:     0.0107 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 2., 3., 0., 2., 3.] | opp_action=3
+    Action 4:     0.0102 <-- best
+    Action 2:     0.0090
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 4., 3., 0., 1., 3.] | opp_action=5
+    Action 3:     0.0029 <-- best
+    Action 2:     0.0003
+    Action 1:     0.0000
+    Action 0:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 4., 3., 0., 1., 3.] | opp_action=5
+    Action 1:     0.0007 <-- best
+    Action 2:     0.0006
+    Action 0:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 4., 3., 0., 1., 3.] | opp_action=5
+    Action 2:     0.0003 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 3., 3., 0., 1., 3.] | opp_action=5
+    Action 4:     0.0000 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 3., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 3., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 3., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 3., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 3., 3.] | opp_action=5
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 2., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 2., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 2., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 2., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 2., 3.] | opp_action=5
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 0., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 1., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 1., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 1., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 1., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 1., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 2., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 2., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 2., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 2., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 2., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 3., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 3., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 3., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 3., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 3., 3.] | opp_action=5
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 2., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 2., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 2., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 2., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 2., 3.] | opp_action=5
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 2., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 2., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 2., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 2., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 2., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 4., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 4., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 4., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 4., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 0., 3., 0., 4., 3.] | opp_action=5
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 2., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 2., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 2., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 2., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 2., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 3., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 3., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 3., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 3., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 3., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 4., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 4., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 4., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 4., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 4., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 3., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 3., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 3., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 3., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 3., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 4., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 4., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 4., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 4., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 4., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 4., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 4., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 4., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 4., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 4., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 3., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 3., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 3., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 3., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 3., 3.] | opp_action=5
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 2., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 2., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 2., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 2., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 1., 3., 0., 2., 3.] | opp_action=5
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 2., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 2., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 2., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 2., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 2., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 2., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 2., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 2., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 2., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 2., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 3., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 3., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 3., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 3., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 3., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 0., 3., 0., 2., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 0., 3., 0., 2., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 0., 3., 0., 2., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 0., 3., 0., 2., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 0., 3., 0., 2., 3.] | opp_action=5
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 0., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 0., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 0., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 0., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 0., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 3., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 3., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 3., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 3., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 3., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 1., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 1., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 1., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 1., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 2., 1., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 0., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 0., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 0., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 0., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 1., 0., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 0., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 0., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 0., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 0., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 0., 0., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 4., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 4., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 4., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 4., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 4., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 1., 3., 0., 2., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 1., 3., 0., 2., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 1., 3., 0., 2., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 1., 3., 0., 2., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 1., 3., 0., 2., 3.] | opp_action=5
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 4., 3., 0., 1., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 4., 3., 0., 1., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 4., 3., 0., 1., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 4., 3., 0., 1., 3.] | opp_action=3
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 3., 4., 3., 0., 1., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 2., 3., 0., 2., 3.] | opp_action=0
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 2., 3., 0., 2., 3.] | opp_action=1
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 2., 3., 0., 2., 3.] | opp_action=2
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 2., 3., 0., 2., 3.] | opp_action=4
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000
+
+  State: [1., 1., 5., 3., 3., 1., 4., 2., 3., 0., 2., 3.] | opp_action=5
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 4:     0.0000
+    Action 5:     0.0000

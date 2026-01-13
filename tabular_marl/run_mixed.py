@@ -17,11 +17,13 @@ from agent.mixed_play_wrapper import MixedPlay
 from agent.iql import IQL
 from agent.random_agent import Random
 from agent.jal import JalAM
-from agent.jal_unc import JalUnc
+from agent.jal_unc import JalAE
+from agent.p_random import pRandom
 
 from envs.matrix_game import create_matrix_game
 from envs.custom_foraging_env import CustomForagingEnv
-from envs.move_game import MoveChairGame
+from envs.move_game import MoveChairEnv
+from envs.custom_foraging_oneFood import CustomForagingOneFood
 
 dirpath = "tabular_marl/"
 
@@ -30,26 +32,27 @@ ALGORITHMS = {
     "Random": Random,
     "IQL": IQL,
     "JalAM": JalAM,
-    "JalUnc": JalUnc
+    "JalUnc": JalAE,
+    "pRandom": pRandom,
 }
 
 CONFIG = {
     "runname": datetime.now().strftime("%d%b%Y").lower(),  #e.g."15dec2025"
     
     # Mixed play configuration
-    "algorithm_1": "JalUnc",   # Algorithm for agent 1
-    "algorithm_2": "JalUnc",   # Algorithm for agent 2
-    "algorithm_1_kwargs": {},  #extra kwargs for algorithm 1
+    "algorithm_1": "JalAM",   # Algorithm for agent 1
+    "algorithm_2": "JalAM",   # Algorithm for agent 2
+    "algorithm_1_kwargs": {"p": 0.0},  #extra kwargs for algorithm 1
     "algorithm_2_kwargs": {}, #"p": 0.9},  # Extra kwargs for algorithm 2 (e.g., Random's p)
     
-    "env": "m",  # game type: "f" = foraging, "cf" = custom_foraging, "m" = matrix, "mc" = MoveChairGame
+    "env": "cf",  # game type: "f" = foraging, "cf" = custom_foraging, "m" = matrix, "mc" = MoveChairGame
 
     "save": True, #save the videos and csv
     "visualise": True, #render
     "output": True, #save the 
 
     "ep_length": 50,
-    "total_eps": 100,
+    "total_eps": 300,
     "eval_freq": 10,
     "eval_episodes": 50,
 
@@ -238,21 +241,37 @@ if __name__ == "__main__":
             pos_players=CONFIG["player_pos"],
             render_mode="rgb_array" if CONFIG.get("visualise") else None,
         )   
-        env.reset()
-    
+
+    elif CONFIG["env"] == "cf1f":
+        env = CustomForagingOneFood(
+            field_size=(5, 5),  
+            players=len(CONFIG["player_pos"]),       
+            min_player_level=3,
+            max_player_level=3,
+            min_food_level=1,
+            max_food_level=5,
+            max_num_food=len(CONFIG["food_pos"]),  
+            sight=5,         
+            max_episode_steps=CONFIG["ep_length"],  
+            force_coop=False,
+            pos_foods=CONFIG["food_pos"],
+            pos_players=CONFIG["player_pos"],
+            render_mode="rgb_array" if CONFIG.get("visualise") else None,
+        )  
+        
     elif CONFIG["env"] == "f":
         env = gym.make(
             "lbforaging:Foraging-5x5-2p-1f-v3", 
             render_mode="rgb_array" if CONFIG.get("visualise") else None
         )
-
+    
     elif CONFIG["env"] == "m":
         env = create_matrix_game(CONFIG["payoff_matrix"], CONFIG["ep_length"])
         CONFIG["video"] = False
         CONFIG["gamma"] = 0.0  # No bootstrapping for stateless matrix games
     
     elif CONFIG["env"] == "mc":
-        env = MoveChairGame(ep_length=CONFIG["ep_length"])
+        env = MoveChairEnv(ep_length=CONFIG["ep_length"])
         CONFIG["video"] = False
 
     else:

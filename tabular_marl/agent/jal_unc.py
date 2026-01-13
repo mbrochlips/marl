@@ -9,7 +9,7 @@ from scipy.stats import entropy
 from agent.iql import IQL
 
 
-class JalUnc(IQL):
+class JalAE(IQL):
     #[page 132, algorithm 8] by Albrecht and co. (marl-book)
     # only works with mixed play and 2v2!!
     """
@@ -93,9 +93,9 @@ class JalUnc(IQL):
             
             # Uncertainty estimation
             if len(self.q_history[q_key]) > 1:
-                unc_q += prob * 2 * (self.q_history[q_key][0] * self.q_history[q_key][1])**2
+                unc_q += prob * (self.q_history[q_key][0] - self.q_history[q_key][1])**2
             elif len(self.q_history[q_key]) == 1:
-                unc_q += prob * self.q_history[q_key][0]
+                unc_q += prob * self.q_history[q_key][0]**2
             else:
                 unc_q += prob  # *1, only works with a maximum reward of 1
         
