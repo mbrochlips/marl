@@ -7,42 +7,6 @@ from glob import glob
 from post_visualizations import load_eval_returns_from_csv
 
 
-def _resolve_run_path(run_path):
-    """
-    Resolve a run path to the full path. If just a folder name is provided,
-    automatically search in output/Final/ and output/Multiple/.
-    
-    :param run_path: Path to run folder (can be just folder name or full path)
-    :return: Resolved full path
-    """
-    # If path already exists as-is, return it
-    if os.path.exists(run_path):
-        return run_path
-    
-    # If path contains directory separators, it's already a path (but doesn't exist)
-    if '/' in run_path or '\\' in run_path:
-        return run_path
-    
-    # Otherwise, it's just a folder name - try to find it in common locations
-    # Get the directory where this script is located
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    # Go up one level to get to tabular_marl/
-    tabular_marl_dir = os.path.dirname(script_dir)
-    
-    # Try output/Final/ first (for 30 reps runs)
-    base_paths = [
-        os.path.join(tabular_marl_dir, 'output', 'Final'),
-        os.path.join(tabular_marl_dir, 'output', 'Multiple'),
-    ]
-    
-    for base_path in base_paths:
-        full_path = os.path.join(base_path, run_path)
-        if os.path.exists(full_path):
-            return full_path
-    
-    # If not found, return the original path (will cause error later)
-    return run_path
-
 
 def bootstrap_distribution(data, B=10000, confidence_level=0.95, b=10):
     """
@@ -107,10 +71,6 @@ def load_agent_statistics_from_runs(experiment_data):
         
         # Combined mean across both agents per repetition: (n_reps,)
         combined_rep_means = np.mean(rep_means, axis=1)
-        
-        # Overall statistics
-        overall_mean = np.mean(combined_rep_means)
-        overall_std = np.std(combined_rep_means)
         
         return combined_rep_means
 

@@ -16,6 +16,7 @@ from utils.video import VideoRecorder
 
 from agent.mixed_play_wrapper import MixedPlay
 from agent.iql import IQL
+from agent.iql_unc import IQLAE
 from agent.random_agent import Random
 from agent.jal import JalAM
 from agent.jal_unc import JalAE
@@ -36,6 +37,7 @@ ALGORITHMS = {
     "Random": Random,
     "pRandom": pRandom,
     "IQL": IQL,
+    "IQLAE": IQLAE,
     "JalAM": JalAM,
     "JalAE": JalAE,
     "QBM": QBM
@@ -45,9 +47,9 @@ CONFIG = {
     "runname": datetime.now().strftime("%d%b%Y").lower(),  # e.g. "15dec2025"
     
     # Mixed play configuration
-    "algorithm_1": "JalAM",   # Algorithm for agent 1
-    "algorithm_2": "JalAM",   # Algorithm for agent 2
-    "algorithm_1_kwargs": {"p": 0.5},  # pRandom here! extra kwargs for algorithm 1
+    "algorithm_1": "IQL",   # Algorithm for agent 1
+    "algorithm_2": "IQLAE",   # Algorithm for agent 2
+    "algorithm_1_kwargs": {},#{"lr": 0.05},  # pRandom here! extra kwargs for algorithm 1
     "algorithm_2_kwargs": {},  # Extra kwargs for algorithm 2
 
     "env": "cf",  # game type: "f" = foraging, "cf" = custom_foraging, "cf1f" = OneFood, "m" = matrix, "mc" = MoveChairGame
@@ -56,7 +58,7 @@ CONFIG = {
     "visualise": False,
     "output": True,
 
-    "repetitions": 2,  # Number of independent runs
+    "repetitions": 30,  # Number of independent runs
     "ep_length": 50,
     "total_eps": 300,
     "eval_episodes": 100, #in total across one rep.

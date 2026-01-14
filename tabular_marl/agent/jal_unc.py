@@ -177,4 +177,4 @@ class JalAE(IQL):
         # Update Q-history
         self.q_history[q_key] += [self.q_tables[0][q_key]]
         if len(self.q_history[q_key]) > self.q_history_length:
-            self.q_history[q_key] = self.q_history[q_key][1:]
+            del self.q_history[q_key][0]

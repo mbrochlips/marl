@@ -15,10 +15,12 @@ from utils.video import VideoRecorder
 
 from agent.mixed_play_wrapper import MixedPlay
 from agent.iql import IQL
+from agent.iql_unc import IQLAE
 from agent.random_agent import Random
 from agent.jal import JalAM
 from agent.jal_unc import JalAE
 from agent.p_random import pRandom
+
 
 from envs.matrix_game import create_matrix_game
 from envs.custom_foraging_env import CustomForagingEnv
@@ -31,6 +33,7 @@ dirpath = "tabular_marl/"
 ALGORITHMS = {
     "Random": Random,
     "IQL": IQL,
+    "IQLAE": IQLAE,
     "JalAM": JalAM,
     "JalUnc": JalAE,
     "pRandom": pRandom,
@@ -40,8 +43,8 @@ CONFIG = {
     "runname": datetime.now().strftime("%d%b%Y").lower(),  #e.g."15dec2025"
     
     # Mixed play configuration
-    "algorithm_1": "JalAM",   # Algorithm for agent 1
-    "algorithm_2": "JalAM",   # Algorithm for agent 2
+    "algorithm_1": "IQLAE",   # Algorithm for agent 1
+    "algorithm_2": "IQLAE",   # Algorithm for agent 2
     "algorithm_1_kwargs": {"p": 0.0},  #extra kwargs for algorithm 1
     "algorithm_2_kwargs": {}, #"p": 0.9},  # Extra kwargs for algorithm 2 (e.g., Random's p)
     
