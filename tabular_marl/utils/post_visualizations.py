@@ -161,8 +161,8 @@ def visualise_multiple_learning_curves(experiment_data, title=None, agent_idx=0)
                         checkpoint_means + checkpoint_stds,
                         alpha=FIG_ALPHA, color=color)
     
-    ax.set_xlabel('Episodes', fontsize=16)
-    ax.set_ylabel('Mean Evaluation Return', fontsize=16)
+    ax.set_xlabel('Episode', fontsize=16)
+    ax.set_ylabel('Gns. Afkast pr. Evaluering', fontsize=16)
     if title:
         ax.set_title(title, fontsize=18)
     ax.legend(loc='best', fontsize=12)
@@ -211,15 +211,13 @@ def visualise_end_returns_comparison(experiment_data, title=None):
         # Reshape: (n_reps, n_checkpoints, eval_eps_per_checkpoint, n_agents)
         all_returns_reshaped = all_returns.reshape(n_reps, n_checkpoints, eval_eps_per_checkpoint, n_agents)
         
-        # Get last checkpoint: (n_reps, eval_eps_per_checkpoint, n_agents)
-        last_checkpoint_returns = all_returns_reshaped[:, -1, :, :]
         if run_path[:4] == "pRand":
-            last_checkpoint_returns = all_returns_reshaped[1, :, :, :]
+            all_returns_reshaped = all_returns_reshaped[:, :, :, 1]
+        else:
+            all_returns_reshaped = np.mean(all_returns_reshaped, axis=1)
         
-        # Mean within each repetition for last checkpoint: (n_reps, n_agents)
-        rep_means = np.mean(last_checkpoint_returns, axis=1)
-        
-        # Combined mean across both agents per repetition: (n_reps,)
+        rep_means = np.mean(all_returns_reshaped, axis=1)
+
         combined_rep_means = np.mean(rep_means, axis=1)
         
         # Overall statistics
@@ -240,14 +238,14 @@ def visualise_end_returns_comparison(experiment_data, title=None):
         
         # Plot overall mean as horizontal line
         ax.axhline(overall_mean, color=color, linestyle='-', linewidth=2, 
-                   label=f'Mean: {overall_mean:.2f}')
+                   label=f'Gns.: {overall_mean:.2f}')
         
         # Plot std band
         ax.axhspan(overall_mean - overall_std, overall_mean + overall_std, 
                    alpha=FIG_ALPHA, color=color, label=f'Std: ±{overall_std:.2f}')
         
         ax.set_xlabel('Repetition', fontsize=14)
-        ax.set_ylabel('Mean End Return', fontsize=14)
+        ax.set_ylabel('Gns. Slutafkast', fontsize=14)
         ax.set_title(label, fontsize=16)
         ax.legend(loc='best', fontsize=10)
         ax.tick_params(labelsize=12)

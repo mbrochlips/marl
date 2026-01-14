@@ -1,11 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-import ast
 import os
 from glob import glob
-from post_visualizations import load_eval_returns_from_csv
-
+from post_visualizations import load_eval_returns_from_csv, get_color_from_agent_name
+from scipy import stats
 
 
 def bootstrap_distribution(data, B=10000, confidence_level=0.95, b=10):
@@ -44,12 +42,19 @@ def bootstrap_distribution(data, B=10000, confidence_level=0.95, b=10):
     return bootstrap_means, ci_lower, ci_upper, observed_mean, se
 
 
-def load_agent_statistics_from_runs(experiment_data):
-    for idx, exp in enumerate(experiment_data):
-        
-        # Load data from eval_returns_last10.csv
+def load_agent_statistics_from_runs(experimental_data, TR = False):
+
+    if TR:
+        csv_file = "eval_returns_full.csv"
+    else:
+        csv_file = "eval_returns_last10.csv"
+
+    stat_pr_rep = np.array([None,None])
+
+    for idx, exp in enumerate(experimental_data):
+
         run_path = exp['run_path']
-        csv_path = os.path.join(run_path, 'eval_returns_last10.csv')
+        csv_path = os.path.join(run_path, csv_file)
         all_returns = load_eval_returns_from_csv(csv_path)
         n_reps, total_eval_eps, n_agents = all_returns.shape
         
@@ -61,22 +66,31 @@ def load_agent_statistics_from_runs(experiment_data):
         # Reshape: (n_reps, n_checkpoints, eval_eps_per_checkpoint, n_agents)
         all_returns_reshaped = all_returns.reshape(n_reps, n_checkpoints, eval_eps_per_checkpoint, n_agents)
         
-        # Get last checkpoint: (n_reps, eval_eps_per_checkpoint, n_agents)
-        last_checkpoint_returns = all_returns_reshaped[:, -1, :, :]
         if run_path[:4] == "pRand":
-            last_checkpoint_returns = all_returns_reshaped[1, :, :, :]
-        
+            mean_returns_reshaped = all_returns_reshaped[:, :, :, 1]
+        else:
+            mean_returns_reshaped = np.mean(all_returns_reshaped, axis=1)
+
         # Mean within each repetition for last checkpoint: (n_reps, n_agents)
-        rep_means = np.mean(last_checkpoint_returns, axis=1)
         
-        # Combined mean across both agents per repetition: (n_reps,)
-        combined_rep_means = np.mean(rep_means, axis=1)
-        
-        return combined_rep_means
+
+        if TR:
+            # as checkpoints are evenly spaced, we use np.arange(n_checkpoints) as x
+            stat_pr_rep[idx] = np.sum(np.trapz(mean_returns_reshaped, dx=1, axis=1), axis=1)
+        else:
+            # Combined mean across both agents (if not Prand) per repetition: (n_reps,)
+            rep_means = np.mean(mean_returns_reshaped, axis=1)
+            stat_pr_rep[idx] = np.mean(rep_means, axis=1)
+
+    return stat_pr_rep #list
 
 
-def hist_result_multiple_runs(experiment_data, 
-                               B=10000, confidence_level=0.95, title=None):
+# Figure settings
+FIG_WIDTH = 5
+FIG_HEIGHT = 2
+FIG_ALPHA = 0.2
+
+def hist_result_multiple_runs(experimental_data, B=10000, confidence_level=0.95, title=None, TR=False):
     """
     Perform bootstrap analysis and create histograms for agent statistics from multiple runs.
     Similar to hist_result but works with multiple run folders.
@@ -92,51 +106,96 @@ def hist_result_multiple_runs(experiment_data,
     :return: matplotlib figure
     """
     # Load agent statistics from all runs
-    agent_statistics = load_agent_statistics_from_runs(experiment_data)
+    agent_statistics = load_agent_statistics_from_runs(experimental_data,TR=TR)
     
-    if len(agent_statistics) == 0:
-        raise ValueError("No data loaded from the provided run paths")
-    
-    # Perform bootstrap analysis
-    bootstrap_means, ci_lower, ci_upper, observed_mean, se = bootstrap_distribution(
-        agent_statistics, B=B, confidence_level=confidence_level
-    )
 
-    # Summary statistics
-    print(f"Observed mean: {observed_mean:.4f}")
-    print(f"Bootstrap SE: {se:.4f}")
-    print(f"95% CI: [{ci_lower:.4f}, {ci_upper:.4f}]")
-    print(f"Number of repetitions: {len(agent_statistics)}")
+    # Plot all bootstrap distributions and CIs in the same figure
+    fig, ax = plt.subplots(figsize=(FIG_WIDTH * 1.5, FIG_HEIGHT * 2.5))
 
-    # Plot bootstrap distribution
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
 
-    # Histograms
-    axes[0].hist(bootstrap_means, bins=50, density=True, alpha=0.7, color='steelblue', edgecolor='white')
-    axes[0].axvline(observed_mean, color='red', linestyle='--', linewidth=2, label=f'Observed mean: {observed_mean:.3f}')
-    axes[0].axvline(ci_lower, color='orange', linestyle=':', linewidth=2, label=f'95% CI: [{ci_lower:.3f}, {ci_upper:.3f}]')
-    axes[0].axvline(ci_upper, color='orange', linestyle=':', linewidth=2)
-    axes[0].set_xlabel('Bootstrap Mean')
-    axes[0].set_ylabel('Density')
-    agent_label = f'Agent {agent_idx + 1}'
-    axes[0].set_title(f'Bootstrap Distribution of {agent_label} Mean Return')
-    axes[0].legend()
-    axes[0].grid(True, alpha=0.3)
+    for i, exp in enumerate(experimental_data):
+        if 'color' in exp:
+            color = exp['color']
+        else:
+            color = get_color_from_agent_name(exp['run_path'])
+        label = exp.get('label', f'Experiment {i+1}')
 
-    # Comparison - original distribution
-    axes[1].hist(agent_statistics, bins=20, density=True, alpha=0.7, color='forestgreen', edgecolor='white')
-    axes[1].axvline(observed_mean, color='red', linestyle='--', linewidth=2, label=f'Mean: {observed_mean:.3f}')
-    axes[1].set_xlabel('Mean Return per Repetition')
-    axes[1].set_ylabel('Density')
-    axes[1].set_title(f'Original Distribution of {agent_label} Mean Returns')
-    axes[1].legend()
-    axes[1].grid(True, alpha=0.3)
 
+        # Perform bootstrap analysis
+        bootstrap_means, ci_lower, ci_upper, observed_mean, se = bootstrap_distribution(
+            agent_statistics[i], B=B, confidence_level=confidence_level
+        )
+
+        # Summary statistics
+        print("=" * 50)
+        if TR:
+            print(f'{label}: Bootstrapped TR')
+        else:
+            print(f'{label}: Bootstrapped AP')
+
+        print("=" * 50)
+        print(f"Observed mean ({label}): {observed_mean:.4f}")
+        print(f"Bootstrap SE ({label}): {se:.4f}")
+        print(f"95% CI ({label}): [{ci_lower:.4f}, {ci_upper:.4f}]")
+        print("-" * 50)
+        
+        ax.hist(bootstrap_means, bins=50, density=True, alpha=0.4, color=color, edgecolor='white')
+        ax.axvline(observed_mean, color=color, linestyle='--', linewidth=2, label=f'{label} (gns.: {observed_mean:.3f})')
+        ax.axvline(ci_lower, color=color, linestyle=':', linewidth=2)
+        ax.axvline(ci_upper, color=color, linestyle=':', linewidth=2)
+
+    if TR:
+        ax.set_xlabel('Total Belønning (TR)', fontsize=16)
+    else:
+        ax.set_xlabel('Gns. Episode Afkast (AP)', fontsize=16)
+
+    ax.set_ylabel('Tæthed', fontsize=16)
     if title:
-        fig.suptitle(title, fontsize=16, y=1.02)
+        ax.set_title(title, fontsize=18)
+    ax.legend(fontsize=12)
+    ax.tick_params(labelsize=14)
+    ax.grid(True, alpha=0.3)
 
     plt.tight_layout()
     plt.show()
     
     return fig
 
+
+def welch_difference_test(experiments, TR=False):
+
+    data = load_agent_statistics_from_runs(experiments, TR=TR)
+    # Welch's t-test: two-sided difference test comparing agent_1_mean vs agent_2_mean
+    labels = [exp.get('label', f'Experiment {i+1}') for i, exp in enumerate(experiments)]
+
+    statistic = "TR" if TR else "AP"
+    
+    # Extract the mean returns for each agent
+    agent_1_stats = data[0]
+    agent_2_stats = data[1]
+
+    # Perform Welch's t-test (does not assume equal variances)
+    t_statistic, p_value = stats.ttest_ind(agent_1_stats, agent_2_stats, equal_var=False)
+
+    print("=" * 50)
+    print(f"Welch's t-test: {labels[0]} {statistic} vs {labels[1]} {statistic}")
+    print("=" * 50)
+    # print(f"{labels[0]}: {np.mean(agent_1_stats):.4f} ± {np.std(agent_1_stats):.4f}")
+    # print(f"{labels[1]}: {np.mean(agent_2_stats):.4f} ± {np.std(agent_2_stats):.4f}")
+    # print(f"Difference: {np.mean(agent_1_stats) - np.mean(agent_2_stats):.4f}")
+    print("-" * 50)
+    print(f"t-statistic: {t_statistic:.4f}")
+    print(f"p-value (two-sided): {p_value:.6f}")
+    print("-" * 50)
+
+    # Interpretation
+    alpha = 0.05
+    if p_value < alpha:
+        print(f"Result: SIGNIFICANT difference at α = {alpha}")
+        print(f"Reject the null hypothesis: the {statistic}s are significantly different.")
+    else:
+        print(f"Result: NO significant difference at α = {alpha}")
+        print(f"Fail to reject the null hypothesis: no significant difference between {statistic}s.")
+
+    print("-" * 50)
+    print("")
