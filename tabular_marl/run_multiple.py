@@ -20,7 +20,7 @@ from agent.iql_unc import IQLAE
 from agent.random_agent import Random
 from agent.jal import JalAM
 from agent.jal_unc import JalAE
-from agent.iql_behave_modeling import QBM
+from agent.iql_behave_managing import QBM
 from agent.p_random import pRandom
 
 from envs.matrix_game import create_matrix_game
@@ -47,19 +47,19 @@ CONFIG = {
     "runname": datetime.now().strftime("%d%b%Y").lower(),  # e.g. "15dec2025"
     
     # Mixed play configuration
-    "algorithm_1": "IQL",   # Algorithm for agent 1
-    "algorithm_2": "IQLAE",   # Algorithm for agent 2
-    "algorithm_1_kwargs": {},#{"lr": 0.05},  # pRandom here! extra kwargs for algorithm 1
-    "algorithm_2_kwargs": {},  # Extra kwargs for algorithm 2
+    "algorithm_1": "IQLAE",   # Algorithm for agent 1
+    "algorithm_2": "IQL",   # Algorithm for agent 2
+    "algorithm_1_kwargs": {"lr": 0.1},  # pRandom here! extra kwargs for algorithm 1
+    "algorithm_2_kwargs": {"lr": 0.1},  # Extra kwargs for algorithm 2
 
-    "env": "cf",  # game type: "f" = foraging, "cf" = custom_foraging, "cf1f" = OneFood, "m" = matrix, "mc" = MoveChairGame
+    "env": "m",  # game type: "f" = foraging, "cf" = custom_foraging, "cf1f" = OneFood, "m" = matrix, "mc" = MoveChairGame
 
     "save": True,
     "visualise": False,
     "output": True,
 
     "repetitions": 30,  # Number of independent runs
-    "ep_length": 50,
+    "ep_length": 50, 
     "total_eps": 300,
     "eval_episodes": 100, #in total across one rep.
     "eval_spread": "both",  # "last10", "full", or "both" (saves 2 CSVs, uses last10 for repetition plot, full for learning curve)
@@ -107,18 +107,43 @@ def train_agents(env, config, rep_num=0):
     max_steps = config["total_eps"] * config["ep_length"]
     total_eps = config["total_eps"]
     
-    # Compute both checkpoint sets (used for "both" mode and individual modes)
+    # # Compute both checkpoint sets (used for "both" mode and individual modes)
+    # full_checkpoints = set(int(total_eps * pct / 100) for pct in range(10, 101, 10))
+    # full_checkpoints.discard(0)
+    # eval_start = int(0.9 * total_eps)
+    # last10_checkpoints = set(range(eval_start + 1, total_eps + 1))
+    
+    # # Determine which checkpoints to evaluate at
+    # eval_spread = config.get("eval_spread", "last10")
+    
+    # if eval_spread == "both":
+    #     eval_checkpoints = full_checkpoints | last10_checkpoints
+    #     num_checkpoints = len(eval_checkpoints) # 10*2 = 20
+    # elif eval_spread == "full":
+    #     eval_checkpoints = full_checkpoints
+    #     num_checkpoints = len(eval_checkpoints)
+    # else:  # "last10" (default)
+    #     eval_checkpoints = last10_checkpoints
+    #     num_checkpoints = len(eval_checkpoints)
+
+    # NEW
+    # Compute both checkpoint sets
+    eval_eps = config.get("eval_episodes", 100)
     full_checkpoints = set(int(total_eps * pct / 100) for pct in range(10, 101, 10))
     full_checkpoints.discard(0)
     eval_start = int(0.9 * total_eps)
-    last10_checkpoints = set(range(eval_start + 1, total_eps + 1))
+    last10_checkpoints = set(range(eval_start + 1, total_eps + 1, total_eps // eval_eps))
     
     # Determine which checkpoints to evaluate at
     eval_spread = config.get("eval_spread", "last10")
     
     if eval_spread == "both":
         eval_checkpoints = full_checkpoints | last10_checkpoints
-        num_checkpoints = 10  # Use full's count for budget
+        # FIX: Divide budget by len(full_checkpoints) (10) instead of len(eval_checkpoints) (39)
+        # This ensures the Learning Curve gets the full 100 episodes (10 per point)
+        # The Last10 will also get 10 per point (higher quality, more time consuming)
+        num_checkpoints = len(full_checkpoints)
+        print(num_checkpoints)
     elif eval_spread == "full":
         eval_checkpoints = full_checkpoints
         num_checkpoints = len(eval_checkpoints)
@@ -128,8 +153,14 @@ def train_agents(env, config, rep_num=0):
     
     # Evaluation episodes per checkpoint
     eval_eps_per_checkpoint = max(1, config["eval_episodes"] // num_checkpoints)
+
+    # NEW ENDS
+    
+    # Evaluation episodes per checkpoint
+    eval_eps_per_checkpoint = max(1, config["eval_episodes"] // num_checkpoints)
     
     checkpoint_returns = []  # Store returns from each checkpoint
+    
     full_returns = [] if eval_spread == "both" else None
     last10_returns = [] if eval_spread == "both" else None
 

@@ -113,8 +113,8 @@ class QBM(IQL):
             
         if done:
             q_next = 0
-            for i, g in enumerate(self.groups):
-                print(f"Group {i}: reward={g.reward:.3f}, success={g.success}, total={g.total}, obs_count={len(g.observations)}")
+            #for i, g in enumerate(self.groups):
+            #    print(f"Group {i}: reward={g.reward:.3f}, success={g.success}, total={g.total}, obs_count={len(g.observations)}")
         
         else:
             q_values_next = [self.q_tables[0][str((n_obss[0],a))] for a in range(self.n_acts[0])]

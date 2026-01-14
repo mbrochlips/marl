@@ -54,7 +54,7 @@ def get_color_from_agent_name(run_path):
         'iql': '#D32F2F',      # Red
         'jalam': '#1976D2',    # Blue
         'jalunce': '#1976D2',    # Blue (JAL with uncertainty estimation)
-        'iqlae': '#F57C00',    # Orange
+        'iqlae': "#7B1FA2",    # Orange
         'jalae': '#7B1FA2',    # Purple
         'qbm': '#388E3C',      # Green
         'prandom': '#757575',  # Grey for random baseline
@@ -62,7 +62,7 @@ def get_color_from_agent_name(run_path):
     
     # Try to match the agent name
     for key, color in color_map.items():
-        if key in first_agent_lower:
+        if key == first_agent_lower:
             if key == 'prandom':
                 continue
             return color

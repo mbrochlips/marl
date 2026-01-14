@@ -55,34 +55,59 @@ def load_agent_statistics_from_runs(experimental_data, TR = False):
 
         run_path = exp['run_path']
         csv_path = os.path.join(run_path, csv_file)
+        
         all_returns = load_eval_returns_from_csv(csv_path)
         n_reps, total_eval_eps, n_agents = all_returns.shape
+
+        expected_total_eval_eps =  exp.get("total_eval_eps", 100)
+
+        # If to many eval_eps
+        if total_eval_eps != expected_total_eval_eps:
+            stepsize = total_eval_eps // expected_total_eval_eps
+            all_returns = all_returns[:, ::stepsize, :]
         
-        # Get config values
-        n_checkpoints = exp.get('n_checkpoints', 10)
-        eval_eps_per_checkpoint = total_eval_eps // n_checkpoints
-        
-        # Extract only the last checkpoint returns
-        # Reshape: (n_reps, n_checkpoints, eval_eps_per_checkpoint, n_agents)
-        all_returns_reshaped = all_returns.reshape(n_reps, n_checkpoints, eval_eps_per_checkpoint, n_agents)
-        
-        if run_path[:4] == "pRand":
-            mean_returns_reshaped = all_returns_reshaped[:, :, :, 1]
+        print("30x100xagents", all_returns.shape)
+ 
+        # Collapse the agent dimension first
+        if run_path.startswith("pRand"):
+            # Assuming Agent 1 (index 1) is the learner against random
+            data_agents = all_returns[:, :, 1] 
         else:
-            mean_returns_reshaped = np.mean(all_returns_reshaped, axis=1)
+            # Collaborative/Self-play: Mean across agents
+            data_agents = np.mean(all_returns, axis=2)
 
-        # Mean within each repetition for last checkpoint: (n_reps, n_agents)
         
+      
 
+        # --- 2. Calculate Metric (TR vs AP) ---
+        
         if TR:
-            # as checkpoints are evenly spaced, we use np.arange(n_checkpoints) as x
-            stat_pr_rep[idx] = np.sum(np.trapz(mean_returns_reshaped, dx=1, axis=1), axis=1)
-        else:
-            # Combined mean across both agents (if not Prand) per repetition: (n_reps,)
-            rep_means = np.mean(mean_returns_reshaped, axis=1)
-            stat_pr_rep[idx] = np.mean(rep_means, axis=1)
+            n_checkpoints = exp.get('n_checkpoints', 10)
+            
+            eps_per_checkpoint = total_eval_eps // n_checkpoints
+            
+            # Reshape to separate Time (Checkpoints) from Variance (Episodes per checkpoint)
+            # Shape: (n_reps, n_checkpoints, eps_per_checkpoint)
+            data_reshaped = data_agents.reshape(n_reps, n_checkpoints, eps_per_checkpoint)
+            
+            # Average over the episodes within a specific checkpoint
+            # Shape: (n_reps, n_checkpoints)
+            learning_curve = np.mean(data_reshaped, axis=2)
+            
+            # Calculate Area Under Curve (Total Reward)
+            # dx=1 assumes checkpoints are equidistant
+            metric_values = np.trapz(learning_curve, dx=1, axis=1)
 
-    return stat_pr_rep #list
+        else:
+            # --- AVERAGE PERFORMANCE (Robust Final Estimate) ---
+            # The file contains a block of episodes representing the final state.
+            # We average over ALL episodes in this file for each repetition.
+            # Shape: (n_reps,)
+            metric_values = np.mean(data_agents, axis=1)
+
+        stat_pr_rep[idx] = metric_values
+
+    return stat_pr_rep
 
 
 # Figure settings
@@ -138,7 +163,7 @@ def hist_result_multiple_runs(experimental_data, B=10000, confidence_level=0.95,
         print(f"Bootstrap SE ({label}): {se:.4f}")
         print(f"95% CI ({label}): [{ci_lower:.4f}, {ci_upper:.4f}]")
         print("-" * 50)
-        
+
         ax.hist(bootstrap_means, bins=50, density=True, alpha=0.4, color=color, edgecolor='white')
         ax.axvline(observed_mean, color=color, linestyle='--', linewidth=2, label=f'{label} (gns.: {observed_mean:.3f})')
         ax.axvline(ci_lower, color=color, linestyle=':', linewidth=2)
@@ -185,7 +210,7 @@ def welch_difference_test(experiments, TR=False):
     # print(f"Difference: {np.mean(agent_1_stats) - np.mean(agent_2_stats):.4f}")
     print("-" * 50)
     print(f"t-statistic: {t_statistic:.4f}")
-    print(f"p-value (two-sided): {p_value:.6f}")
+    print(f"p-value (two-sided): {p_value} or {p_value:.4f}")
     print("-" * 50)
 
     # Interpretation
