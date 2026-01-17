@@ -65,8 +65,6 @@ def load_agent_statistics_from_runs(experimental_data, TR = False):
         if total_eval_eps != expected_total_eval_eps:
             stepsize = total_eval_eps // expected_total_eval_eps
             all_returns = all_returns[:, ::stepsize, :]
-        
-        print("30x100xagents", all_returns.shape)
  
         # Collapse the agent dimension first
         if run_path.startswith("pRand"):
@@ -172,7 +170,7 @@ def hist_result_multiple_runs(experimental_data, B=10000, confidence_level=0.95,
     if TR:
         ax.set_xlabel('Total Belønning (TR)', fontsize=16)
     else:
-        ax.set_xlabel('Gns. Episode Afkast (AP)', fontsize=16)
+        ax.set_xlabel('Gns. Slutafkast (AP)', fontsize=16)
 
     ax.set_ylabel('Tæthed', fontsize=16)
     if title:

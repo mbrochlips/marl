@@ -162,7 +162,7 @@ def visualise_multiple_learning_curves(experiment_data, title=None, agent_idx=0)
                         alpha=FIG_ALPHA, color=color)
     
     ax.set_xlabel('Episode', fontsize=16)
-    ax.set_ylabel('Gns. Afkast pr. Evaluering', fontsize=16)
+    ax.set_ylabel('Gns. Afkast', fontsize=16)
     if title:
         ax.set_title(title, fontsize=18)
     ax.legend(loc='best', fontsize=12)
@@ -174,7 +174,7 @@ def visualise_multiple_learning_curves(experiment_data, title=None, agent_idx=0)
     return fig
 
 
-def visualise_end_returns_comparison(experiment_data, title=None):
+def visualise_end_returns_comparison_old(experiment_data, title=None):
     """
     Visualize end-returns (final checkpoint) from multiple experiments in adjacent plots.
     Each experiment gets its own subplot showing the distribution of final returns across repetitions.
@@ -195,31 +195,34 @@ def visualise_end_returns_comparison(experiment_data, title=None):
         axes = [axes]
     
     for idx, exp in enumerate(experiment_data):
-        ax = axes[idx]
-        
-        # Load data from eval_returns_last10.csv
+
         run_path = exp['run_path']
-        csv_path = os.path.join(run_path, 'eval_returns_last10.csv')
+        csv_path = os.path.join(run_path, "eval_returns_last10.csv")
+        
         all_returns = load_eval_returns_from_csv(csv_path)
         n_reps, total_eval_eps, n_agents = all_returns.shape
-        
-        # Get config values
-        n_checkpoints = exp.get('n_checkpoints', 10)
-        eval_eps_per_checkpoint = total_eval_eps // n_checkpoints
-        
-        # Extract only the last checkpoint returns
-        # Reshape: (n_reps, n_checkpoints, eval_eps_per_checkpoint, n_agents)
-        all_returns_reshaped = all_returns.reshape(n_reps, n_checkpoints, eval_eps_per_checkpoint, n_agents)
-        
-        if run_path[:4] == "pRand":
-            all_returns_reshaped = all_returns_reshaped[:, :, :, 1]
-        else:
-            all_returns_reshaped = np.mean(all_returns_reshaped, axis=1)
-        
-        rep_means = np.mean(all_returns_reshaped, axis=1)
 
-        combined_rep_means = np.mean(rep_means, axis=1)
-        
+        expected_total_eval_eps =  exp.get("total_eval_eps", 100)
+
+        # If to many eval_eps
+        if total_eval_eps != expected_total_eval_eps:
+            stepsize = total_eval_eps // expected_total_eval_eps
+            all_returns = all_returns[:, ::stepsize, :]
+ 
+        # Collapse the agent dimension first
+        if run_path.startswith("pRand"):
+            # Assuming Agent 1 (index 1) is the learner against random
+            data_agents = all_returns[:, :, 1] 
+        else:
+            # Collaborative/Self-play: Mean across agents
+            data_agents = np.mean(all_returns, axis=2)
+
+        # --- AVERAGE PERFORMANCE (Robust Final Estimate) ---
+        # The file contains a block of episodes representing the final state.
+        # We average over ALL episodes in this file for each repetition.
+        # Shape: (n_reps,)
+        combined_rep_means = np.mean(data_agents, axis=1)
+
         # Overall statistics
         overall_mean = np.mean(combined_rep_means)
         overall_std = np.std(combined_rep_means)
@@ -237,12 +240,11 @@ def visualise_end_returns_comparison(experiment_data, title=None):
                    alpha=0.6, color=color, s=40, zorder=3)
         
         # Plot overall mean as horizontal line
-        ax.axhline(overall_mean, color=color, linestyle='-', linewidth=2, 
-                   label=f'Gns.: {overall_mean:.2f}')
-        
+        ax.axhline(overall_mean, color=color, linestyle='-', linewidth=2)
+        print(f'Gns.: {overall_mean:.2f}, Std: ±{overall_std:.2f}')
         # Plot std band
         ax.axhspan(overall_mean - overall_std, overall_mean + overall_std, 
-                   alpha=FIG_ALPHA, color=color, label=f'Std: ±{overall_std:.2f}')
+                   alpha=FIG_ALPHA, color=color)
         
         ax.set_xlabel('Repetition', fontsize=14)
         ax.set_ylabel('Gns. Slutafkast', fontsize=14)
@@ -255,6 +257,124 @@ def visualise_end_returns_comparison(experiment_data, title=None):
     if title:
         fig.suptitle(title, fontsize=18, y=1.02)
     
+    # Collect all values to determine global y-limits
+    all_values = []
+    for exp in experiment_data:
+        # ...existing code to compute combined_rep_means...
+        all_values.extend(combined_rep_means)
+    diff = max(all_values) - min(all_values)
+    ymin = min(all_values) - 0.1 * diff
+    ymax = max(all_values) + 0.1 * diff
+
+    # After plotting, set the same y-limits for all axes
+    for ax in axes:
+        ax.set_ylim(ymin, ymax)
+
     plt.tight_layout()
     
+    return fig
+
+
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+
+def visualise_end_returns_comparison(experiment_data, title=None):
+    n_experiments = len(experiment_data)
+    
+    fig, axes = plt.subplots(1, n_experiments, figsize=(FIG_WIDTH * n_experiments, FIG_HEIGHT * 2.5))
+    
+    # Ensure axes is always iterable
+    if n_experiments == 1:
+        axes = [axes]
+    
+    # ### FIX: List to store all data points for global y-limits later
+    all_global_values = []
+
+    for idx, exp in enumerate(experiment_data):
+        # ### FIX: Define 'ax' for the current iteration
+        ax = axes[idx]
+
+        run_path = exp['run_path']
+        csv_path = os.path.join(run_path, "eval_returns_last10.csv")
+        
+        # Check if file exists to prevent crash
+        if not os.path.exists(csv_path):
+            print(f"Warning: File not found {csv_path}")
+            continue
+
+        all_returns = load_eval_returns_from_csv(csv_path)
+        n_reps, total_eval_eps, n_agents = all_returns.shape
+
+        expected_total_eval_eps = exp.get("total_eval_eps", 100)
+
+        # If too many eval_eps, subsample
+        if total_eval_eps != expected_total_eval_eps:
+            stepsize = total_eval_eps // expected_total_eval_eps
+            all_returns = all_returns[:, ::stepsize, :]
+ 
+        # Collapse the agent dimension
+        if run_path.startswith("pRand"):
+            data_agents = all_returns[:, :, 1] 
+        else:
+            data_agents = np.mean(all_returns, axis=2)
+
+        # Average over all episodes in the file per repetition
+        combined_rep_means = np.mean(data_agents, axis=1)
+
+        # ### FIX: Collect values for global scaling later
+        all_global_values.extend(combined_rep_means)
+
+        # Overall statistics
+        overall_mean = np.mean(combined_rep_means)
+        overall_std = np.std(combined_rep_means)
+        print(f"Global Mean: {overall_mean}")
+        print(f"Global std: {overall_std}")
+
+        # Get color
+        if 'color' in exp:
+            color = exp['color']
+        else:
+            color = get_color_from_agent_name(run_path) 
+        
+        label = exp.get('label', f'Experiment {idx+1}')
+        
+        # Plotting
+        ax.scatter(range(len(combined_rep_means)), combined_rep_means, 
+                   alpha=0.6, color=color, s=40, zorder=3)
+        
+        ax.axhline(overall_mean, color=color, linestyle='-', linewidth=2)
+        
+        # Plot std band
+        ax.axhspan(overall_mean - overall_std, overall_mean + overall_std, 
+                   alpha=FIG_ALPHA, color=color)
+        
+        ax.set_xlabel('Repetition', fontsize=14)
+        ax.set_ylabel('Gns. Slutafkast', fontsize=14)
+        ax.set_title(label, fontsize=16)
+        
+        # Only add legend if needed, usually 'label' in scatter handles this 
+        # but here you are creating custom lines. 
+        # If you want a legend, ensure elements have 'label' props.
+        # ax.legend(loc='best', fontsize=10) 
+        
+        ax.tick_params(labelsize=12)
+        ax.set_xlim(-0.5, len(combined_rep_means) - 0.5)
+        ax.grid(True, alpha=0.3)
+    
+    if title:
+        fig.suptitle(title, fontsize=18, y=1.02)
+    
+    # ### FIX: Calculate limits based on the data collected during the first loop
+    if all_global_values:
+        diff = max(all_global_values) - min(all_global_values)
+        if diff == 0: diff = 1.0 # Prevent crash if all values are identical
+        ymin = min(all_global_values) - 0.1 * diff
+        ymax = max(all_global_values) + 0.1 * diff
+
+        # Apply limits to all axes
+        for ax in axes:
+            ax.set_ylim(ymin, ymax)
+
+    plt.tight_layout()
     return fig

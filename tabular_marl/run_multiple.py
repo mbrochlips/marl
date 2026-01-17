@@ -47,20 +47,20 @@ CONFIG = {
     "runname": datetime.now().strftime("%d%b%Y").lower(),  # e.g. "15dec2025"
     
     # Mixed play configuration
-    "algorithm_1": "IQLAE",   # Algorithm for agent 1
-    "algorithm_2": "IQL",   # Algorithm for agent 2
-    "algorithm_1_kwargs": {"lr": 0.1},  # pRandom here! extra kwargs for algorithm 1
-    "algorithm_2_kwargs": {"lr": 0.1},  # Extra kwargs for algorithm 2
+    "algorithm_1": "JalAM",   # Algorithm for agent 1
+    "algorithm_2": "JalAM",   # Algorithm for agent 2
+    "algorithm_1_kwargs": {"lr": 0.2},  # pRandom here! extra kwargs for algorithm 1
+    "algorithm_2_kwargs": {"lr": 0.2},  # Extra kwargs for algorithm 2
 
-    "env": "m",  # game type: "f" = foraging, "cf" = custom_foraging, "cf1f" = OneFood, "m" = matrix, "mc" = MoveChairGame
+    "env": "mc",  # game type: "f" = foraging, "cf" = custom_foraging, "cf1f" = OneFood, "m" = matrix, "mc" = MoveChairGame
 
     "save": True,
     "visualise": False,
     "output": True,
 
-    "repetitions": 30,  # Number of independent runs
+    "repetitions": 2,  # Number of independent runs
     "ep_length": 50, 
-    "total_eps": 300,
+    "total_eps": 3000,
     "eval_episodes": 100, #in total across one rep.
     "eval_spread": "both",  # "last10", "full", or "both" (saves 2 CSVs, uses last10 for repetition plot, full for learning curve)
 
