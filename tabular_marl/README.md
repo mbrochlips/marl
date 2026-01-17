@@ -50,6 +50,7 @@ python run_mixed.py
 - `IQLAE`: IQL with uncertainty
 - `JalAM`: Joint Action Learning with opponent modeling
 - `JalAE`: JAL with uncertainty
+- `QBM`: IQL with behaviour managing
 - `Random`: Random agent
 - `pRandom`: Probabilistic random agent
 
