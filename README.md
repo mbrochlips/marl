@@ -1,6 +1,6 @@
 # Tabular MARL
 
-This folder contains implementations of tabular multi-agent reinforcement learning algorithms for various environments.
+GO to the folder "tabular_marl". This folder contains implementations of tabular multi-agent reinforcement learning algorithms for various environments.
 
 ## Overview
 
