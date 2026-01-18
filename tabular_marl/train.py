@@ -5,11 +5,10 @@ from utils.eval import evaluate
 
 from agent.random_agent import Random
 from agent.iql import IQL
-from agent.jal import JAL
+from agent.jal import JalAM
 
 algorithms = {
     "IQL": IQL,
-    "JAL": JAL,
     "Random": Random,
 }
 

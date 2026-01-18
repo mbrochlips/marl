@@ -128,7 +128,7 @@ class MoveChairEnv(gym.Env):
                     continue
         
         # Update common_state with chair pickup (before building self._state)
-        # If both try to grab, randomly choose one (or neither - current behavior is neither)
+        #both try to grab, randomly choose one (or neither - current behavior is neither)
         if not try_chair[0] and try_chair[1]:
             common_state[3] = 1  # agent 1 picks up chair
         elif try_chair[0] and not try_chair[1]:
@@ -136,11 +136,11 @@ class MoveChairEnv(gym.Env):
         elif try_chair[0] and try_chair[1]:
             # Both try to grab - randomly assign to one agent
             if np.random.rand() < 0.5:
-                common_state[1] = 1  # agent 0 gets it
+                common_state[1] = 1  #agent 0 gets it
             else:
                 common_state[3] = 1  # agent 1 gets it
 
-        # Update internal state
+        #Update internal state
         self._state[:] = common_state
 
         if self._is_terminal():
@@ -151,7 +151,7 @@ class MoveChairEnv(gym.Env):
         else:
             done = False
 
-        # Reward shaping: simple potential-based shaping
+        #Reward shaping: simple potential-based shaping
         # Goal: chair at position 2 AND door open
         if self.reward_shaping and not done:
             new_has_chair = [common_state[1], common_state[3]]

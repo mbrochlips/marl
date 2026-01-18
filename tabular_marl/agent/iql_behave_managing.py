@@ -11,10 +11,10 @@ from agent.iql import IQL
 
 class RewardGroup:
     def __init__(self, reward: float, obs_a: str):
-        self.reward = reward          # average reward for this group
-        self.observations = {obs_a}   # set of all obs_a belonging to this group
+        self.reward = reward          # average reward for group
+        self.observations = {obs_a}   # set of all obs_a belonging to group
         self.success = 1              # times reward matched expectations
-        self.total = 1                # total times this group was visited
+        self.total = 1                # total visited
     
     def matches(self, r: float, threshold: float) -> bool:
         return abs(self.reward - r) <= threshold

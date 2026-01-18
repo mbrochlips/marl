@@ -19,24 +19,26 @@ from agent.iql_unc import IQLAE
 from agent.random_agent import Random
 from agent.jal import JalAM
 from agent.jal_unc import JalAE
+from agent.iql_behave_managing import QBM
 from agent.p_random import pRandom
-
 
 from envs.matrix_game import create_matrix_game
 from envs.custom_foraging_env import CustomForagingEnv
-from envs.move_game import MoveChairEnv
 from envs.custom_foraging_oneFood import CustomForagingOneFood
+from envs.move_game import MoveChairEnv
+from envs.move_game_coor import MoveChairCoordination
 
 dirpath = "tabular_marl/"
 
 # Available algorithms for mixed play
 ALGORITHMS = {
     "Random": Random,
+    "pRandom": pRandom,
     "IQL": IQL,
     "IQLAE": IQLAE,
     "JalAM": JalAM,
-    "JalUnc": JalAE,
-    "pRandom": pRandom,
+    "JalAE": JalAE,
+    "QBM": QBM
 }
 
 CONFIG = {
@@ -276,9 +278,13 @@ if __name__ == "__main__":
     elif CONFIG["env"] == "mc":
         env = MoveChairEnv(ep_length=CONFIG["ep_length"])
         CONFIG["video"] = False
+    
+    elif CONFIG["env"] == "mcc":
+        env = MoveChairCoordination(ep_length=CONFIG["ep_length"])
+        CONFIG["video"] = False
 
     else:
-        raise ValueError(f"Invalid env '{CONFIG['env']}'. Choose 'f', 'cf', or 'm'.")
+        raise ValueError(f"Invalid env '{CONFIG['env']}'. Choose 'f', 'cf', 'mc', 'mcc' or 'm'.")
     
     print(f"Starting Mixed Play: {CONFIG['algorithm_1']} vs {CONFIG['algorithm_2']}")
     print(f"Environment: {CONFIG['env']}")
