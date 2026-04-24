@@ -1,4 +1,6 @@
-# Tabular MARL
+# Bachelor Project 2026
+This bachelor thesis investigates the challenges of stability and convergence in Multi-Agent Reinforcement Learning (MARL) within cooperative environments.
+The study evaluates three algorithmic extensions: Joint Action Learning with Agent Modelling (JAL-AM), variance-based Active Exploration (AE), and Q-learning with Behavior Managing (QBM). Where AE and QBM are novel contributions.
 
 GO to the folder "tabular_marl". This folder contains implementations of tabular multi-agent reinforcement learning algorithms for various environments.
 
