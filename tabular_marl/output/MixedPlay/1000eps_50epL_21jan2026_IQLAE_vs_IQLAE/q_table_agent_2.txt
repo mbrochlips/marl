@@ -1,0 +1,842 @@
+======================================================================
+Q-table for Agent 2
+======================================================================
+
+SUMMARY
+──────────────────────────────────────────────────────────────────────
+  Total entries: 552
+  Unique states visited: 138
+  Q-value range: [-0.1537, 0.4500]
+  Mean Q-value:  0.0036
+  Std Q-value:   0.0740
+
+STATES (sorted by max Q-value)
+──────────────────────────────────────────────────────────────────────
+
+  State: (2, 0, 2, 1, 2, 0)
+    Action 0:     0.4500 <-- best
+    Action 2:     0.3773
+    Action 1:     0.2284
+    Action 3:     0.1792
+
+  State: (1, 1, 2, 0, 1, 1)
+    Action 2:     0.3565 <-- best
+    Action 0:     0.0886
+    Action 3:    -0.0104
+    Action 1:    -0.0288
+
+  State: (2, 0, 2, 0, 2, 0)
+    Action 0:     0.3512 <-- best
+    Action 3:     0.2896
+    Action 2:    -0.0018
+    Action 1:    -0.0031
+
+  State: (2, 0, 2, 0, 2, 1)
+    Action 0:     0.3466 <-- best
+    Action 2:    -0.0025
+    Action 1:    -0.0026
+    Action 3:    -0.0029
+
+  State: (2, 0, 1, 1, 1, 0)
+    Action 2:     0.3396 <-- best
+    Action 1:     0.1876
+    Action 0:    -0.0116
+    Action 3:    -0.0141
+
+  State: (2, 1, 2, 0, 2, 0)
+    Action 2:     0.3165 <-- best
+    Action 3:    -0.0039
+    Action 1:    -0.0116
+    Action 0:    -0.0132
+
+  State: (1, 0, 2, 1, 2, 0)
+    Action 2:     0.3123 <-- best
+    Action 3:     0.0977
+    Action 0:     0.0870
+    Action 1:    -0.0383
+
+  State: (2, 1, 2, 1, 2, 0)
+    Action 3:     0.3093 <-- best
+    Action 1:     0.1879
+    Action 2:     0.1808
+    Action 0:    -0.0020
+
+  State: (1, 1, 2, 0, 1, 0)
+    Action 2:     0.3074 <-- best
+    Action 0:     0.2302
+    Action 1:     0.1834
+    Action 3:    -0.0376
+
+  State: (1, 0, 1, 1, 1, 0)
+    Action 2:     0.2822 <-- best
+    Action 0:     0.0598
+    Action 3:    -0.0350
+    Action 1:    -0.0395
+
+  State: (2, 0, 1, 0, 2, 0)
+    Action 2:     0.2731 <-- best
+    Action 3:     0.0656
+    Action 1:     0.0013
+    Action 0:    -0.0049
+
+  State: (2, 1, 1, 0, 2, 0)
+    Action 3:     0.2616 <-- best
+    Action 2:     0.1937
+    Action 0:    -0.0225
+    Action 1:    -0.0307
+
+  State: (0, 1, 2, 0, 0, 1)
+    Action 2:     0.2393 <-- best
+    Action 1:     0.1523
+    Action 3:     0.0664
+    Action 0:    -0.0388
+
+  State: (0, 1, 2, 0, 0, 0)
+    Action 2:     0.2295 <-- best
+    Action 0:     0.1647
+    Action 3:     0.1189
+    Action 1:    -0.0569
+
+  State: (1, 0, 2, 0, 1, 0)
+    Action 3:     0.2026 <-- best
+    Action 0:    -0.0253
+    Action 2:    -0.0354
+    Action 1:    -0.0419
+
+  State: (1, 0, 0, 1, 0, 0)
+    Action 2:     0.1710 <-- best
+    Action 3:    -0.0536
+    Action 0:    -0.0539
+    Action 1:    -0.0903
+
+  State: (0, 0, 2, 0, 0, 0)
+    Action 3:     0.1683 <-- best
+    Action 2:     0.0541
+    Action 1:    -0.0963
+    Action 0:    -0.0973
+
+  State: (1, 0, 2, 0, 2, 0)
+    Action 3:     0.1658 <-- best
+    Action 2:     0.0121
+    Action 0:    -0.0156
+    Action 1:    -0.0173
+
+  State: (2, 0, 0, 1, 0, 0)
+    Action 2:     0.1451 <-- best
+    Action 3:     0.0688
+    Action 0:    -0.0399
+    Action 1:    -0.0421
+
+  State: (1, 1, 1, 0, 1, 0)
+    Action 3:     0.1385 <-- best
+    Action 2:     0.0726
+    Action 1:    -0.0378
+    Action 0:    -0.0401
+
+  State: (1, 0, 1, 0, 1, 0)
+    Action 2:     0.1359 <-- best
+    Action 3:    -0.0402
+    Action 1:    -0.0434
+    Action 0:    -0.0482
+
+  State: (0, 0, 0, 1, 0, 0)
+    Action 2:     0.1270 <-- best
+    Action 0:    -0.0547
+    Action 3:    -0.0607
+    Action 1:    -0.0820
+
+  State: (2, 0, 1, 0, 1, 0)
+    Action 3:     0.1269 <-- best
+    Action 0:    -0.0251
+    Action 1:    -0.0273
+    Action 2:    -0.0277
+
+  State: (0, 0, 1, 0, 0, 0)
+    Action 1:     0.1189 <-- best
+    Action 3:     0.1181
+    Action 0:     0.1161
+    Action 2:    -0.1225
+
+  State: (1, 0, 2, 0, 0, 1)
+    Action 1:     0.1143 <-- best
+    Action 0:     0.0232
+    Action 3:    -0.0523
+    Action 2:    -0.1321
+
+  State: (1, 0, 2, 0, 2, 1)
+    Action 0:     0.1142 <-- best
+    Action 2:    -0.0038
+    Action 1:    -0.0049
+    Action 3:    -0.0100
+
+  State: (1, 0, 2, 0, 0, 0)
+    Action 1:     0.1100 <-- best
+    Action 3:    -0.0193
+    Action 0:    -0.1036
+    Action 2:    -0.1323
+
+  State: (0, 0, 2, 0, 0, 1)
+    Action 3:     0.0942 <-- best
+    Action 1:     0.0308
+    Action 0:    -0.0652
+    Action 2:    -0.0726
+
+  State: (0, 1, 1, 0, 0, 0)
+    Action 2:     0.0911 <-- best
+    Action 3:     0.0373
+    Action 1:     0.0215
+    Action 0:    -0.0419
+
+  State: (1, 0, 1, 0, 0, 0)
+    Action 1:     0.0714 <-- best
+    Action 0:     0.0227
+    Action 3:    -0.1343
+    Action 2:    -0.1483
+
+  State: (1, 1, 2, 1, 1, 0)
+    Action 2:     0.0687 <-- best
+    Action 0:    -0.0025
+    Action 1:    -0.0025
+    Action 3:    -0.0025
+
+  State: (0, 1, 0, 0, 0, 0)
+    Action 3:     0.0645 <-- best
+    Action 2:    -0.0496
+    Action 1:    -0.0660
+    Action 0:    -0.0696
+
+  State: (2, 0, 1, 0, 1, 1)
+    Action 3:     0.0624 <-- best
+    Action 0:    -0.0050
+    Action 2:    -0.0051
+    Action 1:    -0.0111
+
+  State: (1, 0, 1, 0, 2, 0)
+    Action 2:     0.0417 <-- best
+    Action 0:    -0.0152
+    Action 3:    -0.0169
+    Action 1:    -0.0248
+
+  State: (1, 1, 1, 1, 0, 0)
+    Action 3:     0.0374 <-- best
+    Action 2:    -0.0008
+    Action 1:    -0.0023
+    Action 0:    -0.0065
+
+  State: (1, 0, 2, 1, 1, 0)
+    Action 2:     0.0355 <-- best
+    Action 3:    -0.0025
+    Action 0:    -0.0050
+    Action 1:    -0.0052
+
+  State: (2, 0, 1, 1, 1, 1)
+    Action 2:     0.0311 <-- best
+    Action 1:    -0.0003
+    Action 0:    -0.0025
+    Action 3:    -0.0158
+
+  State: (1, 0, 2, 1, 3, 0)
+    Action 2:     0.0306 <-- best
+    Action 0:    -0.0025
+    Action 3:    -0.0025
+    Action 1:    -0.0027
+
+  State: (2, 1, 2, 1, 3, 0)
+    Action 3:     0.0304 <-- best
+    Action 2:    -0.0023
+    Action 1:    -0.0025
+    Action 0:    -0.0026
+
+  State: (2, 0, 1, 0, 2, 1)
+    Action 2:     0.0303 <-- best
+    Action 0:    -0.0004
+    Action 3:    -0.0015
+    Action 1:    -0.0025
+
+  State: (0, 0, 2, 0, 2, 1)
+    Action 2:     0.0250 <-- best
+    Action 1:    -0.0026
+    Action 3:    -0.0027
+    Action 0:    -0.0051
+
+  State: (0, 0, 0, 0, 0, 0)
+    Action 3:     0.0225 <-- best
+    Action 1:    -0.0927
+    Action 0:    -0.0992
+    Action 2:    -0.1022
+
+  State: (0, 0, 2, 1, 2, 0)
+    Action 2:     0.0193 <-- best
+    Action 0:    -0.0275
+    Action 1:    -0.0299
+    Action 3:    -0.0300
+
+  State: (1, 0, 2, 0, 1, 1)
+    Action 3:     0.0168 <-- best
+    Action 0:    -0.0037
+    Action 1:    -0.0082
+    Action 2:    -0.0289
+
+  State: (2, 0, 2, 1, 3, 0)
+    Action 0:     0.0147 <-- best
+    Action 2:     0.0000
+    Action 1:    -0.0025
+    Action 3:    -0.0025
+
+  State: (2, 0, 2, 0, 1, 0)
+    Action 1:     0.0126 <-- best
+    Action 2:    -0.0382
+    Action 0:    -0.0438
+    Action 3:    -0.0521
+
+  State: (0, 0, 2, 0, 1, 1)
+    Action 2:     0.0122 <-- best
+    Action 3:    -0.0025
+    Action 1:    -0.0056
+    Action 0:    -0.0146
+
+  State: (2, 1, 2, 0, 1, 0)
+    Action 3:     0.0117 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 0:    -0.0025
+
+  State: (2, 1, 1, 1, 1, 0)
+    Action 2:     0.0095 <-- best
+    Action 1:     0.0000
+    Action 0:    -0.0025
+    Action 3:    -0.0025
+
+  State: (2, 0, 0, 0, 0, 0)
+    Action 2:     0.0087 <-- best
+    Action 0:    -0.0836
+    Action 3:    -0.0912
+    Action 1:    -0.0978
+
+  State: (0, 1, 1, 1, 1, 0)
+    Action 3:     0.0079 <-- best
+    Action 2:    -0.0049
+    Action 1:    -0.0050
+    Action 0:    -0.0086
+
+  State: (1, 1, 2, 1, 2, 0)
+    Action 3:     0.0076 <-- best
+    Action 0:    -0.0025
+    Action 1:    -0.0025
+    Action 2:    -0.0025
+
+  State: (1, 1, 1, 1, 1, 0)
+    Action 0:     0.0066 <-- best
+    Action 2:    -0.0142
+    Action 1:    -0.0157
+    Action 3:    -0.0203
+
+  State: (0, 1, 2, 0, -1, 0)
+    Action 3:     0.0060 <-- best
+    Action 0:     0.0000
+    Action 1:     0.0000
+    Action 2:     0.0000
+
+  State: (1, 0, 1, 1, 2, 0)
+    Action 2:     0.0039 <-- best
+    Action 0:    -0.0025
+    Action 1:    -0.0025
+    Action 3:    -0.0053
+
+  State: (1, 0, 0, 0, 1, 0)
+    Action 0:     0.0021 <-- best
+    Action 2:    -0.0378
+    Action 3:    -0.0519
+    Action 1:    -0.0643
+
+  State: (0, 0, 2, 0, 2, 0)
+    Action 2:     0.0012 <-- best
+    Action 3:    -0.0171
+    Action 0:    -0.0217
+    Action 1:    -0.0240
+
+  State: (2, 0, 0, 1, 2, 0)
+    Action 2:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0025
+    Action 1:    -0.0025
+
+  State: (2, 0, 1, 1, 3, 1)
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0025
+
+  State: (1, 0, 1, 1, 3, 0)
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:    -0.0025
+
+  State: (1, 1, 0, 0, 0, 0)
+    Action 2:     0.0000 <-- best
+    Action 0:    -0.0025
+    Action 1:    -0.0025
+    Action 3:    -0.0026
+
+  State: (0, 1, 0, 1, -2, 0)
+    Action 1:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 0:    -0.0025
+    Action 3:    -0.0025
+
+  State: (0, 1, 2, 1, 1, 0)
+    Action 2:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0025
+    Action 1:    -0.0025
+
+  State: (0, 1, 2, 1, 2, 0)
+    Action 0:     0.0000 <-- best
+    Action 1:    -0.0025
+    Action 2:    -0.0025
+    Action 3:    -0.0040
+
+  State: (1, 1, 2, 1, 3, 0)
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:    -0.0025
+
+  State: (2, 1, 0, 1, 0, 0)
+    Action 2:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0025
+    Action 1:    -0.0025
+
+  State: (0, 0, 2, 1, 0, 0)
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 3:     0.0000
+    Action 2:    -0.0026
+
+  State: (2, 0, 2, 1, 1, 0)
+    Action 2:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0025
+    Action 1:    -0.0025
+
+  State: (2, 0, 2, 1, 1, 1)
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0025
+
+  State: (0, 0, 1, 1, 0, 0)
+    Action 1:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 0:    -0.0025
+    Action 3:    -0.0026
+
+  State: (1, 0, 1, 1, 0, 0)
+    Action 0:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 1:    -0.0025
+    Action 2:    -0.0025
+
+  State: (0, 0, 0, 1, -1, 0)
+    Action 1:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 0:    -0.0054
+
+  State: (1, 1, 2, 0, 2, 0)
+    Action 0:     0.0000 <-- best
+    Action 2:    -0.0023
+    Action 1:    -0.0025
+    Action 3:    -0.0026
+
+  State: (0, 1, 2, 1, 0, 0)
+    Action 1:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0025
+    Action 2:    -0.0025
+
+  State: (1, 1, 2, 0, 3, 0)
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 3:     0.0000
+    Action 2:    -0.0025
+
+  State: (2, 1, 2, 0, 4, 1)
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0025
+
+  State: (1, 1, 2, 0, 3, 1)
+    Action 2:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0025
+    Action 1:    -0.0025
+
+  State: (0, 1, 2, 0, 2, 0)
+    Action 2:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0025
+    Action 1:    -0.0025
+
+  State: (2, 1, 1, 0, 0, 0)
+    Action 1:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0025
+    Action 2:    -0.0025
+
+  State: (1, 1, 0, 0, -1, 0)
+    Action 2:     0.0000 <-- best
+    Action 0:    -0.0025
+    Action 1:    -0.0025
+    Action 3:    -0.0034
+
+  State: (0, 1, 0, 0, -2, 0)
+    Action 2:     0.0000 <-- best
+    Action 3:    -0.0014
+    Action 0:    -0.0025
+    Action 1:    -0.0025
+
+  State: (0, 1, 1, 0, -2, 0)
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:    -0.0041
+
+  State: (0, 1, 1, 0, -1, 0)
+    Action 1:     0.0000 <-- best
+    Action 0:    -0.0025
+    Action 2:    -0.0025
+    Action 3:    -0.0057
+
+  State: (0, 0, 2, 1, 1, 0)
+    Action 1:     0.0000 <-- best
+    Action 0:    -0.0025
+    Action 3:    -0.0025
+    Action 2:    -0.0028
+
+  State: (0, 0, 0, 1, 1, 0)
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 3:     0.0000
+    Action 2:    -0.0026
+
+  State: (0, 1, 2, 0, 1, 0)
+    Action 2:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0025
+    Action 1:    -0.0025
+
+  State: (2, 1, 2, 1, 4, 0)
+    Action 0:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 1:    -0.0025
+    Action 2:    -0.0025
+
+  State: (2, 0, 2, 1, 3, 1)
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0029
+
+  State: (1, 1, 1, 0, 2, 0)
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 3:     0.0000
+    Action 2:    -0.0025
+
+  State: (2, 1, 1, 0, 3, 0)
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 2:     0.0000
+    Action 3:    -0.0009
+
+  State: (0, 0, 2, 1, 3, 0)
+    Action 1:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0025
+    Action 2:    -0.0025
+
+  State: (1, 1, 0, 1, -1, 0)
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 3:     0.0000
+    Action 2:    -0.0025
+
+  State: (1, 1, 1, 0, 0, 0)
+    Action 2:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0025
+    Action 1:    -0.0025
+
+  State: (1, 1, 2, 0, 0, 0)
+    Action 0:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 1:    -0.0025
+    Action 2:    -0.0025
+
+  State: (2, 1, 1, 0, 1, 0)
+    Action 0:     0.0000 <-- best
+    Action 1:     0.0000
+    Action 3:     0.0000
+    Action 2:    -0.0025
+
+  State: (2, 0, 0, 1, 1, 1)
+    Action 2:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0025
+    Action 1:    -0.0026
+
+  State: (1, 1, 1, 0, -1, 0)
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0025
+
+  State: (1, 0, 0, 1, 2, 0)
+    Action 2:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 0:    -0.0025
+    Action 1:    -0.0025
+
+  State: (0, 0, 1, 1, 3, 0)
+    Action 0:     0.0000 <-- best
+    Action 3:     0.0000
+    Action 1:    -0.0025
+    Action 2:    -0.0025
+
+  State: (1, 0, 2, 1, 4, 0)
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0025
+
+  State: (0, 0, 2, 1, 4, 0)
+    Action 0:     0.0000 <-- best
+    Action 2:     0.0000
+    Action 3:     0.0000
+    Action 1:    -0.0027
+
+  State: (2, 0, 0, 0, 1, 1)
+    Action 2:    -0.0011 <-- best
+    Action 3:    -0.0049
+    Action 0:    -0.0050
+    Action 1:    -0.0340
+
+  State: (2, 0, 1, 1, 2, 0)
+    Action 0:    -0.0023 <-- best
+    Action 2:    -0.0031
+    Action 3:    -0.0047
+    Action 1:    -0.0061
+
+  State: (2, 1, 0, 0, 2, 0)
+    Action 3:    -0.0025 <-- best
+    Action 1:    -0.0255
+    Action 2:    -0.0276
+    Action 0:    -0.0323
+
+  State: (2, 1, 0, 1, 1, 0)
+    Action 0:    -0.0025 <-- best
+    Action 2:    -0.0025
+    Action 3:    -0.0025
+    Action 1:    -0.0050
+
+  State: (0, 1, 0, 0, -1, 0)
+    Action 1:    -0.0025 <-- best
+    Action 2:    -0.0025
+    Action 0:    -0.0049
+    Action 3:    -0.0061
+
+  State: (0, 1, 0, 1, -1, 0)
+    Action 1:    -0.0025 <-- best
+    Action 2:    -0.0025
+    Action 3:    -0.0026
+    Action 0:    -0.0038
+
+  State: (2, 0, 0, 0, 2, 1)
+    Action 0:    -0.0025 <-- best
+    Action 1:    -0.0026
+    Action 2:    -0.0026
+    Action 3:    -0.0119
+
+  State: (2, 1, 0, 1, 2, 0)
+    Action 3:    -0.0025 <-- best
+    Action 2:    -0.0049
+    Action 1:    -0.0050
+    Action 0:    -0.0050
+
+  State: (2, 1, 0, 0, 0, 0)
+    Action 0:    -0.0025 <-- best
+    Action 1:    -0.0025
+    Action 2:    -0.0025
+    Action 3:    -0.0027
+
+  State: (0, 1, 1, 1, 0, 0)
+    Action 1:    -0.0025 <-- best
+    Action 3:    -0.0025
+    Action 0:    -0.0049
+    Action 2:    -0.0049
+
+  State: (1, 1, 0, 1, 0, 0)
+    Action 2:    -0.0025 <-- best
+    Action 0:    -0.0050
+    Action 1:    -0.0050
+    Action 3:    -0.0125
+
+  State: (0, 1, 1, 0, 1, 0)
+    Action 1:    -0.0025 <-- best
+    Action 2:    -0.0025
+    Action 0:    -0.0026
+    Action 3:    -0.0050
+
+  State: (2, 0, 0, 1, 1, 0)
+    Action 0:    -0.0025 <-- best
+    Action 1:    -0.0025
+    Action 2:    -0.0025
+    Action 3:    -0.0060
+
+  State: (2, 1, 1, 1, 3, 0)
+    Action 0:    -0.0025 <-- best
+    Action 1:    -0.0025
+    Action 2:    -0.0025
+    Action 3:    -0.0025
+
+  State: (0, 0, 2, 0, 1, 0)
+    Action 2:    -0.0031 <-- best
+    Action 0:    -0.0237
+    Action 1:    -0.0245
+    Action 3:    -0.0303
+
+  State: (1, 0, 0, 1, 1, 0)
+    Action 1:    -0.0040 <-- best
+    Action 0:    -0.0049
+    Action 3:    -0.0053
+    Action 2:    -0.0103
+
+  State: (1, 1, 1, 1, 2, 0)
+    Action 2:    -0.0049 <-- best
+    Action 1:    -0.0061
+    Action 3:    -0.0062
+    Action 0:    -0.0084
+
+  State: (2, 1, 1, 1, 2, 0)
+    Action 3:    -0.0114 <-- best
+    Action 0:    -0.0127
+    Action 1:    -0.0154
+    Action 2:    -0.0163
+
+  State: (1, 1, 0, 1, 1, 0)
+    Action 2:    -0.0114 <-- best
+    Action 3:    -0.0131
+    Action 0:    -0.0138
+    Action 1:    -0.0241
+
+  State: (0, 0, 1, 0, 2, 0)
+    Action 3:    -0.0123 <-- best
+    Action 0:    -0.0144
+    Action 2:    -0.0148
+    Action 1:    -0.0223
+
+  State: (1, 0, 0, 0, 0, 0)
+    Action 1:    -0.0142 <-- best
+    Action 2:    -0.0264
+    Action 0:    -0.0780
+    Action 3:    -0.0970
+
+  State: (2, 0, 0, 0, 2, 0)
+    Action 2:    -0.0144 <-- best
+    Action 0:    -0.0153
+    Action 1:    -0.0163
+    Action 3:    -0.0234
+
+  State: (1, 0, 0, 0, 2, 0)
+    Action 3:    -0.0148 <-- best
+    Action 2:    -0.0149
+    Action 0:    -0.0168
+    Action 1:    -0.0200
+
+  State: (2, 0, 0, 0, 1, 0)
+    Action 3:    -0.0164 <-- best
+    Action 2:    -0.0260
+    Action 0:    -0.0271
+    Action 1:    -0.0277
+
+  State: (0, 0, 1, 1, 1, 0)
+    Action 2:    -0.0185 <-- best
+    Action 0:    -0.0554
+    Action 1:    -0.0563
+    Action 3:    -0.0565
+
+  State: (0, 0, 0, 0, 2, 0)
+    Action 3:    -0.0212 <-- best
+    Action 2:    -0.0227
+    Action 0:    -0.0255
+    Action 1:    -0.0296
+
+  State: (2, 0, 0, 1, 0, 1)
+    Action 0:    -0.0227 <-- best
+    Action 3:    -0.0240
+    Action 2:    -0.0256
+    Action 1:    -0.0336
+
+  State: (0, 0, 1, 0, 1, 0)
+    Action 2:    -0.0308 <-- best
+    Action 1:    -0.0529
+    Action 0:    -0.0529
+    Action 3:    -0.0593
+
+  State: (0, 1, 0, 1, 0, 0)
+    Action 1:    -0.0324 <-- best
+    Action 0:    -0.0332
+    Action 2:    -0.0346
+    Action 3:    -0.0507
+
+  State: (2, 0, 2, 0, 1, 1)
+    Action 3:    -0.0331 <-- best
+    Action 2:    -0.0370
+    Action 1:    -0.0373
+    Action 0:    -0.0375
+
+  State: (1, 1, 0, 0, 1, 0)
+    Action 2:    -0.0370 <-- best
+    Action 0:    -0.0385
+    Action 1:    -0.0483
+    Action 3:    -0.0499
+
+  State: (0, 0, 0, 0, 1, 0)
+    Action 2:    -0.0525 <-- best
+    Action 3:    -0.0624
+    Action 1:    -0.0647
+    Action 0:    -0.0766
+
+  State: (2, 0, 0, 0, 0, 1)
+    Action 0:    -0.0564 <-- best
+    Action 2:    -0.0673
+    Action 3:    -0.0676
+    Action 1:    -0.0692
+
+  State: (2, 0, 1, 0, 0, 1)
+    Action 2:    -0.0923 <-- best
+    Action 0:    -0.0937
+    Action 3:    -0.0952
+    Action 1:    -0.1019
+
+  State: (2, 0, 2, 0, 0, 0)
+    Action 1:    -0.0926 <-- best
+    Action 0:    -0.1446
+    Action 2:    -0.1467
+    Action 3:    -0.1537
+
+  State: (2, 0, 1, 0, 0, 0)
+    Action 2:    -0.1008 <-- best
+    Action 3:    -0.1129
+    Action 0:    -0.1131
+    Action 1:    -0.1178
+
+  State: (2, 0, 2, 0, 0, 1)
+    Action 1:    -0.1239 <-- best
+    Action 0:    -0.1292
+    Action 3:    -0.1303
+    Action 2:    -0.1372

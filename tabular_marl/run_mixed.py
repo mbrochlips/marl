@@ -45,24 +45,24 @@ CONFIG = {
     "runname": datetime.now().strftime("%d%b%Y").lower(),  #e.g."15dec2025"
     
     # Mixed play configuration
-    "algorithm_1": "IQLAE",   # Algorithm for agent 1
-    "algorithm_2": "IQLAE",   # Algorithm for agent 2
+    "algorithm_1": "QBM",   # Algorithm for agent 1
+    "algorithm_2": "QBM",   # Algorithm for agent 2
     "algorithm_1_kwargs": {"p": 0.0},  #extra kwargs for algorithm 1
     "algorithm_2_kwargs": {}, #"p": 0.9},  # Extra kwargs for algorithm 2 (e.g., Random's p)
     
-    "env": "cf",  # game type: "f" = foraging, "cf" = custom_foraging, "m" = matrix, "mc" = MoveChairGame
+    "env": "cf1f",  # game type: "f" = foraging, "cf" = custom_foraging, "m" = matrix, "mc" = MoveChairGame
 
     "save": True, #save the videos and csv
     "visualise": True, #render
     "output": True, #save the 
 
     "ep_length": 50,
-    "total_eps": 300,
-    "eval_freq": 10,
-    "eval_episodes": 50,
+    "total_eps": 3000,
+    "eval_freq": 100,
+    "eval_episodes": 10,
 
     "seed": None,
-    "lr": 0.1,
+    "lr": 0.2,
     "init_epsilon": 0.9,
     "eval_epsilon": 0.05,
     "num_agents": 2,
@@ -70,8 +70,14 @@ CONFIG = {
 
     "food_pos": [[1, 1], [3, 3]],
     "player_pos": [[0, 4], [4, 0]],
-    "payoff_matrix": np.array([[[4, 4], [0, 3]], 
-                               [[3, 0], [2, 2]]])
+    "payoff_matrix": np.array([[[5, 5], [0, 3]], 
+                               [[3, 0], [2, 2]]]),
+
+#     "payoff_matrix": np.array([
+#     [[10, 10],   [0, 0],     [-50, -50]],
+#     [[0, 0],     [2, 2],     [0, 0]],
+#     [[-50, -50], [0, 0],   [10, 10]]
+# ])                         
 }
 
 

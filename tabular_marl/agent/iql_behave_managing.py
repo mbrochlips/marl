@@ -113,7 +113,7 @@ class QBM(IQL):
             
         if done:
             q_next = 0
-            #for i, g in enumerate(self.groups):
+            # for i, g in enumerate(self.groups):
             #    print(f"Group {i}: reward={g.reward:.3f}, success={g.success}, total={g.total}, obs_count={len(g.observations)}")
         
         else:

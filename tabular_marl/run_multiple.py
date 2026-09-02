@@ -46,20 +46,20 @@ CONFIG = {
     "runname": datetime.now().strftime("%d%b%Y").lower(),  # e.g. "15dec2025"
     
     # Mixed play configuration
-    "algorithm_1": "JalAM",   # Algorithm for agent 1
-    "algorithm_2": "JalAM",   # Algorithm for agent 2
-    "algorithm_1_kwargs": {"lr": 0.2},  # pRandom here! extra kwargs for algorithm 1
-    "algorithm_2_kwargs": {"lr": 0.2},  # Extra kwargs for algorithm 2
+    "algorithm_1": "IQLAE",   # Algorithm for agent 1
+    "algorithm_2": "IQLAE",   # Algorithm for agent 2
+    "algorithm_1_kwargs": {"lr": 0.1},  # pRandom here! extra kwargs for algorithm 1
+    "algorithm_2_kwargs": {"lr": 0.1},  # Extra kwargs for algorithm 2
 
-    "env": "mc",  # game type: "f" = foraging, "cf" = custom_foraging, "cf1f" = OneFood, "m" = matrix, "mc" = MoveChairGame
+    "env": "cf",  # game type: "f" = foraging, "cf" = custom_foraging, "cf1f" = OneFood, "m" = matrix, "mc" = MoveChairGame
 
     "save": True,
     "visualise": False,
     "output": True,
 
-    "repetitions": 2,  # Number of independent runs
+    "repetitions": 10,  # Number of independent runs
     "ep_length": 50, 
-    "total_eps": 3000,
+    "total_eps": 300,
     "eval_episodes": 100, #in total across one rep.
     "eval_spread": "both",  # "last10", "full", or "both" (saves 2 CSVs, uses last10 for repetition plot, full for learning curve)
 
@@ -73,8 +73,8 @@ CONFIG = {
 
     "food_pos": [[1, 1], [3, 3]],
     "player_pos": [[0, 4], [4, 0]],
-    "payoff_matrix": np.array([[[5, 5], [0, 3]], 
-                               [[3, 0], [2, 2]]]) * 1/10
+    "payoff_matrix": np.array([[[5, 5], [0, 4]], 
+                               [[4, 0], [3, 3]]]) * 1/10
 }
 
 
@@ -142,7 +142,6 @@ def train_agents(env, config, rep_num=0):
         # This ensures the Learning Curve gets the full 100 episodes (10 per point)
         # The Last10 will also get 10 per point (higher quality, more time consuming)
         num_checkpoints = len(full_checkpoints)
-        print(num_checkpoints)
     elif eval_spread == "full":
         eval_checkpoints = full_checkpoints
         num_checkpoints = len(eval_checkpoints)
