@@ -245,7 +245,7 @@ class A2CNetwork(nn.Module):
             self.soft_update(self.target_update_interval_or_tau)
 
         return {
-            "loss": loss.item(),
+            "loss": loss.item(), # combined loss
             "actor_loss": actor_loss.item(),
             "value_loss": value_loss.item(),
             "entropy": ((entropy * batch.filled).sum() / batch.filled.sum()).item(),

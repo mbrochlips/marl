@@ -17,9 +17,9 @@ class CustomForagingOneFood(ForagingEnv):
         self.pos_players = pos_players
         self.pos_foods = pos_foods
 
-    def spawn_players(self, min_player_levels, max_player_levels):
+    def spawn_players(self, min_player_levels, max_player_levels): 
         
-        levels = [min_player_levels[0], max_player_levels[0]]
+        levels = [min_player_levels[0], max_player_levels[0]] # only works with two players
         for i in range(len(self.players)):
             self.players[i].reward = 0
             self.players[i].setup(
@@ -29,8 +29,9 @@ class CustomForagingOneFood(ForagingEnv):
             )       
 
     def spawn_food(self, max_num_food, min_levels, max_levels):
+
         min_levels = max_levels if self.force_coop else min_levels
-        levels = [min_levels[0], max_levels[0]]
+        levels = [min_levels[0], max_levels[0]] # only works with two players
 
         for i in range(max_num_food):
             self.field[self.pos_foods[i][0],self.pos_foods[i][1]] = levels[(i+1)%2]

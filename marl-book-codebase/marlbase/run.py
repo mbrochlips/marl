@@ -1,4 +1,5 @@
 import os
+import utils.custom_envs
 
 import hydra
 import numpy as np
