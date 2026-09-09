@@ -11,7 +11,7 @@ algorithm:
     parameter_sharing: False # True/False/List[int] (seps_indices)
     use_orthogonal_init: True
     use_rnn: False
-    device: "cpu"  # a pytorch device ("cpu" or "cuda")
+    device: "cuda"  # a pytorch device ("cpu" or "cuda")
 
   training_start: 2000
   buffer_size: 10000  # number of *episodes* to store in the replay buffer

@@ -29,7 +29,7 @@ class A2CNetwork(nn.Module):
         critic,
         device,
     ):
-        super(A2CNetwork, self).__init__()
+        super(A2CNetwork, self).__init__() # The configs are transfered
         self.gamma = cfg.gamma
         self.entropy_coef = cfg.entropy_coef
         self.n_steps = cfg.n_steps
@@ -40,6 +40,8 @@ class A2CNetwork(nn.Module):
         self.n_agents = len(obs_space)
         obs_dims = [flatdim(o) for o in obs_space]
         act_dims = [flatdim(a) for a in action_space]
+
+        # Setting up actor:
 
         if not actor.parameter_sharing:
             self.actor = MultiAgentIndependentNetwork(
@@ -54,12 +56,13 @@ class A2CNetwork(nn.Module):
                 obs_dims,
                 list(actor.layers),
                 act_dims,
-                actor.parameter_sharing,
+                actor.parameter_sharing, # parameter shareing is added if allowed
                 actor.use_rnn,
                 actor.use_orthogonal_init,
             )
-
-        self.centralised_critic = critic.centralised
+        
+        # Setting up Critic
+        self.centralised_critic = critic.centralised # Only centralised critic
         critic_obs_shape = (
             self.n_agents * [sum(obs_dims)] if critic.centralised else obs_dims
         )
@@ -72,6 +75,7 @@ class A2CNetwork(nn.Module):
                 critic.use_rnn,
                 critic.use_orthogonal_init,
             )
+            # target network for critic
             self.target_critic = MultiAgentIndependentNetwork(
                 critic_obs_shape,
                 list(critic.layers),
@@ -88,6 +92,7 @@ class A2CNetwork(nn.Module):
                 critic.use_rnn,
                 critic.use_orthogonal_init,
             )
+            # target network for critic
             self.target_critic = MultiAgentSharedNetwork(
                 critic_obs_shape,
                 list(critic.layers),
@@ -97,6 +102,7 @@ class A2CNetwork(nn.Module):
                 critic.use_orthogonal_init,
             )
 
+        # Setting params and selfs
         self.soft_update(1.0)
         self.to(device)
 

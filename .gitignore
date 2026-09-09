@@ -179,6 +179,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+marl_env310
 
 # Spyder project settings
 .spyderproject

@@ -23,7 +23,7 @@ algorithm:
       use_orthogonal_init: True
       use_rnn: False
 
-    device : "cpu"  # a pytorch device ("cpu" or "cuda")
+    device : "cuda"  # a pytorch device ("cpu" or "cuda")
 
   optimizer : "Adam"
   lr: 3.e-4
