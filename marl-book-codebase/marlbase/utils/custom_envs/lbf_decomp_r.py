@@ -1,27 +1,16 @@
 import numpy as np
 import gymnasium as gym
-from itertools import product
 from lbforaging.foraging.environment import ForagingEnv, Action, Player
 
 
 class ForagingDecompReward(ForagingEnv):
     """
-    Level-Based Foraging environment with decomposed (vectorized) rewards.
-    
-    Instead of returning a scalar reward per agent:
-        r_i in R
-    Each agent receives an N-dimensional reward vector:
-        r_i = [r_food0, r_food1, ..., r_food(N-1)]
-    where N = max_num_food.
+    Base level-based foraging environment with decomposed (vectorized) rewards.
     """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
-        # Total number of reward channels corresponds to the number of food items
         self.num_reward_channels = self.max_num_food
-        
-        # Metadata list to track individual food items and their persistent IDs
         self.food_items = []
 
     def reset(self, **kwargs):
@@ -31,7 +20,7 @@ class ForagingDecompReward(ForagingEnv):
         else:
             obs, info = res, {}
 
-        # Only scan field if food_items was not already populated by a subclass
+        # Scan grid only if food_items was not configured by a specialized subclass
         if not getattr(self, "food_items", None):
             self.food_items = []
             food_id = 0
@@ -42,33 +31,36 @@ class ForagingDecompReward(ForagingEnv):
                             "id": food_id,
                             "pos": (r, c),
                             "level": int(self.field[r, c]),
-                            "active": True
+                            "active": True,
                         })
                         food_id += 1
 
-        # Initialize vector rewards for all players to zero
         for player in self.players:
             player.reward_vec = np.zeros(self.num_reward_channels, dtype=np.float32)
 
+        self._game_over = False
         return obs, info
 
+    def _calculate_food_reward(self, food, loading_players):
+        """
+        Hook for subclasses to define custom semantic reward values.
+        Default: standard proportional split.
+        """
+        food_level = food["level"]
+        total_loading_level = sum(p.level for p in loading_players)
+        payouts = {}
+        for p in loading_players:
+            if self._normalize_reward and self._food_spawned > 0:
+                val = float(food_level * (p.level / total_loading_level) / self._food_spawned)
+            else:
+                val = float(food_level * (p.level / total_loading_level))
+            payouts[p] = val
+        return payouts
+
     def step(self, actions):
-        """
-        Executes a step with decomposed vector reward assignment.
-        
-        Returns:
-            obs (tuple): Gym observation per agent.
-            rewards (list[np.ndarray]): Vector of rewards per agent,
-                                        each of shape (max_num_food,).
-            terminated (bool): True if all food is collected.
-            truncated (bool): True if max episode steps reached.
-            info (dict): Environment diagnostics, including decomposed reward breakdown.
-        """
         self.current_step += 1
 
-        # -------------------------------------------------------------
         # 1. Action Validation
-        # -------------------------------------------------------------
         self._gen_valid_moves()
         actions = [Action(a) for a in actions]
         actions = [
@@ -76,12 +68,9 @@ class ForagingDecompReward(ForagingEnv):
             for p, a in zip(self.players, actions)
         ]
 
-        # -------------------------------------------------------------
         # 2. Movement & Collision Resolution
-        # -------------------------------------------------------------
         curr_positions = [p.position for p in self.players]
         proposed_positions = []
-
         for p, a in zip(self.players, actions):
             r, c = p.position
             if a == Action.NORTH:
@@ -92,12 +81,10 @@ class ForagingDecompReward(ForagingEnv):
                 proposed_positions.append((r, c - 1))
             elif a == Action.EAST:
                 proposed_positions.append((r, c + 1))
-            else:  # Action.NONE or Action.LOAD
+            else:
                 proposed_positions.append((r, c))
 
         new_positions = list(proposed_positions)
-        
-        # Iteratively cancel moves that result in collisions
         collision_resolved = False
         while not collision_resolved:
             collision_resolved = True
@@ -106,8 +93,6 @@ class ForagingDecompReward(ForagingEnv):
                     continue
 
                 nr, nc = new_positions[i]
-
-                # Boundary or food collision
                 if not (0 <= nr < self.rows and 0 <= nc < self.cols) or self.field[nr, nc] > 0:
                     new_positions[i] = curr_positions[i]
                     collision_resolved = False
@@ -115,83 +100,60 @@ class ForagingDecompReward(ForagingEnv):
 
                 for j in range(len(self.players)):
                     if i != j:
-                        # Two agents claiming the exact same target cell
                         if new_positions[i] == new_positions[j]:
                             new_positions[i] = curr_positions[i]
                             new_positions[j] = curr_positions[j]
                             collision_resolved = False
-                        # Edge swap collision (agents attempting to cross paths)
                         elif (new_positions[i] == curr_positions[j] and 
                               new_positions[j] == curr_positions[i]):
                             new_positions[i] = curr_positions[i]
                             new_positions[j] = curr_positions[j]
                             collision_resolved = False
-                        # Bumping into an agent that is remaining still
                         elif new_positions[i] == curr_positions[j] and new_positions[j] == curr_positions[j]:
                             new_positions[i] = curr_positions[i]
                             collision_resolved = False
 
-        # Apply resolved positions and record history
         for p, pos, a in zip(self.players, new_positions, actions):
             p.position = pos
             p.history.append(a)
 
-        # -------------------------------------------------------------
-        # 3. Food Loading & Decomposed Reward Assignment
-        # -------------------------------------------------------------
-        # Initialize zero reward vector for each player: shape (num_agents, max_num_food)
+        # 3. Loading & Decomposed Reward Assignment
         rewards = [
             np.zeros(self.num_reward_channels, dtype=np.float32) 
             for _ in range(len(self.players))
         ]
 
-        # Evaluate loading condition for every active food
         for food in self.food_items:
             fr, fc = food["pos"]
-            
-            if not food["active"]:
+            if not food["active"] or self.field[fr, fc] == 0:
                 continue
-            
-            food_level = food["level"]
 
-            # Identify adjacent players attempting to LOAD this specific food
             adj_players = self.adjacent_players(fr, fc)
             loading_players = [
                 p for p in adj_players 
                 if actions[self.players.index(p)] == Action.LOAD
             ]
-
             total_loading_level = sum(p.level for p in loading_players)
 
-            # Check if combined levels meet or exceed food requirement
-            if loading_players and total_loading_level >= food_level:
+            if loading_players and total_loading_level >= food["level"]:
                 food["active"] = False
-                self.field[fr, fc] = 0  # Remove food from physical grid
+                self.field[fr, fc] = 0
 
-                # Distribute channelized rewards exclusively to participating agents
-                for p in loading_players:
+                # Delegate reward calculation to the hook
+                payout_dict = self._calculate_food_reward(food, loading_players)
+                for p, val in payout_dict.items():
                     p_idx = self.players.index(p)
-                    
-                    # Proportional share of the food value
-                    if self._normalize_reward and self._food_spawned > 0:
-                        reward_val = float(food_level * (p.level / total_loading_level) / self._food_spawned)
-                    else:
-                        reward_val = float(food_level * (p.level / total_loading_level))
+                    rewards[p_idx][food["id"]] = val
 
-                    # Place reward in the channel corresponding to this food's ID
-                    rewards[p_idx][food["id"]] = reward_val
-
-        # -------------------------------------------------------------
-        # 4. Bookkeeping & Game Over Conditions
-        # -------------------------------------------------------------
+        # 4. State Update & Termination
         for p_idx, p in enumerate(self.players):
             p.reward_vec = rewards[p_idx]
-            p.reward = float(rewards[p_idx].sum())  # Keep scalar sum for internal tracking
+            p.reward = float(rewards[p_idx].sum())
             p.score += p.reward
 
-        # Episode termination
         terminated = bool(self.field.sum() == 0)
         truncated = bool(self.current_step >= self._max_episode_steps and not terminated)
+        self._game_over = bool(terminated or truncated)  # Fixes env.game_over bug
 
         self._gen_valid_moves()
         obs = self._make_gym_obs()
