@@ -1,0 +1,4 @@
+- +algorithm=dummy
+- env.name=utils.custom_envs:Foraging-3Foods-8x8-2p-3f-v0
+- env.time_limit=50
+- seed=1

@@ -1,7 +1,7 @@
 import numpy as np
 import gymnasium as gym
 from lbforaging.foraging.environment import Action
-from lbf_decomp_r import ForagingDecompReward 
+from utils.custom_envs.lbf_decomp_r import ForagingDecompReward 
 
 
 class Foraging3Foods(ForagingDecompReward):
@@ -11,6 +11,10 @@ class Foraging3Foods(ForagingDecompReward):
       - Channel 1 ('ID_2'): Level 2 -> Low-level Solo (2 >= 2),          r = 0.5
       - Channel 2 ('ID_3'): Level 3 -> High-level Coop (2 + 2 >= 3),     r = 1.0
     """
+    metadata = {
+        "render_modes": ["human", "rgb_array"],
+        "render_fps": 10,
+    }
 
     REWARD_CHANNELS = ["ID_1", "ID_2", "ID_3"]
 
