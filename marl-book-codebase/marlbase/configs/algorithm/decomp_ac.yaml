@@ -1,0 +1,53 @@
+# 1. Instruct run.py to vectorize 10 parallel environments
+env:
+  parallel_envs: 10
+
+# 2. Algorithm & Model Configuration
+algorithm:
+  _target_: decomp_ac.train.main
+  name: "decomp_ac"
+
+  model:
+    _target_: decomp_ac.model.DecompA2CNetwork
+    actor:
+      layers:
+        - 128
+        - 128
+      parameter_sharing: False
+      use_orthogonal_init: True
+      use_rnn: False
+    critic:
+      centralised: True       # True for Centralised Training (CTDE) as in your proposal
+      layers:
+        - 128
+        - 128
+      parameter_sharing: False # False ensures N x M = 6 completely independent networks!
+      use_orthogonal_init: True
+      use_rnn: False
+
+    device: "cuda"            # Change to "cpu" if running without a GPU
+
+  # Decomposed Reward & Targeted Optimism Settings
+  n_reward_channels: 3
+  coop_channel_idx: 2        # Channel 2 is ID_3 (Level 3 Coop Food)
+  optimism_tau: 0.75         # > 0.5: Asymmetric leniency on coop critic loss
+  channel_weights: [1.0, 1.0, 1.0]
+
+  # Optimization Hyperparameters (matching ia2c)
+  optimizer: "Adam"
+  lr: 3.e-4
+  grad_clip: False
+  n_steps: 5
+  gamma: 0.99
+  entropy_coef: 0.001
+  value_loss_coef: 0.5
+  use_proper_termination: False
+  standardise_returns: True
+  target_update_interval_or_tau: 200
+
+  # Training & Logging Intervals
+  total_steps: 1000000
+  eval_interval: 20000
+  save_interval: 0
+  video_interval: 0
+  video_frames: 200

@@ -1,0 +1,57 @@
+seed: 1
+algorithm:
+  total_steps: 1000000
+  log_interval: 10000
+  save_interval: 0
+  eval_interval: 20000
+  eval_episodes: 100
+  video_interval: 0
+  video_frames: 200
+  name: decomp_ac
+  _target_: marlbase.decomp_ac.train.main
+  use_proper_termination: true
+  n_reward_channels: 3
+  coop_channel_idx: 2
+  optimism_tau: 0.75
+  channel_weights:
+  - 1.0
+  - 1.0
+  - 1.0
+  gamma: 0.99
+  lr: 0.0005
+  optimizer: Adam
+  grad_clip: 0.5
+  value_loss_coef: 0.5
+  entropy_coef: 0.01
+  n_steps: 5
+  standardise_returns: true
+  target_update_interval_or_tau: 0.01
+  model:
+    _target_: marlbase.decomp_ac.model.DecompA2CNetwork
+    device: cpu
+  actor:
+    parameter_sharing: false
+    layers:
+    - 64
+    - 64
+    use_rnn: false
+    use_orthogonal_init: true
+  critic:
+    centralised: true
+    parameter_sharing: false
+    layers:
+    - 64
+    - 64
+    use_rnn: false
+    use_orthogonal_init: true
+env:
+  _target_: utils.envs.make_env
+  name: utils.custom_envs:Foraging-3Foods-8x8-2p-3f-v0
+  time_limit: 50
+  clear_info: false
+  observe_id: false
+  standardise_rewards: false
+  wrappers: null
+logger:
+  _target_: utils.loggers.FileSystemLogger
+  project_name: fastmarl
