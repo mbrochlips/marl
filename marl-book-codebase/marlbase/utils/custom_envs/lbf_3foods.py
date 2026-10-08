@@ -34,13 +34,13 @@ class Foraging3Foods(ForagingDecompReward):
         penalty=0.0,
         render_mode=None,
         # --- Strategic Dilemma Settings ---
-        mod_1: bool = False,               # Step cost + high coop reward
+        mod_1: bool = True,               # Step cost + high coop reward
         mod_2: bool = True,                # Early termination on K foods
         mod_3: bool = False,                # Miscoordination penalty for solo coop attempt
         max_harvests: int = 1,             # Number of foods to trigger termination (if mod_2=True)
         miscoord_penalty: float = 1.0,     # Penalty for uncoordinated coop load (if mod_3=True)
         step_cost: float = 0.02,           # Step penalty (if mod_1=True)
-        coop_base_reward: float = 4.0,     # Base reward for joint coop harvest
+        coop_base_reward: float = 5.0,     # Base reward for joint coop harvest
         coop_boosted_reward: float = 5.0,  # Boosted reward if mod_1 is True
         **kwargs,
     ):
@@ -71,6 +71,14 @@ class Foraging3Foods(ForagingDecompReward):
         self.step_cost = step_cost
         self.coop_reward = coop_boosted_reward if mod_1 else coop_base_reward
 
+        # Dynamically allocate 4 channels if mod_1 is True, else keep 3
+        if self.mod_1:
+            self.REWARD_CHANNELS = ["ID_1", "ID_2", "ID_3", "step_cost"]
+            self.num_reward_channels = 4
+        else:
+            self.REWARD_CHANNELS = ["ID_1", "ID_2", "ID_3"]
+            self.num_reward_channels = 3
+        
         # Runtime counters
         self.harvested_count = 0
 
@@ -224,8 +232,7 @@ class Foraging3Foods(ForagingDecompReward):
         # --- MOD_1: Step Cost Deduction ---
         if self.mod_1:
             for p_idx in range(len(self.players)):
-                # Deduct step cost evenly across channels to maintain consistent magnitude
-                rewards[p_idx] -= (self.step_cost / self.num_reward_channels)
+                rewards[p_idx][3] -= self.step_cost
 
         # 4. State Update & Termination Checks
         for p_idx, p in enumerate(self.players):

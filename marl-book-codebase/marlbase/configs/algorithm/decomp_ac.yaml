@@ -26,20 +26,21 @@ algorithm:
 
     device: "cuda"             # Set to "cpu" if running without a GPU
 
-  n_reward_channels: 3
+  n_reward_channels: 4
   coop_channel_idx: 2         # Channel 2 is ID_3 (Level 3 Coop Food)
   optimism_tau: 0.75          # > 0.5: Asymmetric leniency on coop critic loss
-  channel_weights: [1.0, 1.0, 1.0]
+  channel_weights: [1.0, 1.0, 1.0, 1.0]
+  momentum_coef: 0.3      # 0.0 = pure max (no momentum); 0.3 - 0.5 = strong commitment
 
   optimizer: "Adam"
   lr: 3.e-4
-  grad_clip: False
+  grad_clip: 0.5 # Changed from False
   n_steps: 5
   gamma: 0.99
-  entropy_coef: 0.001
+  entropy_coef: 0.01 # changed from 0.001
   value_loss_coef: 0.5
   use_proper_termination: False
-  standardise_returns: True
+  standardise_returns: False # was: True
   target_update_interval_or_tau: 200
 
   total_steps: 1000000

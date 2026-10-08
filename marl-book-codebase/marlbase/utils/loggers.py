@@ -1,3 +1,4 @@
+import os
 from datetime import timedelta
 from hashlib import sha256
 import json
@@ -148,22 +149,37 @@ class FileSystemLogger(Logger):
 
     def log_metrics(self, metrics):
         d = squash_info(metrics)
-        df = pd.DataFrame.from_dict([d])[
-            ["environment_steps"]
-            + sorted([k for k in d.keys() if k != "environment_steps"])
-        ]
-        # Since we are appending, we only want to write the csv headers if the file does not already exist
-        # the following codeblock handles this automatically
-        with open(self.results_path, "a") as f:
-            df.to_csv(f, header=f.tell() == 0, index=False)
+        new_row = pd.DataFrame.from_dict([d])
+
+        # Safely align columns across runs/evaluations via outer concat
+        if os.path.exists(self.results_path) and os.path.getsize(self.results_path) > 0:
+            try:
+                existing_df = pd.read_csv(self.results_path)
+                combined_df = pd.concat([existing_df, new_row], ignore_index=True)
+            except Exception:
+                combined_df = new_row
+        else:
+            combined_df = new_row
+
+        # Ensure environment_steps is always the first column
+        cols = ["environment_steps"] + sorted([c for c in combined_df.columns if c != "environment_steps"])
+        combined_df = combined_df[cols]
+        combined_df.to_csv(self.results_path, index=False)
+
+        # Safe fallback for mean returns display
+        mean_ret = d.get("mean_episode_returns", d.get("episode_returns", 0.0))
+        updates = d.get("updates", 0)
+        env_steps = d.get("environment_steps", 0)
 
         self.print_progress(
-            d["updates"],
-            d["environment_steps"],
-            d["mean_episode_returns"],
-            len(metrics) - 1,
+            updates,
+            env_steps,
+            mean_ret,
+            max(0, len(metrics) - 1),
         )
 
     def get_state(self):
+        if not os.path.exists(self.results_path):
+            return None
         df = pd.read_csv(self.results_path, index_col=0)
         return df

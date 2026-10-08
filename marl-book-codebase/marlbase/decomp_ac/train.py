@@ -140,14 +140,19 @@ def _collect_trajectories(
                             if isinstance(v, (int, float, np.integer, np.floating)):
                                 ep_info[k] = float(v)
 
-                    # Calculate decomposed episodic returns
+                    # Calculate decomposed episodic returns dynamically
                     agent_ch_returns = env_decomposed_returns[i].detach().cpu().numpy()  # (n_agents, n_channels)
                     total_scalar_return = float(agent_ch_returns.sum())
                     
                     ep_info["episode_returns"] = total_scalar_return
-                    ep_info["return_ID_1_stoch"] = float(agent_ch_returns[:, 0].sum())
-                    ep_info["return_ID_2_solo"] = float(agent_ch_returns[:, 1].sum())
-                    ep_info["return_ID_3_coop"] = float(agent_ch_returns[:, 2].sum())
+
+                    # Dynamically log every active channel by name or index
+                    n_channels = agent_ch_returns.shape[1]
+                    channel_names = getattr(envs.unwrapped, "REWARD_CHANNELS", [f"channel_{c}" for c in range(n_channels)])
+
+                    for c in range(n_channels):
+                        ch_name = channel_names[c] if c < len(channel_names) else f"channel_{c}"
+                        ep_info[f"return_{ch_name}"] = float(agent_ch_returns[:, c].sum())
 
                     infos.append(ep_info)
 
