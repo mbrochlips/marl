@@ -134,9 +134,11 @@ def _collect_trajectories(
                 if d and running[i]:
                     ep_info = {}
 
-                    # Retain standard gym stats if available
+                    # ONLY copy numeric scalar stats from final_info (skip strings, lists, dicts)
                     if "final_info" in info and info["final_info"][i] is not None:
-                        ep_info.update(info["final_info"][i])
+                        for k, v in info["final_info"][i].items():
+                            if isinstance(v, (int, float, np.integer, np.floating)):
+                                ep_info[k] = float(v)
 
                     # Calculate decomposed episodic returns
                     agent_ch_returns = env_decomposed_returns[i].detach().cpu().numpy()  # (n_agents, n_channels)

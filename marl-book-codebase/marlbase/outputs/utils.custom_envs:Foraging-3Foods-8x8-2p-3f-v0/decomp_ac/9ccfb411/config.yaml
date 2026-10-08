@@ -1,0 +1,58 @@
+seed: 1
+algorithm:
+  total_steps: 1000000
+  log_interval: 10000
+  save_interval: 0
+  eval_interval: 20000
+  eval_episodes: 100
+  video_interval: 0
+  video_frames: 200
+  _target_: decomp_ac.train.main
+  name: decomp_ac
+  model:
+    _target_: decomp_ac.model.DecompA2CNetwork
+    actor:
+      layers:
+      - 128
+      - 128
+      parameter_sharing: false
+      use_orthogonal_init: true
+      use_rnn: false
+    critic:
+      centralised: true
+      layers:
+      - 128
+      - 128
+      parameter_sharing: true
+      use_orthogonal_init: true
+      use_rnn: false
+    device: cuda
+  n_reward_channels: 3
+  coop_channel_idx: 2
+  optimism_tau: 0.75
+  channel_weights:
+  - 1.0
+  - 1.0
+  - 1.0
+  optimizer: Adam
+  lr: 0.0003
+  grad_clip: false
+  n_steps: 5
+  gamma: 0.99
+  entropy_coef: 0.001
+  value_loss_coef: 0.5
+  use_proper_termination: false
+  standardise_returns: true
+  target_update_interval_or_tau: 200
+env:
+  _target_: utils.envs.make_env
+  name: utils.custom_envs:Foraging-3Foods-8x8-2p-3f-v0
+  time_limit: 25
+  clear_info: false
+  observe_id: false
+  standardise_rewards: false
+  wrappers: null
+  parallel_envs: 10
+logger:
+  _target_: utils.loggers.FileSystemLogger
+  project_name: fastmarl

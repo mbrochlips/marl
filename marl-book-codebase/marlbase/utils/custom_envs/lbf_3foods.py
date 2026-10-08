@@ -36,11 +36,11 @@ class Foraging3Foods(ForagingDecompReward):
         # --- Strategic Dilemma Settings ---
         mod_1: bool = False,               # Step cost + high coop reward
         mod_2: bool = True,                # Early termination on K foods
-        mod_3: bool = True,                # Miscoordination penalty for solo coop attempt
+        mod_3: bool = False,                # Miscoordination penalty for solo coop attempt
         max_harvests: int = 1,             # Number of foods to trigger termination (if mod_2=True)
         miscoord_penalty: float = 1.0,     # Penalty for uncoordinated coop load (if mod_3=True)
         step_cost: float = 0.02,           # Step penalty (if mod_1=True)
-        coop_base_reward: float = 3.0,     # Base reward for joint coop harvest
+        coop_base_reward: float = 4.0,     # Base reward for joint coop harvest
         coop_boosted_reward: float = 5.0,  # Boosted reward if mod_1 is True
         **kwargs,
     ):
@@ -110,13 +110,7 @@ class Foraging3Foods(ForagingDecompReward):
     def reset(self, **kwargs):
         self.harvested_count = 0
         obs, info = super().reset(**kwargs)
-        info["food_positions"] = {f["name"]: f["pos"] for f in self.food_items}
-        info["channel_names"] = self.REWARD_CHANNELS
-        info["settings"] = {
-            "mod_1_step_cost": self.mod_1,
-            "mod_2_early_term": self.mod_2,
-            "mod_3_miscoord_penalty": self.mod_3,
-        }
+        info["harvested_count"] = 0
         return obs, info
 
     def step(self, actions):
@@ -255,7 +249,6 @@ class Foraging3Foods(ForagingDecompReward):
         info = self._get_info()
         info["reward_vec"] = [r.copy() for r in rewards]
         info["harvested_count"] = self.harvested_count
-        info["channel_names"] = self.REWARD_CHANNELS
 
         return obs, rewards, terminated, truncated, info
 
