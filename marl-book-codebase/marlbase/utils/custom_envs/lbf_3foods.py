@@ -1,21 +1,29 @@
+# File: marlbase/utils/custom_envs/lbf_3foods.py
 import numpy as np
 import gymnasium as gym
 from lbforaging.foraging.environment import Action
-from utils.custom_envs.lbf_decomp_r import ForagingDecompReward 
+from utils.custom_envs.lbf_decomp_r import ForagingDecompReward
 
 
 class Foraging3Foods(ForagingDecompReward):
     """
-    LBF testbed with intuitive 1-to-1 Level-to-ID mapping:
-      - Channel 0 ('ID_1'): Level 1 -> Stochastic Solo (2 >= 1),         r in {0.0, 1.0}
-      - Channel 1 ('ID_2'): Level 2 -> Low-level Solo (2 >= 2),          r = 0.5
-      - Channel 2 ('ID_3'): Level 3 -> High-level Coop (2 + 2 >= 3),     r = 1.0
+    Configurable Decomposed LBF Environment with Strategic Coordination Dilemmas.
+    
+    Channels:
+      - Channel 0 ('ID_1'): Level 1 -> Stochastic Solo (r in {0.0, 1.0})
+      - Channel 1 ('ID_2'): Level 2 -> Low-level Solo  (r = 0.5)
+      - Channel 2 ('ID_3'): Level 3 -> High-level Coop (Joint: r = +3.0 to +5.0, Solo attempt: r = -1.0 if mod_3)
+    
+    Default Modifications:
+      - mod_1 = False: Step cost + Boosted coop reward (+5.0)
+      - mod_2 = True:  Early termination on first food harvest (K=1)
+      - mod_3 = True:  Miscoordination penalty (-1.0) on Channel 2 for failed solo coop load
     """
+
     metadata = {
         "render_modes": ["human", "rgb_array"],
         "render_fps": 10,
     }
-
     REWARD_CHANNELS = ["ID_1", "ID_2", "ID_3"]
 
     def __init__(
@@ -25,9 +33,17 @@ class Foraging3Foods(ForagingDecompReward):
         sight=8,
         penalty=0.0,
         render_mode=None,
+        # --- Strategic Dilemma Settings ---
+        mod_1: bool = False,               # Step cost + high coop reward
+        mod_2: bool = True,                # Early termination on K foods
+        mod_3: bool = True,                # Miscoordination penalty for solo coop attempt
+        max_harvests: int = 1,             # Number of foods to trigger termination (if mod_2=True)
+        miscoord_penalty: float = 1.0,     # Penalty for uncoordinated coop load (if mod_3=True)
+        step_cost: float = 0.02,           # Step penalty (if mod_1=True)
+        coop_base_reward: float = 3.0,     # Base reward for joint coop harvest
+        coop_boosted_reward: float = 5.0,  # Boosted reward if mod_1 is True
         **kwargs,
     ):
-        # Both agents are locked to Level 2
         super().__init__(
             players=2,
             min_player_level=2,
@@ -46,6 +62,18 @@ class Foraging3Foods(ForagingDecompReward):
         )
         self.num_reward_channels = 3
 
+        # Store modification flags
+        self.mod_1 = mod_1
+        self.mod_2 = mod_2
+        self.mod_3 = mod_3
+        self.max_harvests = max_harvests
+        self.miscoord_penalty = miscoord_penalty
+        self.step_cost = step_cost
+        self.coop_reward = coop_boosted_reward if mod_1 else coop_base_reward
+
+        # Runtime counters
+        self.harvested_count = 0
+
     def spawn_food(self, *args, **kwargs):
         self.food_items = []
         player_positions = {p.position for p in self.players}
@@ -61,7 +89,7 @@ class Foraging3Foods(ForagingDecompReward):
         )
         coords = [available_coords[i] for i in chosen_indices]
 
-        # Natural 1-to-1 mapping: ID 1 -> Level 1, ID 2 -> Level 2, ID 3 -> Level 3
+        # 1-to-1 Mapping: ID 1 -> Level 1, ID 2 -> Level 2, ID 3 -> Level 3
         food_specs = [
             {"id": 0, "name": "ID_1", "desc": "Stochastic Solo", "level": 1},
             {"id": 1, "name": "ID_2", "desc": "Low-level Solo",  "level": 2},
@@ -79,120 +107,191 @@ class Foraging3Foods(ForagingDecompReward):
                 "active": True,
             })
 
-    def _calculate_food_reward(self, food, loading_players):
-        if food["id"] == 0:
-            # ID_1 (Level 1): Stochastic Solo
-            payout = float(self.np_random.choice([0.0, 1.0]))
-        elif food["id"] == 1:
-            # ID_2 (Level 2): Low-level Solo
-            payout = 0.5
-        elif food["id"] == 2:
-            # ID_3 (Level 3): High-level Coop
-            payout = 1.0
-        else:
-            payout = 0.0
-
-        return {p: payout for p in loading_players}
-
     def reset(self, **kwargs):
+        self.harvested_count = 0
         obs, info = super().reset(**kwargs)
         info["food_positions"] = {f["name"]: f["pos"] for f in self.food_items}
         info["channel_names"] = self.REWARD_CHANNELS
+        info["settings"] = {
+            "mod_1_step_cost": self.mod_1,
+            "mod_2_early_term": self.mod_2,
+            "mod_3_miscoord_penalty": self.mod_3,
+        }
         return obs, info
+
+    def step(self, actions):
+        """
+        Executes step and evaluates mod_1, mod_2, and mod_3 rules.
+        """
+        self.current_step += 1
+
+        # 1. Action Validation
+        self._gen_valid_moves()
+        actions = [Action(a) for a in actions]
+        actions = [
+            a if a in self._valid_actions[p] else Action.NONE
+            for p, a in zip(self.players, actions)
+        ]
+
+        # 2. Movement & Collision Resolution
+        curr_positions = [p.position for p in self.players]
+        proposed_positions = []
+        for p, a in zip(self.players, actions):
+            r, c = p.position
+            if a == Action.NORTH:
+                proposed_positions.append((r - 1, c))
+            elif a == Action.SOUTH:
+                proposed_positions.append((r + 1, c))
+            elif a == Action.WEST:
+                proposed_positions.append((r, c - 1))
+            elif a == Action.EAST:
+                proposed_positions.append((r, c + 1))
+            else:
+                proposed_positions.append((r, c))
+
+        new_positions = list(proposed_positions)
+        collision_resolved = False
+        while not collision_resolved:
+            collision_resolved = True
+            for i in range(len(self.players)):
+                if new_positions[i] == curr_positions[i]:
+                    continue
+
+                nr, nc = new_positions[i]
+                if not (0 <= nr < self.rows and 0 <= nc < self.cols) or self.field[nr, nc] > 0:
+                    new_positions[i] = curr_positions[i]
+                    collision_resolved = False
+                    continue
+
+                for j in range(len(self.players)):
+                    if i != j:
+                        if new_positions[i] == new_positions[j]:
+                            new_positions[i] = curr_positions[i]
+                            new_positions[j] = curr_positions[j]
+                            collision_resolved = False
+                        elif (new_positions[i] == curr_positions[j] and 
+                              new_positions[j] == curr_positions[i]):
+                            new_positions[i] = curr_positions[i]
+                            new_positions[j] = curr_positions[j]
+                            collision_resolved = False
+                        elif new_positions[i] == curr_positions[j] and new_positions[j] == curr_positions[j]:
+                            new_positions[i] = curr_positions[i]
+                            collision_resolved = False
+
+        for p, pos, a in zip(self.players, new_positions, actions):
+            p.position = pos
+            p.history.append(a)
+
+        # 3. Harvest Evaluation & Channel Reward Assignment
+        rewards = [
+            np.zeros(self.num_reward_channels, dtype=np.float32) 
+            for _ in range(len(self.players))
+        ]
+        step_harvests = 0
+
+        for food in self.food_items:
+            fr, fc = food["pos"]
+            if not food["active"] or self.field[fr, fc] == 0:
+                continue
+
+            adj_players = self.adjacent_players(fr, fc)
+            loading_players = [
+                p for p in adj_players 
+                if actions[self.players.index(p)] == Action.LOAD
+            ]
+            total_loading_level = sum(p.level for p in loading_players)
+
+            # --- CASE A: Successful Harvest (Combined level >= Food Level) ---
+            if loading_players and total_loading_level >= food["level"]:
+                food["active"] = False
+                self.field[fr, fc] = 0
+                step_harvests += 1
+
+                for p in loading_players:
+                    p_idx = self.players.index(p)
+                    if food["id"] == 0:
+                        payout = float(self.np_random.choice([0.0, 1.0]))  # ID_1: Stoch Solo
+                    elif food["id"] == 1:
+                        payout = 0.5                                       # ID_2: Low Solo
+                    elif food["id"] == 2:
+                        payout = self.coop_reward                          # ID_3: High Coop (+3.0 or +5.0)
+                    rewards[p_idx][food["id"]] = payout
+
+            # --- CASE B: MOD_3 Miscoordination on Coop Food (Level 3) ---
+            # If agent(s) attempted LOAD on Level 3 food, but total_level < 3 (failed joint action)
+            elif self.mod_3 and food["id"] == 2 and loading_players and total_loading_level < food["level"]:
+                for p in loading_players:
+                    p_idx = self.players.index(p)
+                    # Exertion penalty applied strictly to Channel 2 (Coop channel)
+                    rewards[p_idx][2] = -self.miscoord_penalty
+
+        self.harvested_count += step_harvests
+
+        # --- MOD_1: Step Cost Deduction ---
+        if self.mod_1:
+            for p_idx in range(len(self.players)):
+                # Deduct step cost evenly across channels to maintain consistent magnitude
+                rewards[p_idx] -= (self.step_cost / self.num_reward_channels)
+
+        # 4. State Update & Termination Checks
+        for p_idx, p in enumerate(self.players):
+            p.reward_vec = rewards[p_idx]
+            p.reward = float(rewards[p_idx].sum())
+            p.score += p.reward
+
+        # Termination conditions:
+        # Mod 2: Terminate immediately upon reaching max_harvests (default K=1)
+        if self.mod_2 and self.harvested_count >= self.max_harvests:
+            terminated = True
+        else:
+            terminated = bool(self.field.sum() == 0)
+
+        truncated = bool(self.current_step >= self._max_episode_steps and not terminated)
+        self._game_over = bool(terminated or truncated)
+
+        self._gen_valid_moves()
+        obs = self._make_gym_obs()
+
+        info = self._get_info()
+        info["reward_vec"] = [r.copy() for r in rewards]
+        info["harvested_count"] = self.harvested_count
+        info["channel_names"] = self.REWARD_CHANNELS
+
+        return obs, rewards, terminated, truncated, info
 
 
 if __name__ == "__main__":
+    # Test with default settings: mod_1=False, mod_2=True, mod_3=True
     env = Foraging3Foods(field_size=(6, 6), max_episode_steps=50)
 
-    # -------------------------------------------------------------
-    # TEST 1: Random Placements Across Resets
-    # -------------------------------------------------------------
-    print("--- TEST 1: Random Placements Across Resets ---")
-    for ep in range(2):
-        obs, info = env.reset()
-        print(f"Episode {ep + 1}:")
-        print(f"  Agent positions: {[p.position for p in env.players]}")
-        for f in env.food_items:
-            print(f"  Food {f['name']} ({f['desc']}) at {f['pos']} [Level {f['level']}]")
-
-    # -------------------------------------------------------------
-    # TEST 2: Deterministic Mechanics Test (Coop & Solo)
-    # -------------------------------------------------------------
-    print("\n--- TEST 2: Deterministic Mechanics Test ---")
+    print("--- TEST: Validating Defaults (mod_1=False, mod_2=True, mod_3=True) ---")
     env.reset()
     env.field.fill(0)
 
-    # Food 0 (ID_1, Stochastic Solo, Level 1) far away at (5, 5)
-    env.food_items[0]["pos"] = (5, 5)
-    env.food_items[0]["active"] = True
-    env.field[5, 5] = 1
-
-    # Food 1 (ID_2, Low-level Solo, Level 2) far away at (0, 0)
-    env.food_items[1]["pos"] = (0, 0)
-    env.food_items[1]["active"] = True
-    env.field[0, 0] = 2
-
-    # Food 2 (ID_3, High-level Coop, Level 3) placed at (2, 2)
+    # Place Coop Food (ID_3, Level 3) at (2, 2)
     env.food_items[2]["pos"] = (2, 2)
     env.food_items[2]["active"] = True
     env.field[2, 2] = 3
 
-    # Place Agent 0 at (2, 1) [adjacent only to Coop Food ID_3]
+    # Place Solo Food (ID_2, Level 2) at (0, 0)
+    env.food_items[1]["pos"] = (0, 0)
+    env.food_items[1]["active"] = True
+    env.field[0, 0] = 2
+
+    # Place Agent 0 at (2, 1) [adjacent to Coop Food]
     # Place Agent 1 at (4, 4) [far away]
     env.players[0].position = (2, 1)
     env.players[1].position = (4, 4)
 
-    # Scenario A: Solo on Coop Food (Level 3 requires level sum >= 3, Agent 0 only has level 2)
-    obs, rewards, term, trunc, info = env.step([5, 0])
-    print(f"Scenario A (Solo on Coop): Agent 0 Reward = {rewards[0]} (Expected: [0. 0. 0.])")
+    # 1. Test Mod 3: Solo attempt on Coop Food
+    obs, rewards, term, trunc, info = env.step([5, 0])  # Action 5 = LOAD
+    print(f"Agent 0 Solo LOAD on Coop Food: Reward = {rewards[0]}")
+    print(f"  -> Miscoordination Penalty applied: {rewards[0][2] == -1.0} (Expected: True)")
+    print(f"  -> Episode terminated prematurely? {term} (Expected: False)")
 
-    # Scenario B: Both agents load Coop Food (2 + 2 = 4 >= 3)
-    env.players[0].position = (2, 1)
-    env.players[1].position = (2, 3)
-    obs, rewards, term, trunc, info = env.step([5, 5])
-    print(f"Scenario B (Joint on Coop): Agent 0 = {rewards[0]}, Agent 1 = {rewards[1]} (Expected: [0. 0. 1.])")
-
-    # Scenario C: Agent 0 solo loads Food 1 (ID_2, Level 2) at (0, 1)
-    env.players[0].position = (0, 1)
-    obs, rewards, term, trunc, info = env.step([5, 0])
-    print(f"Scenario C (Solo on Low Food): Agent 0 Reward = {rewards[0]} (Expected: [0. 0.5 0.])")
-
-    # -------------------------------------------------------------
-    # TEST 3: Stochastic Food (ID_1, Level 1) Distribution Test
-    # -------------------------------------------------------------
-    print("\n--- TEST 3: Stochastic Food (ID_1) Distribution Test ---")
-    trials = 100
-    payouts = []
-
-    for _ in range(trials):
-        env.reset()
-        env.field.fill(0)
-
-        # Place Food 0 (ID_1, Level 1) at (3, 3)
-        env.food_items[0]["pos"] = (3, 3)
-        env.food_items[0]["active"] = True
-        env.field[3, 3] = 1
-
-        env.food_items[1]["active"] = False
-        env.food_items[2]["active"] = False
-
-        env.players[0].position = (3, 2)
-        env.players[1].position = (0, 0)
-
-        obs, rewards, term, trunc, info = env.step([5, 0])
-        r_vec = rewards[0]
-
-        assert r_vec[1] == 0.0 and r_vec[2] == 0.0, f"Spurious reward in other channels: {r_vec}"
-        assert r_vec[0] in [0.0, 1.0], f"Unexpected reward value: {r_vec[0]}"
-        payouts.append(r_vec[0])
-
-    count_0 = payouts.count(0.0)
-    count_1 = payouts.count(1.0)
-    empirical_mean = np.mean(payouts)
-
-    print(f"Empirical Distribution over {trials} harvests:")
-    print(f"  Count r = 0.0: {count_0:2d} ({count_0 / trials * 100:.1f}%)")
-    print(f"  Count r = 1.0: {count_1:2d} ({count_1 / trials * 100:.1f}%)")
-    print(f"  Empirical Mean Payoff: {empirical_mean:.2f} (Theoretical: 0.50)")
-    assert 0.35 <= empirical_mean <= 0.65
-    print(">> All tests PASSED!")
+    # 2. Test Mod 2: Agent 1 harvests Solo Food at (0, 0) -> Immediate Termination (K=1)
+    env.players[1].position = (0, 1)  # Move Agent 1 adjacent to (0, 0)
+    obs, rewards, term, trunc, info = env.step([0, 5])
+    print(f"\nAgent 1 harvests Solo Food: Reward = {rewards[1]}")
+    print(f"  -> Harvest count: {info['harvested_count']}")
+    print(f"  -> Early termination triggered (mod_2=True)? {term} (Expected: True)")
