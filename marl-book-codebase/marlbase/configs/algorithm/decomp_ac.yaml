@@ -30,7 +30,9 @@ algorithm:
   coop_channel_idx: 2         # Channel 2 is ID_3 (Level 3 Coop Food)
   optimism_tau: 0.75          # > 0.5: Asymmetric leniency on coop critic loss
   channel_weights: [1.0, 1.0, 1.0, 1.0]
-  momentum_coef: 0.3      # 0.0 = pure max (no momentum); 0.3 - 0.5 = strong commitment
+  use_adam_momentum: true    # true for Adam SNR routing; false for pure Polyak velocity
+  momentum_beta1: 0.8        # 1st moment (0.7 to 0.85: higher means more commitment)
+  momentum_beta2: 0.95       # 2nd moment (0.9 to 0.99: tracks noise volatility)
 
   optimizer: "Adam"
   lr: 3.e-4

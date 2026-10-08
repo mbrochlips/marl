@@ -62,7 +62,11 @@ class DecompA2CNetwork(nn.Module):
         self.coop_channel_idx = getattr(cfg, "coop_channel_idx", 2)  # Channel 2 = ID_3 (Coop Food)
         self.optimism_tau = getattr(cfg, "optimism_tau", 0.75)       # tau > 0.5 -> optimistic leniency
         self.channel_weights = getattr(cfg, "channel_weights", [1.0] * self.n_reward_channels)
-
+        
+        # Momentum
+        self.momentum_beta1 = getattr(cfg, "momentum_beta1", 0.8)
+        self.momentum_beta2 = getattr(cfg, "momentum_beta2", 0.95)
+        self.use_adam_momentum = getattr(cfg, "use_adam_momentum", True)
         # -------------------------------------------------------------
         # 2. Decentralized Actors (Policy Networks)
         # -------------------------------------------------------------
@@ -299,57 +303,59 @@ class DecompA2CNetwork(nn.Module):
             else None,
         )
 
-        # 6. Decomposed Advantages & Temporal Momentum Routing
+        # 6. Decomposed Advantages with Adam / Polyak Momentum Routing
+
         # advantages shape: (T, B, n_agents, n_reward_channels)
         advantages = returns - values
 
         channel_weights = torch.tensor(
             self.channel_weights, device=self.device, dtype=torch.float32
         )
-        weighted_adv = advantages * channel_weights  # (T, B, n_agents, n_reward_channels)
-
-        # Momentum / stickiness coefficient (configurable via cfg.momentum_coef, default 0.3)
-        momentum_coef = getattr(self, "momentum_coef", 0.3)
+        weighted_adv = advantages * channel_weights  # (T, B, n_agents, n_channels)
 
         T, B, N, M = weighted_adv.shape
         total_advantages = []
 
-        # Tracks which channel was selected at the previous timestep: shape (B, N)
-        prev_channel = None
+        # Hyperparameters (configurable via cfg)
+        beta1 = getattr(self, "momentum_beta1", 0.8)   # 1st moment decay (Polyak velocity)
+        beta2 = getattr(self, "momentum_beta2", 0.95)  # 2nd moment decay (Adam variance)
+        use_adam = getattr(self, "use_adam_momentum", True)
+
+        # Initialize momentum states across parallel environments and agents
+        m_t = torch.zeros(B, N, M, device=self.device)  # 1st moment (velocity)
+        s_t = torch.zeros(B, N, M, device=self.device)  # 2nd moment (variance)
 
         for t in range(T):
-            scores = weighted_adv[t].clone()  # (B, N, M)
-
-            # Apply momentum bonus if there is a previous commitment
-            if t > 0 and prev_channel is not None and momentum_coef > 0:
-                # Reset commitment if the episode terminated at the previous step
-                # batch.dones has shape (T+1, B)
+            # Check for episode boundaries to reset momentum
+            # batch.dones has shape (T+1, B)
+            if t > 0:
                 done_mask = batch.dones[t].bool()  # (B,)
                 if done_mask.any():
-                    prev_channel[done_mask] = -1
+                    m_t[done_mask] = 0.0
+                    s_t[done_mask] = 0.0
 
-                # For active environments, add the momentum bonus to the previously chosen channel
-                valid_mask = (prev_channel >= 0)  # (B, N)
-                if valid_mask.any():
-                    bonus = torch.zeros_like(scores)
-                    safe_prev = prev_channel.clamp(min=0).unsqueeze(-1)  # (B, N, 1)
-                    bonus.scatter_(-1, safe_prev, momentum_coef)
-                    scores = scores + bonus * valid_mask.unsqueeze(-1)
+            curr_adv = weighted_adv[t]  # (B, N, M)
 
-            # 1. Select the winning channel with momentum bias
-            chosen_channel = scores.max(dim=-1).indices  # (B, N)
+            # Update 1st moment (Directional Velocity)
+            m_t = beta1 * m_t + (1.0 - beta1) * curr_adv
 
-            # 2. Extract the TRUE advantage of the winning channel (unbiased for the policy gradient)
-            chosen_adv = weighted_adv[t].gather(-1, chosen_channel.unsqueeze(-1)).squeeze(-1)  # (B, N)
+            if use_adam:
+                # Update 2nd moment (Signal Volatility)
+                s_t = beta2 * s_t + (1.0 - beta2) * (curr_adv ** 2)
+                # Compute Signal-to-Noise Ratio (Adamized score)
+                routing_scores = m_t / (torch.sqrt(s_t) + 1e-4)
+            else:
+                # Pure Polyak Momentum
+                routing_scores = m_t
+
+            # Route to the channel with the highest velocity / SNR
+            chosen_channel = routing_scores.max(dim=-1).indices  # (B, N)
+
+            # Extract the actual advantage of the winning channel for the policy gradient
+            chosen_adv = curr_adv.gather(-1, chosen_channel.unsqueeze(-1)).squeeze(-1)  # (B, N)
             total_advantages.append(chosen_adv)
 
-            # 3. Store current choice for the next timestep
-            if prev_channel is None:
-                prev_channel = chosen_channel.clone()
-            else:
-                prev_channel.copy_(chosen_channel)
-
-        total_advantage = torch.stack(total_advantages, dim=0)  # (T, B, n_agents)=-1).values  # (T, B, n_agents)
+        total_advantage = torch.stack(total_advantages, dim=0)  # (T, B, n_agents)
 
         # 7. Actor Loss
         actor_loss = (
