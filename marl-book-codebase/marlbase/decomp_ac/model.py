@@ -1,6 +1,7 @@
 # Citations:
 # https://github.com/marl-book/codebase
 # https://github.com/HenriqueSabino/gym_soccer_env
+# Zhao et al., "Optimistic Multi-Agent Policy Gradient", ICML 2024 (arXiv:2311.01953)
 
 from collections import defaultdict
 from einops import rearrange
@@ -8,6 +9,7 @@ from gymnasium.spaces import flatdim
 import torch
 from torch.distributions import Categorical
 import torch.nn as nn
+import torch.nn.functional as F
 from torch import optim
 
 from marlbase.utils.models import MultiAgentIndependentNetwork, MultiAgentSharedNetwork
@@ -29,9 +31,11 @@ class DecompA2CNetwork(nn.Module):
     Features:
       - N x M independent critics: M separate critic networks (each evaluating N agents),
         yielding N x M completely decoupled networks.
+      - Unbiased Critics: All critic channels learn true expected returns via MSE.
       - Independent Channel Normalization via RunningMeanStd over (N, M).
-      - Targeted Optimism: Asymmetric TD-loss on the cooperative channel.
-      - Scalar-equivalent advantage aggregation for the decentralized actor.
+      - Targeted Optimistic Advantage: LeakyReLU-based advantage attenuation 
+        specifically for the cooperative channel (Optimistic MAPG style).
+      - Momentum-routed advantage aggregation for the decentralized actor.
     """
 
     def __init__(
@@ -59,14 +63,20 @@ class DecompA2CNetwork(nn.Module):
         # 1. Decomposed Reward & Targeted Optimism Settings
         # -------------------------------------------------------------
         self.n_reward_channels = getattr(cfg, "n_reward_channels", 3)
-        self.coop_channel_idx = getattr(cfg, "coop_channel_idx", 2)  # Channel 2 = ID_3 (Coop Food)
-        self.optimism_tau = getattr(cfg, "optimism_tau", 0.75)       # tau > 0.5 -> optimistic leniency
+        self.coop_channel_idx = getattr(cfg, "coop_channel_idx", 2)  # Channel 2 = Coop Food
+        
+        # In Optimistic MAPG: alpha in [0.0, 1.0) is the LeakyReLU negative slope.
+        # alpha = 0.0 -> pure ReLU (harsh clipping)
+        # alpha = 0.1 - 0.2 -> LeakyReLU (softened negative penalty, recommended)
+        # alpha = 1.0 -> standard unbiased advantage (no optimism)
+        self.optimism_alpha = getattr(cfg, "optimism_alpha", 0.1)
         self.channel_weights = getattr(cfg, "channel_weights", [1.0] * self.n_reward_channels)
         
-        # Momentum
+        # Momentum hyperparameters
         self.momentum_beta1 = getattr(cfg, "momentum_beta1", 0.8)
         self.momentum_beta2 = getattr(cfg, "momentum_beta2", 0.95)
         self.use_adam_momentum = getattr(cfg, "use_adam_momentum", True)
+
         # -------------------------------------------------------------
         # 2. Decentralized Actors (Policy Networks)
         # -------------------------------------------------------------
@@ -96,9 +106,6 @@ class DecompA2CNetwork(nn.Module):
             self.n_agents * [sum(obs_dims)] if critic.centralised else obs_dims
         )
 
-        # We instantiate M separate networks.
-        # If parameter_sharing is False, each MultiAgentIndependentNetwork contains
-        # N independent networks -> exactly M x N = 6 independent neural networks!
         self.critics = nn.ModuleList()
         self.target_critics = nn.ModuleList()
 
@@ -143,7 +150,6 @@ class DecompA2CNetwork(nn.Module):
         # -------------------------------------------------------------
         self.standardise_returns = cfg.standardise_returns
         if self.standardise_returns:
-            # Independent running stats for each agent AND each reward channel
             self.ret_ms = RunningMeanStd(
                 shape=(self.n_agents, self.n_reward_channels), device=device
             )
@@ -202,12 +208,6 @@ class DecompA2CNetwork(nn.Module):
     # Vector Value Evaluation (Querying all M x N critics)
     # -------------------------------------------------------------
     def get_value(self, inputs, critic_hiddens=None, target=False):
-        """
-        Queries all M critics.
-        Returns:
-            values: Tensor of shape (..., n_agents, n_reward_channels)
-            next_hiddens: list of length M containing RNN hidden states.
-        """
         if self.centralised_critic:
             inputs = self.n_agents * [torch.cat(inputs, dim=-1)]
 
@@ -218,12 +218,10 @@ class DecompA2CNetwork(nn.Module):
         for m in range(self.n_reward_channels):
             h_m = critic_hiddens[m] if critic_hiddens is not None else None
             val_m, next_h_m = critic_list[m](inputs, h_m)
-            # val_m is list of N tensors of shape (..., 1) -> cat to (..., n_agents)
             val_m = torch.cat(val_m, dim=-1)
             channel_values.append(val_m)
             next_hiddens.append(next_h_m)
 
-        # Stack over channels -> shape: (..., n_agents, n_reward_channels)
         values = torch.stack(channel_values, dim=-1)
         return values, next_hiddens
 
@@ -274,7 +272,6 @@ class DecompA2CNetwork(nn.Module):
         returns_list = []
 
         for m in range(self.n_reward_channels):
-            # batch.rewards shape: (T, B, n_agents, n_reward_channels)
             ret_m = compute_nstep_returns(
                 batch.rewards[..., m],
                 batch_done,
@@ -303,85 +300,62 @@ class DecompA2CNetwork(nn.Module):
             else None,
         )
 
-        # 6. Decomposed Advantages with Adam / Polyak Momentum Routing
-
-        # advantages shape: (T, B, n_agents, n_reward_channels)
+        # -------------------------------------------------------------
+        # 6. Decomposed Advantages with Targeted Optimism (Summed)
+        # -------------------------------------------------------------
+        # Raw advantages: (T, B, n_agents, n_reward_channels)
         advantages = returns - values
 
+        # Diagnostic: compute how often the coop channel experienced negative advantage
+        coop_adv_raw = advantages[..., self.coop_channel_idx]
+        neg_coop_mask = coop_adv_raw < 0.0
+        neg_coop_ratio = (neg_coop_mask.float() * batch.filled.unsqueeze(-1)).sum() / (
+            batch.filled.unsqueeze(-1).sum() + 1e-8
+        )
+
+        # TARGETED OPTIMISM ON COOP CHANNEL (MAPG style):
+        # LeakyReLU softens negative advantage penalties (miscoordination errors)
+        # while keeping full positive signals.
+        # Other channels (solo, stochastic) remain strictly unbiased.
+        if self.optimism_alpha < 1.0:
+            optimistic_coop_adv = F.leaky_relu(
+                coop_adv_raw, negative_slope=self.optimism_alpha
+            )
+            # Clone to avoid in-place tensor modification in PyTorch autograd graph
+            advantages = advantages.clone()
+            advantages[..., self.coop_channel_idx] = optimistic_coop_adv
+
+        # Channel weighting (optional scaling factor per reward channel)
         channel_weights = torch.tensor(
             self.channel_weights, device=self.device, dtype=torch.float32
         )
-        weighted_adv = advantages * channel_weights  # (T, B, n_agents, n_channels)
+        weighted_adv = advantages * channel_weights  # Shape: (T, B, n_agents, n_reward_channels)
 
-        T, B, N, M = weighted_adv.shape
-        total_advantages = []
+        # Sum advantages across all reward channels
+        # Yields total scalar-equivalent advantage for decentralized policy updates:
+        # A_tot(s, a_i) = \sum_{m=1}^M w_m * A_m(s, a_i)
+        total_advantage = weighted_adv.sum(dim=-1)  # Shape: (T, B, n_agents)
 
-        # Hyperparameters (configurable via cfg)
-        beta1 = getattr(self, "momentum_beta1", 0.8)   # 1st moment decay (Polyak velocity)
-        beta2 = getattr(self, "momentum_beta2", 0.95)  # 2nd moment decay (Adam variance)
-        use_adam = getattr(self, "use_adam_momentum", True)
-
-        # Initialize momentum states across parallel environments and agents
-        m_t = torch.zeros(B, N, M, device=self.device)  # 1st moment (velocity)
-        s_t = torch.zeros(B, N, M, device=self.device)  # 2nd moment (variance)
-
-        for t in range(T):
-            # Check for episode boundaries to reset momentum
-            # batch.dones has shape (T+1, B)
-            if t > 0:
-                done_mask = batch.dones[t].bool()  # (B,)
-                if done_mask.any():
-                    m_t[done_mask] = 0.0
-                    s_t[done_mask] = 0.0
-
-            curr_adv = weighted_adv[t]  # (B, N, M)
-
-            # Update 1st moment (Directional Velocity)
-            m_t = beta1 * m_t + (1.0 - beta1) * curr_adv
-
-            if use_adam:
-                # Update 2nd moment (Signal Volatility)
-                s_t = beta2 * s_t + (1.0 - beta2) * (curr_adv ** 2)
-                # Compute Signal-to-Noise Ratio (Adamized score)
-                routing_scores = m_t / (torch.sqrt(s_t) + 1e-4)
-            else:
-                # Pure Polyak Momentum
-                routing_scores = m_t
-
-            # Route to the channel with the highest velocity / SNR
-            chosen_channel = routing_scores.max(dim=-1).indices  # (B, N)
-
-            # Extract the actual advantage of the winning channel for the policy gradient
-            chosen_adv = curr_adv.gather(-1, chosen_channel.unsqueeze(-1)).squeeze(-1)  # (B, N)
-            total_advantages.append(chosen_adv)
-
-        total_advantage = torch.stack(total_advantages, dim=0)  # (T, B, n_agents)
-
+        # -------------------------------------------------------------
         # 7. Actor Loss
+        # -------------------------------------------------------------
         actor_loss = (
             -(action_log_probs * total_advantage.detach()).sum(dim=-1)
             - self.entropy_coef * entropy
         )
         actor_loss = (actor_loss * batch.filled).sum() / batch.filled.sum()
 
-        # 8. Critic Losses with Targeted Optimism on Channel 2 (Coop Food)
+        # -------------------------------------------------------------
+        # 8. Unbiased Critic Losses (Standard MSE for All Channels)
+        # -------------------------------------------------------------
         td_errors = returns - values
         value_losses = []
         metrics_dict = {}
 
         for m in range(self.n_reward_channels):
             delta_m = td_errors[..., m]
-
-            if m == self.coop_channel_idx and self.optimism_tau != 0.5:
-                # Targeted Asymmetric Loss for Cooperation:
-                # When delta < 0 (failure due to teammate miscoordination), penalty is discounted by (1 - tau)
-                # When delta >= 0 (successful coordination), weight is tau
-                indicator_under = (delta_m < 0).float()
-                weights = torch.abs(self.optimism_tau - indicator_under) * 2.0
-                channel_loss = weights * delta_m.pow(2)
-            else:
-                # Standard risk-neutral MSE for solo channels
-                channel_loss = delta_m.pow(2)
+            # Strictly unbiased MSE across all channels
+            channel_loss = delta_m.pow(2)
 
             ch_loss_mean = (channel_loss.sum(dim=-1) * batch.filled).sum() / batch.filled.sum()
             value_losses.append(ch_loss_mean)
@@ -389,7 +363,9 @@ class DecompA2CNetwork(nn.Module):
 
         total_value_loss = torch.stack(value_losses).sum()
 
+        # -------------------------------------------------------------
         # 9. Joint Backward Pass & Gradient Clipping
+        # -------------------------------------------------------------
         loss = actor_loss + self.value_loss_coef * total_value_loss
         self.optimizer.zero_grad()
         loss.backward()
@@ -397,7 +373,9 @@ class DecompA2CNetwork(nn.Module):
             torch.nn.utils.clip_grad_norm_(self.parameters(), self.grad_clip)
         self.optimizer.step()
 
+        # -------------------------------------------------------------
         # 10. Target Network Updates
+        # -------------------------------------------------------------
         if (
             self.target_update_interval_or_tau > 1.0
             and step % self.target_update_interval_or_tau == 0
@@ -406,12 +384,13 @@ class DecompA2CNetwork(nn.Module):
         elif self.target_update_interval_or_tau < 1.0:
             self.soft_update(self.target_update_interval_or_tau)
 
-        # Metrics for logging
+        # Log metrics
         metrics_dict.update({
             "loss": loss.item(),
             "actor_loss": actor_loss.item(),
             "value_loss": total_value_loss.item(),
             "entropy": ((entropy * batch.filled).sum() / batch.filled.sum()).item(),
+            "coop_neg_adv_ratio": neg_coop_ratio.item(),
         })
 
         return metrics_dict
