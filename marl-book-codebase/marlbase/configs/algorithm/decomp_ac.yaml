@@ -27,7 +27,7 @@ algorithm:
     device: "cuda"             # Set to "cpu" if running without a GPU
 
   n_reward_channels: 4
-  coop_channel_idx: 2         # Channel 2 is ID_3 (Level 3 Coop Food)
+  coop_channel_idx: 0         # Channel 2 is ID_3 (Level 3 Coop Food)
   optimism_alpha: 0.1          # 0.1-0.2 for leaky Relu on advantages
   channel_weights: [1.0, 1.0, 1.0, 1.0]
 
