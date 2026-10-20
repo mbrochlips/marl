@@ -7,7 +7,7 @@ from lbforaging.foraging.environment import Action, ForagingEnv, Player
 class ForagingDecompReward(ForagingEnv):
     """
     Base level-based foraging environment with decomposed (vectorized) rewards.
-    Supports failed-loading penalties and probabilistic collection.
+    Supports failed-loading / miscoordination penalties.
     """
 
     def __init__(
@@ -48,6 +48,7 @@ class ForagingDecompReward(ForagingEnv):
             "normalize_reward": normalize_reward,
             "max_num_food": max_num_food,
             "max_food": max_num_food,
+            "vector_reward": vector_reward,
         }
         env_kwargs.update(kwargs)
 
@@ -58,11 +59,12 @@ class ForagingDecompReward(ForagingEnv):
 
         super().__init__(**valid_kwargs)
 
-    def _reward_shape(self, rewards):
+    def _reward_shape(self, r):
         if self.vector_reward:
-            return rewards
+            return r
         else:
             return [float(p.reward) for p in self.players]
+
 
     def reset(self, **kwargs):
         res = super().reset(**kwargs)
@@ -100,7 +102,7 @@ class ForagingDecompReward(ForagingEnv):
                     food_id += 1
 
     def _calculate_food_reward(self, food, loading_players):
-        """Standard proportional payout hook."""
+        """Hook for successful pickups."""
         food_level = food["level"]
         total_loading_level = sum(p.level for p in loading_players)
         payouts = {}
@@ -108,18 +110,8 @@ class ForagingDecompReward(ForagingEnv):
             payouts[p] = float(food_level * (p.level / total_loading_level))
         return payouts
 
-    def _resolve_food_load(self, food, loading_players):
-        """
-        Hook resolving what happens when total_loading_level >= food['level'].
-        Returns:
-            payouts (dict): mapping player -> reward scalar
-            collected (bool): whether the food item was collected and removed from grid
-        """
-        payouts = self._calculate_food_reward(food, loading_players)
-        return payouts, True
-
     def _calculate_failed_load_penalty(self, food, loading_players):
-        """Hook for failed load attempts (insufficient joint level). Default: 0."""
+        """Hook for failed load attempts (miscoordination). Default: 0."""
         return {}
 
     def step(self, actions):
@@ -213,16 +205,12 @@ class ForagingDecompReward(ForagingEnv):
             ]
             total_loading_level = sum(p.level for p in loading_players)
 
-            # Scenario A: Loading Level Requirement Met
+            # Scenario A: Successful Collection
             if loading_players and total_loading_level >= food["level"]:
-                payout_dict, collected = self._resolve_food_load(
-                    food, loading_players
-                )
+                food["active"] = False
+                self.field[fr, fc] = 0
 
-                if collected:
-                    food["active"] = False
-                    self.field[fr, fc] = 0
-
+                payout_dict = self._calculate_food_reward(food, loading_players)
                 ch_idx = food["channel_id"]
                 for p, val in payout_dict.items():
                     p_idx = self.players.index(p)
@@ -254,7 +242,6 @@ class ForagingDecompReward(ForagingEnv):
         obs = self._make_gym_obs()
 
         info = self._get_info()
-        # Still record reward_vec in info for tracking/logging during scalar baseline runs
         info["reward_vec"] = [r.copy() for r in rewards]
         info["foods_collected"] = [not f["active"] for f in self.food_items]
 
@@ -264,23 +251,23 @@ class ForagingDecompReward(ForagingEnv):
 class Foraging3Foods(ForagingDecompReward):
     """
     Testbed with 3 semantically distinct foods:
-      - Channel 0: High-Level Cooperative Food (Level 2, reward 3.0 each; miscoordination penalty)
+      - Channel 0: High-Level Cooperative Food (Level 2, reward 2.0 each; miscoordination penalty -0.2)
       - Channel 1: Low-Level Deterministic Solo Food (Level 1, reward 0.5)
-      - Channel 2: Low-Level Stochastic Solo Food (Level 1, 1/6 chance +1.0 & collected, 5/6 chance -0.2 & stays)
+      - Channel 2: Low-Level Stochastic Solo Food (Level 1, reward in {-2.0, 1.5})
       - Channel 3: Step Penalty Channel (-c_step per step)
     """
 
     def __init__(
         self,
         players=2,
-        min_player_level=1,
-        max_player_level=1,
+        min_player_level=2,
+        max_player_level=2,
         min_food_level=1,
-        max_food_level=2,
+        max_food_level=3,
         force_coop=False,
         max_num_food=3,
         step_penalty=0.01,
-        miscoordination_penalty=1.0,
+        miscoordination_penalty=0.0 ,
         num_semantic_channels=4,
         vector_reward=True,
         **kwargs,
@@ -319,15 +306,15 @@ class Foraging3Foods(ForagingDecompReward):
         pos_det = all_coords[chosen_indices[1]]
         pos_stoch = all_coords[chosen_indices[2]]
 
-        self.field[pos_coop] = 2
+        self.field[pos_coop] = 3
         self.field[pos_det] = 1
-        self.field[pos_stoch] = 1
+        self.field[pos_stoch] = 2
 
         self.food_items = [
             {
                 "channel_id": 0,
                 "pos": pos_coop,
-                "level": 2,
+                "level": 3,
                 "type": "high_coop",
                 "active": True,
             },
@@ -341,7 +328,7 @@ class Foraging3Foods(ForagingDecompReward):
             {
                 "channel_id": 2,
                 "pos": pos_stoch,
-                "level": 1,
+                "level": 2,
                 "type": "low_stoch",
                 "active": True,
             },
@@ -358,30 +345,20 @@ class Foraging3Foods(ForagingDecompReward):
             split_val = 0.5 / len(loading_players)
             for p in loading_players:
                 payouts[p] = split_val
+        elif food_type == "low_stoch":
+            rng = getattr(self, "np_random", np.random)
+            sampled_val = float(rng.choice([-2.0, 1.5]))
+            split_val = sampled_val / len(loading_players)
+            for p in loading_players:
+                payouts[p] = split_val
 
         return payouts
 
-    def _resolve_food_load(self, food, loading_players):
-        food_type = food["type"]
-
-        if food_type == "low_stoch":
-            rng = getattr(self, "np_random", np.random)
-            success = bool(rng.random() < (1.0 / 6.0))
-
-            payouts = {}
-            if success:
-                split_val = 1.0 / len(loading_players)
-                for p in loading_players:
-                    payouts[p] = split_val
-                return payouts, True
-            else:
-                for p in loading_players:
-                    payouts[p] = -0.2
-                return payouts, False
-
-        return super()._resolve_food_load(food, loading_players)
-
     def _calculate_failed_load_penalty(self, food, loading_players):
+        """
+        Applies a penalty of -1.0 to any agent executing LOAD adjacent
+        to the cooperative food without sufficient joint level to collect it.
+        """
         food_type = food["type"]
         penalties = {}
 
@@ -392,17 +369,16 @@ class Foraging3Foods(ForagingDecompReward):
         return penalties
 
 
-# Registrations
 gym.register(
-    id="Foraging-3Foods-6x6-2p-3f-v0",
+    id="3Foods-6x6-v0",
     entry_point="utils.custom_envs:Foraging3Foods",
     kwargs={
         "players": 2,
-        "min_player_level": 1,
-        "max_player_level": 1,
+        "min_player_level": 2,
+        "max_player_level": 2,
         "field_size": (6, 6),
         "min_food_level": 1,
-        "max_food_level": 2,
+        "max_food_level": 3,
         "max_num_food": 3,
         "sight": 6,
         "max_episode_steps": 50,
@@ -410,41 +386,19 @@ gym.register(
         "step_penalty": 0.01,
         "miscoordination_penalty": 0.0,
         "num_semantic_channels": 4,
-        "vector_reward": True,
     },
 )
 
 gym.register(
-    id="Foraging-3Foods-Penalty-6x6-2p-3f-v0",
+    id="3Foods-Scalar-6x6-v0",
     entry_point="utils.custom_envs:Foraging3Foods",
     kwargs={
         "players": 2,
-        "min_player_level": 1,
-        "max_player_level": 1,
+        "min_player_level": 2,
+        "max_player_level": 2,
         "field_size": (6, 6),
         "min_food_level": 1,
-        "max_food_level": 2,
-        "max_num_food": 3,
-        "sight": 6,
-        "max_episode_steps": 50,
-        "force_coop": False,
-        "step_penalty": 0.01,
-        "miscoordination_penalty": 0.2,
-        "num_semantic_channels": 4,
-        "vector_reward": True,
-    },
-)
-
-gym.register(
-    id="Foraging-3Foods-scalar-6x6-2p-3f-v0",
-    entry_point="utils.custom_envs:Foraging3Foods",
-    kwargs={
-        "players": 2,
-        "min_player_level": 1,
-        "max_player_level": 1,
-        "field_size": (6, 6),
-        "min_food_level": 1,
-        "max_food_level": 2,
+        "max_food_level": 3,
         "max_num_food": 3,
         "sight": 6,
         "max_episode_steps": 50,
@@ -457,15 +411,35 @@ gym.register(
 )
 
 gym.register(
-    id="Foraging-3Foods-Penalty-scalar-6x6-2p-3f-v0",
+    id="3Foods-Penalty-6x6-v0",
     entry_point="utils.custom_envs:Foraging3Foods",
     kwargs={
         "players": 2,
-        "min_player_level": 1,
-        "max_player_level": 1,
+        "min_player_level": 2,
+        "max_player_level": 2,
         "field_size": (6, 6),
         "min_food_level": 1,
-        "max_food_level": 2,
+        "max_food_level": 3,
+        "max_num_food": 3,
+        "sight": 6,
+        "max_episode_steps": 50,
+        "force_coop": False,
+        "step_penalty": 0.01,
+        "miscoordination_penalty": 0.2,
+        "num_semantic_channels": 4,
+    },
+)
+
+gym.register(
+    id="3Foods-Scalar-Penalty-6x6-v0",
+    entry_point="utils.custom_envs:Foraging3Foods",
+    kwargs={
+        "players": 2,
+        "min_player_level": 2,
+        "max_player_level": 2,
+        "field_size": (6, 6),
+        "min_food_level": 1,
+        "max_food_level": 3,
         "max_num_food": 3,
         "sight": 6,
         "max_episode_steps": 50,
@@ -476,3 +450,156 @@ gym.register(
         "vector_reward": False,
     },
 )
+
+
+if __name__ == "__main__":
+    print("=" * 70)
+    print("RUNNING FORAGING-3FOODS ENVIRONMENT TEST SUITE")
+    print("=" * 70)
+
+    # -------------------------------------------------------------------------
+    # PART 1: DETERMINISTIC MECHANICS VERIFICATION
+    # -------------------------------------------------------------------------
+    print("\n[PART 1] Running Deterministic Mechanics Tests...")
+
+    # Instantiate directly to avoid any gym registration / path resolution issues
+    test_env = Foraging3Foods(
+        players=2,
+        min_player_level=2,
+        max_player_level=2,
+        field_size=(6, 6),
+        min_food_level=1,
+        max_food_level=3,
+        step_penalty=0.01,
+        miscoordination_penalty=1.0,
+        vector_reward=True,
+    )
+    obs, info = test_env.reset()
+
+    # Manually configure the grid so positions are deterministic:
+    # Grid: 6x6
+    # Coop Food (Level 3) at (1, 1)
+    # Det Food  (Level 1) at (1, 4)
+    # Stoch Food(Level 2) at (4, 4)
+    test_env.field[:] = 0
+    test_env.field[1, 1] = 3
+    test_env.field[1, 4] = 1
+    test_env.field[4, 4] = 2
+
+    test_env.food_items = [
+        {"channel_id": 0, "pos": (1, 1), "level": 3, "type": "high_coop", "active": True},
+        {"channel_id": 1, "pos": (1, 4), "level": 1, "type": "low_det", "active": True},
+        {"channel_id": 2, "pos": (4, 4), "level": 2, "type": "low_stoch", "active": True},
+    ]
+
+    # --- Test 1.1: Idle Step (Only Step Penalty on Channel 3) ---
+    test_env.players[0].position = (3, 0)
+    test_env.players[1].position = (4, 0)
+    _, rewards, _, _, _ = test_env.step([Action.NONE, Action.NONE])
+
+    assert np.allclose(rewards[0], [0.0, 0.0, 0.0, -0.01]), f"Failed Idle Reward P0: {rewards[0]}"
+    assert np.allclose(rewards[1], [0.0, 0.0, 0.0, -0.01]), f"Failed Idle Reward P1: {rewards[1]}"
+    print("  ✓ Test 1.1 Passed: Idle step applies -0.01 step penalty to Channel 3.")
+
+    # --- Test 1.2: Solo Deterministic Food Collection (Level 1) ---
+    # Place P0 adjacent to Det food at (1, 4). P1 stays far away at (5, 0).
+    test_env.players[0].position = (1, 3)
+    test_env.players[1].position = (5, 0)
+    _, rewards, _, _, info = test_env.step([Action.LOAD, Action.NONE])
+
+    assert np.isclose(rewards[0][1], 0.5), f"Failed Det Food Reward: {rewards[0]}"
+    assert info["foods_collected"][1] is True, "Det Food was not marked as collected."
+    assert test_env.field[1, 4] == 0, "Det Food was not cleared from field."
+    print(f"  ✓ Test 1.2 Passed: Deterministic food collected solo for +0.5 reward on Channel 1.")
+
+    # --- Test 1.3: Solo Stochastic Food Collection (Level 2) ---
+    # Place P0 adjacent to Stoch food at (4, 4). P1 stays far away at (5, 0).
+    test_env.players[0].position = (4, 3)
+    test_env.players[1].position = (5, 0)
+    _, rewards, _, _, info = test_env.step([Action.LOAD, Action.NONE])
+
+    stoch_val = rewards[0][2]
+    assert stoch_val in [-2.0, 1.5], f"Unexpected Stoch Reward: {stoch_val}"
+    assert info["foods_collected"][2] is True, "Stochastic Food was not marked as collected."
+    assert test_env.field[4, 4] == 0, "Stochastic Food was not cleared from field."
+    print(f"  ✓ Test 1.3 Passed: Stochastic food collected solo for {stoch_val:+.1f} reward on Channel 2.")
+
+    # --- Test 1.4: Solo Miscoordination Attempt on Coop Food (Level 3) ---
+    # P0 tries to LOAD Coop food (level 3) alone. P0 is level 2 < 3. Should fail with penalty.
+    test_env.players[0].position = (1, 2)
+    test_env.players[1].position = (5, 0)
+    _, rewards, _, _, info = test_env.step([Action.LOAD, Action.NONE])
+
+    assert np.isclose(rewards[0][0], -1.0), f"Failed Miscoordination Penalty: {rewards[0]}"
+    assert info["foods_collected"][0] is False, "Coop Food should NOT be collected."
+    assert test_env.field[1, 1] == 3, "Coop Food should remain on the field."
+    print(f"  ✓ Test 1.4 Passed: Solo attempt on coop food triggered -1.0 penalty on Channel 0.")
+
+    # --- Test 1.5: Joint Coordinated Pickup of Coop Food (Level 3) ---
+    # Both P0 and P1 load simultaneously. Joint level: 2 + 2 = 4 >= 3. Should succeed!
+    test_env.players[0].position = (1, 2)  # East of coop food
+    test_env.players[1].position = (2, 1)  # South of coop food
+    _, rewards, _, _, info = test_env.step([Action.LOAD, Action.LOAD])
+
+    assert np.isclose(rewards[0][0], 3.0), f"Failed Joint Coop Reward P0: {rewards[0]}"
+    assert np.isclose(rewards[1][0], 3.0), f"Failed Joint Coop Reward P1: {rewards[1]}"
+    assert info["foods_collected"][0] is True, "Coop Food was not marked as collected."
+    assert test_env.field[1, 1] == 0, "Coop Food was not cleared from field."
+    print(f"  ✓ Test 1.5 Passed: Coordinated joint pickup awarded +3.0 to both agents on Channel 0.")
+
+
+    # -------------------------------------------------------------------------
+    # PART 2: RANDOM ROLLOUT & LIVE EVENT MONITOR
+    # -------------------------------------------------------------------------
+    print("\n" + "-" * 70)
+    print("[PART 2] Running Random Rollout (Listening for non-zero events)...")
+    print("-" * 70)
+
+    sim_env = Foraging3Foods(
+        players=2,
+        min_player_level=2,
+        max_player_level=2,
+        field_size=(6, 6),
+        min_food_level=1,
+        max_food_level=3,
+        step_penalty=0.01,
+        miscoordination_penalty=1.0,
+        vector_reward=True,
+    )
+    obs, info = sim_env.reset()
+
+    events_detected = 0
+    max_test_steps = 1000
+
+    print(f"Stepping randomly for up to {max_test_steps} steps. Showing non-standard step rewards:")
+
+    for step_num in range(1, max_test_steps + 1):
+        # Sample random actions (0: NONE, 1: N, 2: S, 3: W, 4: E, 5: LOAD)
+        actions = [
+            np.random.choice(list(Action)),
+            np.random.choice(list(Action)),
+        ]
+        obs, rewards, terminated, truncated, info = sim_env.step(actions)
+
+        # Check if Channel 0, 1, or 2 fired for either player
+        p0_events = rewards[0][:3]
+        p1_events = rewards[1][:3]
+
+        if np.any(p0_events != 0.0) or np.any(p1_events != 0.0):
+            events_detected += 1
+            print(f"\n[Step {step_num}] >>> FOOD INTERACTION DETECTED <<<")
+            print(f"  Actions: P0={actions[0].name}, P1={actions[1].name}")
+            print(f"  P0 Reward Vector [Coop, Det, Stoch, Step]: {np.round(rewards[0], 2)}")
+            print(f"  P1 Reward Vector [Coop, Det, Stoch, Step]: {np.round(rewards[1], 2)}")
+            print(f"  Foods Collected (Coop, Det, Stoch): {info['foods_collected']}")
+
+        if terminated or truncated:
+            obs, info = sim_env.reset()
+
+        if events_detected >= 5:
+            print(f"\nSuccessfully logged {events_detected} events! Stopping random rollout.")
+            break
+
+    print("\n" + "=" * 70)
+    print("ALL TESTS PASSED SUCCESSFULLY!")
+    print("=" * 70)

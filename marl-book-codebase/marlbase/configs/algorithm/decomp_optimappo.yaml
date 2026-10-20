@@ -33,14 +33,14 @@ algorithm:
   # -------------------------------------------------------------
   n_reward_channels: 4
   coop_channel_idx: 0          # Channel 0 is ID_1 (Coop Food)
-  optimism_alpha: 0.02          # Negative slope for LeakyReLU on coop advantage (0.1 = 90% discount on miscoordination)
-  channel_weights: [2.0, 0.1, 0.1, 0.1]
+  optimism_alpha: 0.1          # Negative slope for LeakyReLU on coop advantage (0.1 = 90% discount on miscoordination)
+  channel_weights: [1.0, 1.0, 1.0, 1.0]
 
   # -------------------------------------------------------------
   # PPO Core Hyperparameters
   # -------------------------------------------------------------
-  ppo_epochs: 10               # Number of optimization epochs per rollout batch
-  num_mini_batches: 2          # Slices parallel envs into sub-batches (e.g., 10 envs -> 2 batches of 5 envs)
+  ppo_epochs: 4               # (was 10) Number of optimization epochs per rollout batch
+  # num_mini_batches: 2          # Slices parallel envs into sub-batches (e.g., 10 envs -> 2 batches of 5 envs)
   clip_param: 0.2              # PPO surrogate clipping epsilon (1 +/- eps)
   gae_lambda: 0.95             # Generalized Advantage Estimation lambda
   use_clipped_value_loss: True # Standard MAPPO value clipping to prevent critic instability
@@ -69,8 +69,8 @@ algorithm:
   # -------------------------------------------------------------
   # Evaluation & Logging
   # -------------------------------------------------------------
-  total_steps: 500000
-  eval_interval: 10000
+  total_steps: 2000000
+  eval_interval: 40000
   save_interval: 0
   video_interval: 0
   video_frames: 200
