@@ -32,9 +32,9 @@ algorithm:
   # Decomposed Channels & Targeted Optimism Settings
   # -------------------------------------------------------------
   n_reward_channels: 4
-  coop_channel_idx: 0          # Channel 2 is ID_3 (Coop Food)
-  optimism_alpha: 0.1          # Negative slope for LeakyReLU on coop advantage (0.1 = 90% discount on miscoordination)
-  channel_weights: [1.0, 1.0, 1.0, 1.0]
+  coop_channel_idx: 0          # Channel 0 is ID_1 (Coop Food)
+  optimism_alpha: 0.02          # Negative slope for LeakyReLU on coop advantage (0.1 = 90% discount on miscoordination)
+  channel_weights: [2.0, 0.1, 0.1, 0.1]
 
   # -------------------------------------------------------------
   # PPO Core Hyperparameters
@@ -69,8 +69,8 @@ algorithm:
   # -------------------------------------------------------------
   # Evaluation & Logging
   # -------------------------------------------------------------
-  total_steps: 1000000
-  eval_interval: 20000
+  total_steps: 500000
+  eval_interval: 10000
   save_interval: 0
   video_interval: 0
   video_frames: 200

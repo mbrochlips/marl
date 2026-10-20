@@ -42,8 +42,8 @@ algorithm:
   standardise_returns: False # was: True
   target_update_interval_or_tau: 200
 
-  total_steps: 1000000
-  eval_interval: 20000
+  total_steps: 100000
+  eval_interval: 2000
   save_interval: 0
   video_interval: 0
   video_frames: 200

@@ -7,7 +7,7 @@ from lbforaging.foraging.environment import Action, ForagingEnv, Player
 class ForagingDecompReward(ForagingEnv):
     """
     Base level-based foraging environment with decomposed (vectorized) rewards.
-    Supports failed-loading / miscoordination penalties.
+    Supports failed-loading penalties and probabilistic collection.
     """
 
     def __init__(
@@ -26,12 +26,14 @@ class ForagingDecompReward(ForagingEnv):
         num_semantic_channels=4,
         step_penalty=0.01,
         miscoordination_penalty=1.0,
+        vector_reward=True,
         **kwargs,
     ):
         self.num_reward_channels = num_semantic_channels
         self.step_penalty = float(step_penalty)
         self.miscoordination_penalty = float(miscoordination_penalty)
         self.food_items = []
+        self.vector_reward = vector_reward
 
         env_kwargs = {
             "players": players,
@@ -55,6 +57,12 @@ class ForagingDecompReward(ForagingEnv):
         }
 
         super().__init__(**valid_kwargs)
+
+    def _reward_shape(self, rewards):
+        if self.vector_reward:
+            return rewards
+        else:
+            return [float(p.reward) for p in self.players]
 
     def reset(self, **kwargs):
         res = super().reset(**kwargs)
@@ -92,7 +100,7 @@ class ForagingDecompReward(ForagingEnv):
                     food_id += 1
 
     def _calculate_food_reward(self, food, loading_players):
-        """Hook for successful pickups."""
+        """Standard proportional payout hook."""
         food_level = food["level"]
         total_loading_level = sum(p.level for p in loading_players)
         payouts = {}
@@ -100,8 +108,18 @@ class ForagingDecompReward(ForagingEnv):
             payouts[p] = float(food_level * (p.level / total_loading_level))
         return payouts
 
+    def _resolve_food_load(self, food, loading_players):
+        """
+        Hook resolving what happens when total_loading_level >= food['level'].
+        Returns:
+            payouts (dict): mapping player -> reward scalar
+            collected (bool): whether the food item was collected and removed from grid
+        """
+        payouts = self._calculate_food_reward(food, loading_players)
+        return payouts, True
+
     def _calculate_failed_load_penalty(self, food, loading_players):
-        """Hook for failed load attempts (miscoordination). Default: 0."""
+        """Hook for failed load attempts (insufficient joint level). Default: 0."""
         return {}
 
     def step(self, actions):
@@ -195,12 +213,16 @@ class ForagingDecompReward(ForagingEnv):
             ]
             total_loading_level = sum(p.level for p in loading_players)
 
-            # Scenario A: Successful Collection
+            # Scenario A: Loading Level Requirement Met
             if loading_players and total_loading_level >= food["level"]:
-                food["active"] = False
-                self.field[fr, fc] = 0
+                payout_dict, collected = self._resolve_food_load(
+                    food, loading_players
+                )
 
-                payout_dict = self._calculate_food_reward(food, loading_players)
+                if collected:
+                    food["active"] = False
+                    self.field[fr, fc] = 0
+
                 ch_idx = food["channel_id"]
                 for p, val in payout_dict.items():
                     p_idx = self.players.index(p)
@@ -232,18 +254,19 @@ class ForagingDecompReward(ForagingEnv):
         obs = self._make_gym_obs()
 
         info = self._get_info()
+        # Still record reward_vec in info for tracking/logging during scalar baseline runs
         info["reward_vec"] = [r.copy() for r in rewards]
         info["foods_collected"] = [not f["active"] for f in self.food_items]
 
-        return obs, rewards, terminated, truncated, info
+        return obs, self._reward_shape(rewards), terminated, truncated, info
 
 
 class Foraging3Foods(ForagingDecompReward):
     """
     Testbed with 3 semantically distinct foods:
-      - Channel 0: High-Level Cooperative Food (Level 2, reward 3.0 each; miscoordination penalty -1.0)
+      - Channel 0: High-Level Cooperative Food (Level 2, reward 3.0 each; miscoordination penalty)
       - Channel 1: Low-Level Deterministic Solo Food (Level 1, reward 0.5)
-      - Channel 2: Low-Level Stochastic Solo Food (Level 1, reward in {0.1, 0.9})
+      - Channel 2: Low-Level Stochastic Solo Food (Level 1, 1/6 chance +1.0 & collected, 5/6 chance -0.2 & stays)
       - Channel 3: Step Penalty Channel (-c_step per step)
     """
 
@@ -257,8 +280,9 @@ class Foraging3Foods(ForagingDecompReward):
         force_coop=False,
         max_num_food=3,
         step_penalty=0.01,
-        miscoordination_penalty=0.0,
+        miscoordination_penalty=1.0,
         num_semantic_channels=4,
+        vector_reward=True,
         **kwargs,
     ):
         super().__init__(
@@ -272,6 +296,7 @@ class Foraging3Foods(ForagingDecompReward):
             step_penalty=step_penalty,
             miscoordination_penalty=miscoordination_penalty,
             num_semantic_channels=num_semantic_channels,
+            vector_reward=vector_reward,
             **kwargs,
         )
         assert len(self.players) == 2, "Testbed requires exactly 2 agents."
@@ -328,25 +353,35 @@ class Foraging3Foods(ForagingDecompReward):
 
         if food_type == "high_coop":
             for p in loading_players:
-                payouts[p] = 2.0
+                payouts[p] = 3.0
         elif food_type == "low_det":
             split_val = 0.5 / len(loading_players)
-            for p in loading_players:
-                payouts[p] = split_val
-        elif food_type == "low_stoch":
-            rng = getattr(self, "np_random", np.random)
-            sampled_val = float(rng.choice([0.1, 0.9]))
-            split_val = sampled_val / len(loading_players)
             for p in loading_players:
                 payouts[p] = split_val
 
         return payouts
 
+    def _resolve_food_load(self, food, loading_players):
+        food_type = food["type"]
+
+        if food_type == "low_stoch":
+            rng = getattr(self, "np_random", np.random)
+            success = bool(rng.random() < (1.0 / 6.0))
+
+            payouts = {}
+            if success:
+                split_val = 1.0 / len(loading_players)
+                for p in loading_players:
+                    payouts[p] = split_val
+                return payouts, True
+            else:
+                for p in loading_players:
+                    payouts[p] = -0.2
+                return payouts, False
+
+        return super()._resolve_food_load(food, loading_players)
+
     def _calculate_failed_load_penalty(self, food, loading_players):
-        """
-        Applies a penalty of -1.0 to any agent executing LOAD adjacent
-        to the cooperative food without sufficient joint level to collect it.
-        """
         food_type = food["type"]
         penalties = {}
 
@@ -357,6 +392,7 @@ class Foraging3Foods(ForagingDecompReward):
         return penalties
 
 
+# Registrations
 gym.register(
     id="Foraging-3Foods-6x6-2p-3f-v0",
     entry_point="utils.custom_envs:Foraging3Foods",
@@ -374,6 +410,7 @@ gym.register(
         "step_penalty": 0.01,
         "miscoordination_penalty": 0.0,
         "num_semantic_channels": 4,
+        "vector_reward": True,
     },
 )
 
@@ -394,5 +431,48 @@ gym.register(
         "step_penalty": 0.01,
         "miscoordination_penalty": 0.2,
         "num_semantic_channels": 4,
+        "vector_reward": True,
+    },
+)
+
+gym.register(
+    id="Foraging-3Foods-scalar-6x6-2p-3f-v0",
+    entry_point="utils.custom_envs:Foraging3Foods",
+    kwargs={
+        "players": 2,
+        "min_player_level": 1,
+        "max_player_level": 1,
+        "field_size": (6, 6),
+        "min_food_level": 1,
+        "max_food_level": 2,
+        "max_num_food": 3,
+        "sight": 6,
+        "max_episode_steps": 50,
+        "force_coop": False,
+        "step_penalty": 0.01,
+        "miscoordination_penalty": 0.0,
+        "num_semantic_channels": 4,
+        "vector_reward": False,
+    },
+)
+
+gym.register(
+    id="Foraging-3Foods-Penalty-scalar-6x6-2p-3f-v0",
+    entry_point="utils.custom_envs:Foraging3Foods",
+    kwargs={
+        "players": 2,
+        "min_player_level": 1,
+        "max_player_level": 1,
+        "field_size": (6, 6),
+        "min_food_level": 1,
+        "max_food_level": 2,
+        "max_num_food": 3,
+        "sight": 6,
+        "max_episode_steps": 50,
+        "force_coop": False,
+        "step_penalty": 0.01,
+        "miscoordination_penalty": 0.2,
+        "num_semantic_channels": 4,
+        "vector_reward": False,
     },
 )

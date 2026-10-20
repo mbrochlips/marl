@@ -1,6 +1,6 @@
 # @package _global_
 env:
-  parallel_envs: 10
+  parallel_envs: 16
 
 algorithm:
   _target_: ac.train.main
@@ -41,3 +41,9 @@ algorithm:
   ppo_clip: 0.2
 
   target_update_interval_or_tau: 200
+
+  total_steps: 500000
+  eval_interval: 10000
+  save_interval: 0
+  video_interval: 0
+  video_frames: 200
