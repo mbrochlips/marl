@@ -15,7 +15,7 @@ from torch import optim
 from marlbase.utils.models import MultiAgentIndependentNetwork, MultiAgentSharedNetwork
 from marlbase.utils.utils import MultiCategorical
 from marlbase.utils.standardise_stream import RunningMeanStd
-
+from marlbase.utils.interact_score import estimate_channel_interactions
 
 def _split_batch(splits):
     def thunk(batch):
@@ -320,30 +320,40 @@ class DecompOptiMAPPONetwork(nn.Module):
                 )
 
         # ---------------------------------------------------------
-        # Phase 2: Channel-Targeted Optimism (OptiMAPPO vs MAPPO)
+        # Phase 2: Autonomous Channel-Adaptive Optimism (No Hardcoding)
         # ---------------------------------------------------------
-        transformed_advantages = raw_advantages.clone()
-
-        # Diagnostic: ratio of negative advantage on the coop channel
-        coop_adv_raw = raw_advantages[..., self.coop_channel_idx]
-        neg_coop_mask = coop_adv_raw < 0.0
-        neg_coop_ratio = (neg_coop_mask.float() * batch.filled.unsqueeze(-1)).sum() / (
-            batch.filled.unsqueeze(-1).sum() + 1e-8
+        # 1. Dynamically compute the interaction level for each reward channel
+        interaction_scores = estimate_channel_interactions(
+            batch=batch,
+            actor_network=self.actor,
+            coma_critic=self.coma_interaction_critic,
+            n_agents=self.n_agents,
+            n_reward_channels=self.n_reward_channels,
+            act_dims=[flatdim(a) for a in self.action_space],
+            device=self.device,
         )
 
-        # Apply LeakyReLU strictly to the cooperative channel
-        if self.optimism_alpha < 1.0:
-            transformed_advantages[..., self.coop_channel_idx] = F.leaky_relu(
-                coop_adv_raw, negative_slope=self.optimism_alpha
+        transformed_advantages = raw_advantages.clone()
+
+        # 2. Apply channel-specific optimism proportional to multi-agent interaction strength
+        # Independent/Solo channels (interaction ~ 0) -> alpha_m ~ 1.0 (Standard MAPPO)
+        # High-coordination channels (interaction ~ 1) -> alpha_m ~ optimism_alpha (OptiMAPPO)
+        for m in range(self.n_reward_channels):
+            alpha_m = 1.0 - interaction_scores[m] * (1.0 - self.optimism_alpha)
+            
+            # Soften negative advantage according to the channel's learned coordination score
+            transformed_advantages[..., m] = torch.where(
+                raw_advantages[..., m] < 0.0,
+                alpha_m * raw_advantages[..., m],
+                raw_advantages[..., m],
             )
 
-        # Weight and aggregate across channels
+        # 3. Channel aggregation and standardization
         channel_weights = torch.tensor(
             self.channel_weights, device=self.device, dtype=torch.float32
         )
-        total_advantage = (transformed_advantages * channel_weights).sum(dim=-1)  # (T, B, n_agents)
+        total_advantage = (transformed_advantages * channel_weights).sum(dim=-1)
 
-        # Standardize total advantage across batch dimension for PPO ratio stability
         active_mask = batch.filled.unsqueeze(-1).expand_as(total_advantage)
         adv_mean = (total_advantage * active_mask).sum() / (active_mask.sum() + 1e-8)
         adv_std = torch.sqrt(
