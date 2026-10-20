@@ -53,7 +53,7 @@ class Logger:
 
     def log_metrics(self, metrics: List[Dict]): ...
 
-    def print_progress(self, updates, steps, mean_returns, episodes):
+    def print_progress(self, updates, steps, mean_returns, episodes, info_dict=None):
         self.info(f"Updates {updates}, Environment timesteps {steps}")
 
         time_now = time.time()
@@ -86,6 +86,13 @@ class Logger:
         self._prev_time = time.time(), time.process_time()
 
         self.info(f"Last {episodes} episodes with mean returns: {mean_returns:.3f}")
+        # Optional: Print interaction scores if present in the aggregated metrics
+        if info_dict is not None:
+            interaction_keys = [k for k in info_dict.keys() if "interaction" in k and "mean_" in k or "coordination" in k and "mean_" in k]
+            if interaction_keys:
+                scores_str = " | ".join([f"{k.replace('mean_', '')}: {info_dict[k]:.3f}" for k in sorted(interaction_keys)])
+                self.info(f"Coordination Interactions: [{scores_str}]")
+
         self.info("-------------------------------------------")
 
     def watch(self, model):
@@ -131,6 +138,7 @@ class WandbLogger(Logger):
             d["environment_steps"],
             d["mean_episode_returns"],
             len(metrics) - 1,
+            d,
         )
 
     def watch(self, model):
@@ -176,6 +184,7 @@ class FileSystemLogger(Logger):
             env_steps,
             mean_ret,
             max(0, len(metrics) - 1),
+            d,
         )
 
     def get_state(self):

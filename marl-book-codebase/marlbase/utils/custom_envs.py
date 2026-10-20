@@ -26,6 +26,7 @@ class ForagingDecompReward(ForagingEnv):
         num_semantic_channels=4,
         step_penalty=0.01,
         miscoordination_penalty=1.0,
+        food_to_collect=None,
         vector_reward=True,
         **kwargs,
     ):
@@ -33,6 +34,7 @@ class ForagingDecompReward(ForagingEnv):
         self.step_penalty = float(step_penalty)
         self.miscoordination_penalty = float(miscoordination_penalty)
         self.food_items = []
+        self.food_to_collect = food_to_collect
         self.vector_reward = vector_reward
 
         env_kwargs = {
@@ -48,6 +50,7 @@ class ForagingDecompReward(ForagingEnv):
             "normalize_reward": normalize_reward,
             "max_num_food": max_num_food,
             "max_food": max_num_food,
+            "food_to_collect": food_to_collect,
             "vector_reward": vector_reward,
         }
         env_kwargs.update(kwargs)
@@ -232,7 +235,14 @@ class ForagingDecompReward(ForagingEnv):
             p.reward = float(rewards[p_idx].sum())
             p.score += p.reward
 
-        terminated = bool(self.field.sum() == 0)
+        # Check termination based on target food count
+        num_collected = sum(not f["active"] for f in self.food_items)
+        target = (
+            self.foods_to_collect
+            if self.foods_to_collect is not None
+            else len(self.food_items)
+        )
+        terminated = bool(num_collected >= target or self.field.sum() == 0)
         truncated = bool(
             self.current_step >= self._max_episode_steps and not terminated
         )
@@ -244,6 +254,7 @@ class ForagingDecompReward(ForagingEnv):
         info = self._get_info()
         info["reward_vec"] = [r.copy() for r in rewards]
         info["foods_collected"] = [not f["active"] for f in self.food_items]
+        info["num_foods_collected"] = num_collected  # <--- Convenient metric
 
         return obs, self._reward_shape(rewards), terminated, truncated, info
 
@@ -269,6 +280,7 @@ class Foraging3Foods(ForagingDecompReward):
         step_penalty=0.01,
         miscoordination_penalty=0.0 ,
         num_semantic_channels=4,
+        foods_to_collect=None,
         vector_reward=True,
         **kwargs,
     ):
@@ -283,6 +295,7 @@ class Foraging3Foods(ForagingDecompReward):
             step_penalty=step_penalty,
             miscoordination_penalty=miscoordination_penalty,
             num_semantic_channels=num_semantic_channels,
+            foods_to_collect=foods_to_collect,
             vector_reward=vector_reward,
             **kwargs,
         )
@@ -386,6 +399,7 @@ gym.register(
         "step_penalty": 0.01,
         "miscoordination_penalty": 0.0,
         "num_semantic_channels": 4,
+        "food_to_collect": 2,
     },
 )
 
@@ -406,6 +420,7 @@ gym.register(
         "step_penalty": 0.01,
         "miscoordination_penalty": 0.0,
         "num_semantic_channels": 4,
+        "food_to_collect": 2,
         "vector_reward": False,
     },
 )
@@ -427,6 +442,7 @@ gym.register(
         "step_penalty": 0.01,
         "miscoordination_penalty": 0.2,
         "num_semantic_channels": 4,
+        "food_to_collect": 2,
     },
 )
 
@@ -447,6 +463,7 @@ gym.register(
         "step_penalty": 0.01,
         "miscoordination_penalty": 0.2,
         "num_semantic_channels": 4,
+        "food_to_collect": 2,
         "vector_reward": False,
     },
 )
@@ -472,6 +489,7 @@ if __name__ == "__main__":
         max_food_level=3,
         step_penalty=0.01,
         miscoordination_penalty=1.0,
+        foods_to_collect=None,
         vector_reward=True,
     )
     obs, info = test_env.reset()
