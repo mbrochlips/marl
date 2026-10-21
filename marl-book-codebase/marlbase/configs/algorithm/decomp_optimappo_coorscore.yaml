@@ -9,7 +9,7 @@ algorithm:
   name: "decomp_optimappo_coorscore"
 
   model:
-    _target_: decomp_optimappo.model.DecompOptiMAPPONetwork
+    _target_: decomp_optimappo_coorscore.model.DecompOptiMAPPONetwork
     actor:
       layers:
         - 128

@@ -154,7 +154,7 @@ hydra:
     - path: ''
       schema: structured
       provider: schema
-    output_dir: /zhome/36/1/204745/marl/marl-book-codebase/marlbase/outputs/utils.custom_envs:3Foods-Penalty-6x6-v0/decomp_optimappo_coorscore/34f28a2a
+    output_dir: /zhome/36/1/204745/marl/marl-book-codebase/marlbase/outputs/utils.custom_envs:3Foods-Penalty-6x6-v0/decomp_optimappo_coorscore/20bf3454
     choices:
       algorithm: decomp_optimappo_coorscore
       logger: filesystemlogger

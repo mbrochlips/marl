@@ -3,7 +3,6 @@
 # - Zhao et al., "Optimistic Multi-Agent Policy Gradient", ICML 2024
 # - https://github.com/marl-book/codebase
 
-from collections import defaultdict
 from einops import rearrange
 from gymnasium.spaces import flatdim
 import torch
@@ -15,6 +14,8 @@ from torch import optim
 from marlbase.utils.models import MultiAgentIndependentNetwork, MultiAgentSharedNetwork
 from marlbase.utils.utils import MultiCategorical
 from marlbase.utils.standardise_stream import RunningMeanStd
+from marlbase.utils.coor_score import SupermodularCoordinationDetector, BidirectionalCoordinationDetector
+
 
 def _split_batch(splits):
     def thunk(batch):
@@ -61,6 +62,8 @@ class DecompOptiMAPPONetwork(nn.Module):
       - Targeted Optimism: Channel-selective LeakyReLU advantage softening for 
         cooperative interactions (OptiMAPPO), preserving risk-neutrality for 
         stochastic/solo/penalty channels (Standard MAPPO).
+      - Supermodular Coordination Detector: Standalone, zero-sync detector measuring 
+        cross-agent synergy to dynamically scale optimism.
       - Multi-Epoch PPO Clipped Surrogate: Mini-batch updates with bounded ratio clipping.
       - Independent Channel RunningMeanStd Normalization.
     """
@@ -91,25 +94,22 @@ class DecompOptiMAPPONetwork(nn.Module):
         act_dims = [flatdim(a) for a in action_space]
 
         # -------------------------------------------------------------
-        # Fast Persistent Supermodular Buffers (Zero CUDA Overhead)
+        # 1. Decomposed Channels & Supermodular Detector
         # -------------------------------------------------------------
         self.n_reward_channels = getattr(cfg, "n_reward_channels", 4)
         self.optimism_alpha = getattr(cfg, "optimism_alpha", 0.1)
-        self.channel_weights = getattr(cfg, "channel_weights", [1.0] * self.n_reward_channels)
 
-        # Persistent GPU buffers for tracking all-time capabilities
+        # Register channel weights as a buffer to avoid host-device reallocations
+        weights = getattr(cfg, "channel_weights", [1.0] * self.n_reward_channels)
         self.register_buffer(
-            "all_time_max_solo", torch.zeros(self.n_reward_channels, device=device)
+            "channel_weights", torch.tensor(weights, dtype=torch.float32, device=device)
         )
-        self.register_buffer(
-            "all_time_max_joint", torch.zeros(self.n_reward_channels, device=device)
-        )
-        self.register_buffer(
-            "cumulative_joint_events", torch.zeros(self.n_reward_channels, device=device)
-        )
-        self.register_buffer(
-            "coordination_scores", torch.zeros(self.n_reward_channels, device=device)
-        )
+
+        # Standalone coordination detector (submodule state saved with checkpoints)
+        self.coord_detector = BidirectionalCoordinationDetector( # change for coor only
+            n_reward_channels=self.n_reward_channels,
+            n_agents=self.n_agents,
+        ).to(device)
 
         # -------------------------------------------------------------
         # 2. Decentralized Actors
@@ -134,7 +134,7 @@ class DecompOptiMAPPONetwork(nn.Module):
             )
 
         # -------------------------------------------------------------
-        # 3. M x N Independent Critics
+        # 3. M x N Independent Centralized Critics
         # -------------------------------------------------------------
         self.centralised_critic = critic.centralised
         critic_obs_shape = (
@@ -181,7 +181,7 @@ class DecompOptiMAPPONetwork(nn.Module):
             self.target_critics.append(tc)
 
         # -------------------------------------------------------------
-        # 4. Independent Normalization & Optimizer
+        # 4. Return Standardization & Optimizer
         # -------------------------------------------------------------
         self.standardise_returns = cfg.standardise_returns
         if self.standardise_returns:
@@ -274,6 +274,7 @@ class DecompOptiMAPPONetwork(nn.Module):
     # -------------------------------------------------------------
     # The Decomp-OptiMAPPO Update Pipeline
     # -------------------------------------------------------------
+
     def update(self, batch, step):
         T, B = batch.rewards.shape[:2]
         batch_dones = batch.dones.float().unsqueeze(-1).repeat(1, 1, self.n_agents)
@@ -282,7 +283,6 @@ class DecompOptiMAPPONetwork(nn.Module):
         # Phase 1: Compute Target Values & Multi-Channel GAE
         # ---------------------------------------------------------
         with torch.no_grad():
-            # Query values for all states 0..T
             all_values, _ = self.get_value(
                 self.split_obs(batch.obss), critic_hiddens=None, target=False
             )
@@ -306,23 +306,23 @@ class DecompOptiMAPPONetwork(nn.Module):
                 self.gae_lambda,
             )
 
-            # Update RunningMeanStd with raw returns and normalize returns for critic targets
+            # Standardize returns for critic regression targets
             if self.standardise_returns:
                 self.ret_ms.update(raw_returns)
                 target_returns = (raw_returns - self.ret_ms.mean) / torch.sqrt(self.ret_ms.var + 1e-8)
             else:
                 target_returns = raw_returns
 
-            # Retrieve or compute old action log probabilities for PPO ratio
+            # Retrieve old action log probabilities
             action_mask = (
                 rearrange(batch.action_masks[:-1], "E B N A -> N E B A")
                 if batch.action_masks is not None
                 else None
             )
             if hasattr(batch, "action_log_probs") and batch.action_log_probs is not None:
-                if batch.action_log_probs.shape[0] == batch.obss.shape[0]:  # If length T + 1
+                if batch.action_log_probs.shape[0] == batch.obss.shape[0]:  # Length T + 1
                     old_action_log_probs = batch.action_log_probs[:-1]
-                else:  # Already length T
+                else:  # Length T
                     old_action_log_probs = batch.action_log_probs
             else:
                 _, old_action_log_probs, _, _, _ = self.evaluate_actions(
@@ -334,35 +334,70 @@ class DecompOptiMAPPONetwork(nn.Module):
         # ---------------------------------------------------------
         # Phase 2: Autonomous Coordination-Targeted Optimism
         # ---------------------------------------------------------
-        # 1. Run ultra-fast vectorized update (sub-millisecond)
-        self._update_coordination_scores_vectorized(batch)
+        # 1. Update spectrum scores: shape (M,) in [-1.0, 1.0]
+        coord_scores = self.coord_detector.update(batch.rewards, batch.filled)
+
+        # 2. Hyperparameters
+        optimism_alpha = self.optimism_alpha  # e.g., 0.1 (softens negative advantage)
+        pessimism_beta = 0.2                  # dampens positive advantage on traps
+        pessimism_gamma = 2.5                 # amplifies negative advantage on hazards
 
         transformed_advantages = raw_advantages.clone()
+
         for m in range(self.n_reward_channels):
-            # Continuous adaptive optimism:
-            # If ch0 coordination_score is 0.7 -> alpha softens toward optimism_alpha
-            # If ch1/ch2 coordination_score is 0.0 -> alpha remains 1.0 (Standard MAPPO)
-            alpha_m = 1.0 - self.coordination_scores[m] * (1.0 - self.optimism_alpha)
+            score_m = coord_scores[m]
 
-            transformed_advantages[..., m] = torch.where(
-                raw_advantages[..., m] < 0.0,
-                alpha_m * raw_advantages[..., m],
-                raw_advantages[..., m],
-            )
+            if score_m > 0.0:
+                # -------------------------------------------------------------
+                # POSITIVE SCORE: Cooperative Channel -> Targeted Optimism
+                # -------------------------------------------------------------
+                alpha_m = 1.0 - score_m * (1.0 - optimism_alpha)
+                transformed_advantages[..., m] = torch.where(
+                    raw_advantages[..., m] < 0.0,
+                    alpha_m * raw_advantages[..., m],
+                    raw_advantages[..., m],
+                )
 
-        # 2. Weight and aggregate across channels
-        channel_weights = torch.tensor(
-            self.channel_weights, device=self.device, dtype=torch.float32
-        )
-        total_advantage = (transformed_advantages * channel_weights).sum(dim=-1)
+            elif score_m < 0.0:
+                # -------------------------------------------------------------
+                # NEGATIVE SCORE: Hazard / Catastrophic Trap -> Targeted Pessimism
+                # -------------------------------------------------------------
+                intensity = torch.abs(score_m)
+                beta_m = 1.0 - intensity * (1.0 - pessimism_beta)   # < 1.0
+                gamma_m = 1.0 + intensity * (pessimism_gamma - 1.0) # > 1.0
 
-        # 3. Standardize total advantage
-        active_mask = batch.filled.unsqueeze(-1).expand_as(total_advantage)
-        adv_mean = (total_advantage * active_mask).sum() / (active_mask.sum() + 1e-8)
-        adv_std = torch.sqrt(
-            (((total_advantage - adv_mean) ** 2) * active_mask).sum() / (active_mask.sum() + 1e-8) + 1e-8
-        )
-        norm_total_advantage = (total_advantage - adv_mean) / (adv_std + 1e-8)
+                # Dampen lucky upside (A > 0) AND amplify catastrophic failure (A < 0)
+                transformed_advantages[..., m] = torch.where(
+                    raw_advantages[..., m] > 0.0,
+                    beta_m * raw_advantages[..., m],
+                    gamma_m * raw_advantages[..., m],
+                )
+
+
+        # # OLD METHOD: ONLY score for coordination
+        # # Compute persistent supermodular coordination score (runs in < 0.05ms)
+        # coord_scores = self.coord_detector.update(batch.rewards, batch.filled)
+
+        # # Soften negative advantage proportional to coordination score
+        # transformed_advantages = raw_advantages.clone()
+        # for m in range(self.n_reward_channels):
+        #     alpha_m = 1.0 - coord_scores[m] * (1.0 - self.optimism_alpha)
+        #     transformed_advantages[..., m] = torch.where(
+        #         raw_advantages[..., m] < 0.0,
+        #         alpha_m * raw_advantages[..., m],
+        #         raw_advantages[..., m],
+        #     )
+
+        # # Aggregate across channels using registered weights
+        # total_advantage = (transformed_advantages * self.channel_weights).sum(dim=-1)
+
+        # # Standardize total advantage across batch dimension for PPO stability
+        # active_mask = batch.filled.unsqueeze(-1).expand_as(total_advantage)
+        # adv_mean = (total_advantage * active_mask).sum() / (active_mask.sum() + 1e-8)
+        # adv_std = torch.sqrt(
+        #     (((total_advantage - adv_mean) ** 2) * active_mask).sum() / (active_mask.sum() + 1e-8) + 1e-8
+        # )
+        # norm_total_advantage = (total_advantage - adv_mean) / (adv_std + 1e-8)
 
         # ---------------------------------------------------------
         # Phase 3: PPO Mini-Batch Update Loop
@@ -376,14 +411,13 @@ class DecompOptiMAPPONetwork(nn.Module):
         epoch_clip_fracs = []
 
         for _ in range(self.ppo_epochs):
-            # Sample environment indices along batch dimension B to keep RNN time unrolls intact
             env_perm = torch.randperm(B)
 
             for start_idx in range(0, B, mini_batch_size):
                 end_idx = min(start_idx + mini_batch_size, B)
                 batch_indices = env_perm[start_idx:end_idx]
 
-                # Slice mini-batch data
+                # Mini-batch slicing
                 mb_obss = batch.obss[:-1, batch_indices]
                 mb_actions = batch.actions[:, batch_indices]
                 mb_filled = batch.filled[:, batch_indices]
@@ -398,15 +432,13 @@ class DecompOptiMAPPONetwork(nn.Module):
                     else None
                 )
 
-                # Re-evaluate policies and critics for current mini-batch parameters
                 new_values, new_log_probs, entropy, _, _ = self.evaluate_actions(
                     self.split_obs(mb_obss),
                     self.split_act(mb_actions),
                     action_mask=mb_action_masks,
                 )
 
-                # 1. Actor PPO Clipped Loss
-                # ratio = pi(a|s) / pi_old(a|s) -> exp(log_pi - log_pi_old)
+                # 1. Clipped Surrogate Policy Loss
                 ratio = torch.exp(new_log_probs - mb_old_log_probs.detach())
                 surr1 = ratio * mb_adv.detach()
                 surr2 = torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param) * mb_adv.detach()
@@ -414,7 +446,7 @@ class DecompOptiMAPPONetwork(nn.Module):
                 actor_loss = -torch.min(surr1, surr2).sum(dim=-1) - self.entropy_coef * entropy
                 actor_loss = (actor_loss * mb_filled).sum() / (mb_filled.sum() + 1e-8)
 
-                # 2. Multi-Channel Critic Loss with Value Clipping
+                # 2. Decoupled Multi-Channel Critic Loss
                 val_losses = []
                 for m in range(self.n_reward_channels):
                     v_pred_m = new_values[..., m]
@@ -436,7 +468,7 @@ class DecompOptiMAPPONetwork(nn.Module):
 
                 total_value_loss = torch.stack(val_losses).sum()
 
-                # 3. Total Loss & Optimization Step
+                # 3. Backward Pass & Gradient Clipping
                 loss = actor_loss + self.value_loss_coef * total_value_loss
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -455,7 +487,7 @@ class DecompOptiMAPPONetwork(nn.Module):
                     epoch_clip_fracs.append(clip_frac.item())
 
         # ---------------------------------------------------------
-        # Phase 4: Target Network Soft Updates
+        # Phase 4: Target Network Soft Updates & Diagnostics
         # ---------------------------------------------------------
         if (
             self.target_update_interval_or_tau > 1.0
@@ -465,15 +497,16 @@ class DecompOptiMAPPONetwork(nn.Module):
         elif self.target_update_interval_or_tau < 1.0:
             self.soft_update(self.target_update_interval_or_tau)
 
-        # Identify channel with highest coordination score
-        top_coop_idx = torch.argmax(self.coordination_ema).item()
+        # Negative advantage ratio on the primary cooperative channel
+        top_coop_idx = torch.argmax(coord_scores).item()
         coop_adv_raw = raw_advantages[..., top_coop_idx]
         neg_coop_mask = coop_adv_raw < 0.0
-        neg_coop_ratio = (neg_coop_mask.float() * batch.filled.unsqueeze(-1)).sum() / (
-            batch.filled.unsqueeze(-1).sum() + 1e-8
+        active_agents = batch.filled.unsqueeze(-1).expand_as(coop_adv_raw)
+        neg_coop_ratio = (neg_coop_mask.float() * active_agents).sum() / (
+            active_agents.sum() + 1e-8
         )
 
-        # Logging metrics
+        # Logging metrics (exported to results.csv and console)
         return {
             "loss": sum(epoch_actor_losses) / len(epoch_actor_losses)
             + self.value_loss_coef * (sum(epoch_value_losses) / len(epoch_value_losses)),
@@ -482,53 +515,10 @@ class DecompOptiMAPPONetwork(nn.Module):
             "entropy": sum(epoch_entropies) / len(epoch_entropies),
             "approx_kl": sum(epoch_approx_kls) / len(epoch_approx_kls),
             "clip_frac": sum(epoch_clip_fracs) / len(epoch_clip_fracs),
-            "coop_neg_adv_ratio": neg_coop_ratio.item(),
-            # Restores continuous informative tracking in results.csv
+            "coop_neg_adv_ratio": float(neg_coop_ratio.item()),
+            # Continuous coordination metrics for each reward channel
             **{
-                f"coordination_score_ch{m}": self.coordination_scores[m].item()
+                f"coordination_score_ch{m}": float(coord_scores[m].item())
                 for m in range(self.n_reward_channels)
             },
         }
-        
-    @torch.no_grad()
-    def _update_coordination_scores_vectorized(self, batch):
-        """
-        Ultra-fast supermodular coordination detector.
-        Executes entirely in vectorized CUDA kernels with zero CPU-GPU syncs.
-        """
-        # Shape: (T, B, N, M)
-        filled = batch.filled.unsqueeze(-1).unsqueeze(-1)
-        rews = batch.rewards * filled # Zero invalid timesteps without dynamic memory allocation
-        
-        # Flatten time and batch dimensions: (V, N, M) where V = T * B
-        rews_flat = rews.view(-1, self.n_agents, self.n_reward_channels)
-
-        # Count how many agents received positive reward per channel: (V, 1, M)
-        has_rew = (rews_flat > 1e-4).float()
-        active_counts = has_rew.sum(dim=1, keepdim=True)
-
-        # 1. Vectorized Solo Detection (active_counts == 1)
-        is_solo = (active_counts == 1.0).float()
-        batch_max_solo = (rews_flat * is_solo).amax(dim=(0, 1)) # (M,)
-
-        # 2. Vectorized Joint Detection (active_counts >= 2)
-        is_joint = (active_counts >= 2.0).float()
-        batch_max_joint = (rews_flat * is_joint).amax(dim=(0, 1)) # (M,)
-        batch_joint_events = is_joint.amax(dim=1).sum(dim=0)     # (M,)
-
-        # 3. Update all-time persistent buffers in-place on GPU
-        torch.maximum(self.all_time_max_solo, batch_max_solo, out=self.all_time_max_solo)
-        torch.maximum(self.all_time_max_joint, batch_max_joint, out=self.all_time_max_joint)
-        self.cumulative_joint_events.add_(batch_joint_events)
-
-        # 4. Supermodular Surplus: ReLU(Max_Joint - Max_Solo)
-        # For ch1/ch2: 0.5 - 1.0 = -0.5 -> ReLU clamps strictly to 0.0
-        # For ch0:     0.5 - 0.0 = +0.5 -> Surplus is positive
-        surplus = F.relu(self.all_time_max_joint - self.all_time_max_solo)
-        surplus_ratio = surplus / (self.all_time_max_joint + 1e-6)
-
-        # 5. Smooth Confidence Ramping (avoids deadlock while suppressing flukes)
-        confidence = 1.0 - torch.exp(-0.35 * self.cumulative_joint_events)
-
-        # Continuous, informative score strictly in [0, 1]
-        self.coordination_scores.copy_(surplus_ratio * confidence)

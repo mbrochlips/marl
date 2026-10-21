@@ -71,10 +71,6 @@ class Logger:
             fps = (steps - self._prev_steps[1]) / elapsed_wallclock
             self.info(f"UPS: {ups:.2f}, FPS: {fps:.2f} (wall time)")
 
-            # ups = (updates - self._prev_steps[0]) / elapsed_cpu
-            # fps = (steps - self._prev_steps[1]) / elapsed_cpu
-            # self.info(f"UPS: {ups:.2f}, FPS: {fps:.2f} (cpu time)")
-
             eta = elapsed_from_start * (1 - completed) / completed
             eta = timedelta(seconds=math.ceil(eta.total_seconds()))
             self.info(f"Elapsed Time: {elapsed_from_start}")
@@ -86,12 +82,31 @@ class Logger:
         self._prev_time = time.time(), time.process_time()
 
         self.info(f"Last {episodes} episodes with mean returns: {mean_returns:.3f}")
-        # Optional: Print interaction scores if present in the aggregated metrics
+
         if info_dict is not None:
-            interaction_keys = [k for k in info_dict.keys() if "interaction" in k and "mean_" in k or "coordination" in k and "mean_" in k]
-            if interaction_keys:
-                scores_str = " | ".join([f"{k.replace('mean_', '')}: {info_dict[k]:.3f}" for k in sorted(interaction_keys)])
-                self.info(f"Coordination Interactions: [{scores_str}]")
+            # 1. Cleaned up Coordination Scores: [ch0: 1.000 | ch1: 0.000 | ...]
+            coord_keys = sorted([
+                k for k in info_dict.keys()
+                if ("coordination" in k or "interaction" in k) and not k.startswith("std_")
+            ])
+            if coord_keys:
+                scores_str = " | ".join([
+                    f"{k.replace('mean_', '').replace('coordination_score_', '').replace('coordination_', ''):}: {info_dict[k]:.3f}"
+                    for k in coord_keys
+                ])
+                self.info(f"Coor. Scores:  [{scores_str}]")
+
+            # 2. Cleaned up Channel Returns: [ch0: 0.500 | ch1: 0.120 | ...]
+            ret_keys = sorted([
+                k for k in info_dict.keys()
+                if "return_" in k and not k.startswith("std_") and "episode_returns" not in k
+            ])
+            if ret_keys:
+                rets_str = " | ".join([
+                    f"{k.replace('mean_', '').replace('return_', '').replace('channel_', 'ch'):}: {info_dict[k]:.3f}"
+                    for k in ret_keys
+                ])
+                self.info(f"Ch. Returns: [{rets_str}]")
 
         self.info("-------------------------------------------")
 

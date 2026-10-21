@@ -238,8 +238,8 @@ class ForagingDecompReward(ForagingEnv):
         # Check termination based on target food count
         num_collected = sum(not f["active"] for f in self.food_items)
         target = (
-            self.foods_to_collect
-            if self.foods_to_collect is not None
+            self.food_to_collect
+            if self.food_to_collect is not None
             else len(self.food_items)
         )
         terminated = bool(num_collected >= target or self.field.sum() == 0)
@@ -280,7 +280,7 @@ class Foraging3Foods(ForagingDecompReward):
         step_penalty=0.01,
         miscoordination_penalty=0.0 ,
         num_semantic_channels=4,
-        foods_to_collect=None,
+        food_to_collect=None,
         vector_reward=True,
         **kwargs,
     ):
@@ -295,7 +295,7 @@ class Foraging3Foods(ForagingDecompReward):
             step_penalty=step_penalty,
             miscoordination_penalty=miscoordination_penalty,
             num_semantic_channels=num_semantic_channels,
-            foods_to_collect=foods_to_collect,
+            food_to_collect=food_to_collect,
             vector_reward=vector_reward,
             **kwargs,
         )
@@ -355,15 +355,15 @@ class Foraging3Foods(ForagingDecompReward):
             for p in loading_players:
                 payouts[p] = 3.0
         elif food_type == "low_det":
-            split_val = 0.5 / len(loading_players)
+            split_val = 1.0 / len(loading_players)
             for p in loading_players:
                 payouts[p] = split_val
         elif food_type == "low_stoch":
             rng = getattr(self, "np_random", np.random)
-            sampled_val = float(rng.choice([-2.0, 1.5]))
-            split_val = sampled_val / len(loading_players)
+            sampled_val = float(rng.choice([-0.2, 3.0], p=[0.95, 0.05]))
+            # removed split
             for p in loading_players:
-                payouts[p] = split_val
+                payouts[p] = sampled_val
 
         return payouts
 
@@ -489,7 +489,7 @@ if __name__ == "__main__":
         max_food_level=3,
         step_penalty=0.01,
         miscoordination_penalty=1.0,
-        foods_to_collect=None,
+        food_to_collect=None,
         vector_reward=True,
     )
     obs, info = test_env.reset()
