@@ -252,6 +252,112 @@ class A2CNetwork(nn.Module):
         }
 
 
+# class PPONetwork(A2CNetwork):
+#     def __init__(
+#         self,
+#         obs_space,
+#         action_space,
+#         cfg,
+#         actor,
+#         critic,
+#         device,
+#     ):
+#         super(PPONetwork, self).__init__(
+#             obs_space, action_space, cfg, actor, critic, device
+#         )
+#         self.num_epochs = cfg.num_epochs
+#         self.ppo_clip = cfg.ppo_clip
+
+#     def update(self, batch, step):
+#         # compute returns
+#         with torch.no_grad():
+#             next_value, _ = self.get_value(
+#                 self.split_obs(batch.obss), critic_hiddens=None, target=True
+#             )
+
+#         if self.standardise_returns:
+#             next_value = next_value * torch.sqrt(self.ret_ms.var) + self.ret_ms.mean
+
+#         batch_done = batch.dones.float().unsqueeze(-1).repeat(1, 1, self.n_agents)
+#         returns = compute_nstep_returns(
+#             batch.rewards, batch_done, next_value, self.n_steps, self.gamma
+#         ).detach()
+#         if self.standardise_returns:
+#             self.ret_ms.update(returns)
+#             returns = (returns - self.ret_ms.mean) / torch.sqrt(self.ret_ms.var)
+
+#         # compute old policy log probs
+#         with torch.no_grad():
+#             actor_features, _ = self.actor(self.split_obs(batch.obss[:-1]), None)
+#             dist = self.get_dist(
+#                 actor_features,
+#                 action_mask=rearrange(batch.action_masks[:-1], "E B N A -> N E B A")
+#                 if batch.action_masks is not None
+#                 else None,
+#             )
+#             old_action_log_probs = torch.cat(
+#                 dist.log_probs(self.split_act(batch.actions)), dim=-1
+#             ).detach()
+
+#         metrics = defaultdict(list)
+#         for _ in range(self.num_epochs):
+#             # sample from current policy
+#             values, action_log_probs, entropy, _, _ = self.evaluate_actions(
+#                 self.split_obs(batch.obss[:-1]),
+#                 self.split_act(batch.actions),
+#                 critic_hiddens=None,
+#                 actor_hiddens=None,
+#                 action_mask=rearrange(batch.action_masks[:-1], "E B N A -> N E B A")
+#                 if batch.action_masks is not None
+#                 else None,
+#             )
+
+#             # compute advantage and value loss
+#             advantage = returns - values
+#             value_loss = advantage.pow(2).sum(dim=-1)
+
+#             # compute policy loss
+#             ratio = torch.exp(action_log_probs - old_action_log_probs)
+#             surr1 = ratio * advantage.detach()
+#             surr2 = (
+#                 torch.clamp(ratio, 1.0 - self.ppo_clip, 1.0 + self.ppo_clip)
+#                 * advantage.detach()
+#             )
+#             actor_loss = (
+#                 -torch.min(surr1, surr2).sum(dim=-1) - self.entropy_coef * entropy
+#             )
+
+#             # apply masks and compute total loss per epoch
+#             actor_loss = (actor_loss * batch.filled).sum() / batch.filled.sum()
+#             value_loss = (value_loss * batch.filled).sum() / batch.filled.sum()
+#             loss = actor_loss + self.value_loss_coef * value_loss
+
+#             # optimisation step
+#             self.optimizer.zero_grad()
+#             loss.backward()
+#             if self.grad_clip:
+#                 torch.nn.utils.clip_grad_norm_(self.parameters(), self.grad_clip)
+#             self.optimizer.step()
+
+#             metrics["loss"].append(loss.item())
+#             metrics["actor_loss"].append(actor_loss.item())
+#             metrics["value_loss"].append(value_loss.item())
+#             metrics["entropy"].append(
+#                 ((entropy * batch.filled).sum() / batch.filled.sum()).item()
+#             )
+
+#         # update target network after last epoch
+#         if (
+#             self.target_update_interval_or_tau > 1.0
+#             and step % self.target_update_interval_or_tau == 0
+#         ):
+#             self.soft_update(1.0)
+#         elif self.target_update_interval_or_tau < 1.0:
+#             self.soft_update(self.target_update_interval_or_tau)
+
+#         return {key: sum(values) / len(values) for key, values in metrics.items()}
+    
+
 class PPONetwork(A2CNetwork):
     def __init__(
         self,
@@ -267,6 +373,16 @@ class PPONetwork(A2CNetwork):
         )
         self.num_epochs = cfg.num_epochs
         self.ppo_clip = cfg.ppo_clip
+        # Optional optimism coefficient (eta): None or 1.0 recovers vanilla MAPPO
+        self.optimism_coef = getattr(cfg, "optimism_coef", None)
+
+    def shape_advantage(self, advantage):
+        """Standard MAPPO does not shape advantages."""
+        if self.optimism_coef is None or self.optimism_coef >= 1.0:
+            return advantage
+        if self.optimism_coef == 0.0:
+            return torch.clamp(advantage, min=0.0)
+        return torch.where(advantage >= 0, advantage, self.optimism_coef * advantage)
 
     def update(self, batch, step):
         # compute returns
@@ -312,16 +428,19 @@ class PPONetwork(A2CNetwork):
                 else None,
             )
 
-            # compute advantage and value loss
+            # compute advantage and value loss (Critic uses true, unclipped advantages)
             advantage = returns - values
             value_loss = advantage.pow(2).sum(dim=-1)
 
-            # compute policy loss
+            # shape advantage for optimistic policy update
+            policy_advantage = self.shape_advantage(advantage).detach()
+
+            # compute policy loss with shaped advantage
             ratio = torch.exp(action_log_probs - old_action_log_probs)
-            surr1 = ratio * advantage.detach()
+            surr1 = ratio * policy_advantage
             surr2 = (
                 torch.clamp(ratio, 1.0 - self.ppo_clip, 1.0 + self.ppo_clip)
-                * advantage.detach()
+                * policy_advantage
             )
             actor_loss = (
                 -torch.min(surr1, surr2).sum(dim=-1) - self.entropy_coef * entropy
@@ -356,3 +475,30 @@ class PPONetwork(A2CNetwork):
             self.soft_update(self.target_update_interval_or_tau)
 
         return {key: sum(values) / len(values) for key, values in metrics.items()}
+
+
+class OptiPPONetwork(PPONetwork):
+    """
+    Optimistic Multi-Agent Proximal Policy Optimization (OptiMAPPO).
+    Applies optimistic advantage clipping / Leaky ReLU advantage shaping
+    to eliminate or attenuate negative advantage feedback in cooperative tasks.
+    """
+    def __init__(
+        self,
+        obs_space,
+        action_space,
+        cfg,
+        actor,
+        critic,
+        device,
+    ):
+        super(OptiPPONetwork, self).__init__(
+            obs_space, action_space, cfg, actor, critic, device
+        )
+        # Degree of optimism: eta = 0.0 (default full clipping), eta in [0, 1]
+        self.optimism_coef = getattr(cfg, "optimism_coef", 0.0)
+
+    def shape_advantage(self, advantage):
+        if self.optimism_coef == 0.0:
+            return torch.clamp(advantage, min=0.0)
+        return torch.where(advantage >= 0, advantage, self.optimism_coef * advantage)
