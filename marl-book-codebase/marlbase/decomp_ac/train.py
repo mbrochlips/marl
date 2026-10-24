@@ -1,4 +1,5 @@
-# File: marlbase/decomp_ac/train.py
+# File: marlbase/decomp_optimappo/train.py
+
 from collections import namedtuple
 from pathlib import Path
 
@@ -12,12 +13,16 @@ import torch
 from marlbase.utils.video import VideoRecorder
 
 
+# Batch structure supporting decomposed rewards and optional cached old log-probs
 Batch = namedtuple(
-    "Batch", ["obss", "actions", "rewards", "dones", "filled", "action_masks"]
+    "Batch",
+    ["obss", "actions", "rewards", "dones", "filled", "action_masks", "action_log_probs"],
+    defaults=[None],  # action_log_probs is optional with default None
 )
 
 
 def _log_progress(infos, step, updates, logger):
+    """Logs aggregated training and evaluation metrics."""
     infos.append({"updates": updates, "environment_steps": step})
     logger.log_metrics(infos)
 
@@ -25,20 +30,29 @@ def _log_progress(infos, step, updates, logger):
 def _collect_trajectories(
     envs, model, max_ep_length, parallel_envs, n_agents, device, use_proper_termination
 ):
+    """
+    Collects a trajectory rollout across parallel environments for Decomp-OptiMAPPO.
+    
+    Records:
+      - Observations, actions, dones, and filled masks.
+      - 4D Decomposed Rewards: (T, Parallel_Envs, N_Agents, N_Channels).
+      - Old Action Log-Probabilities: cached for PPO ratio calculation.
+      - Action masks (if supported by environment).
+    """
     running = torch.ones(parallel_envs, device=device, dtype=torch.bool)
 
-    # Reset environment and retrieve initial observations
+    # Reset environment and initialize observation tensors
     obss, info = envs.reset()
     obss = [torch.tensor(o, device=device) for o in obss]
     parallel_envs = envs.observation_space[0].shape[0]
     obs_dim = flatdim(envs.single_observation_space)
     num_actions = max(action_space.n for action_space in envs.single_action_space)
 
-    # Retrieve number of reward channels from model (default to 3)
+    # Query number of reward channels from the model
     n_reward_channels = getattr(model, "n_reward_channels", 3)
 
     # -------------------------------------------------------------
-    # 1. Storage Pre-allocation (batch_rew is 4D for decomposed rewards)
+    # 1. Rollout Storage Pre-allocation
     # -------------------------------------------------------------
     batch_obs = torch.zeros(
         max_ep_length + 1,
@@ -57,6 +71,11 @@ def _collect_trajectories(
         max_ep_length, parallel_envs, n_agents, n_reward_channels, device=device
     )
     batch_filled = torch.zeros(max_ep_length, parallel_envs, device=device)
+
+    # Storage for old action log probabilities across timesteps
+    batch_log_probs = torch.zeros(
+        max_ep_length, parallel_envs, n_agents, device=device
+    )
     
     # Internal tracker for per-channel decomposed returns during rollout
     env_decomposed_returns = torch.zeros(
@@ -85,15 +104,28 @@ def _collect_trajectories(
     # -------------------------------------------------------------
     # 2. Rollout Collection Loop
     # -------------------------------------------------------------
-    while running.any():
+    while running.any() and t < max_ep_length:
         with torch.no_grad():
-            actions, actor_hiddens = model.act(
+            # Query policy actions and evaluate log probabilities
+            act_output = model.act(
                 obss,
                 actor_hiddens,
                 action_mask=action_mask,
             )
 
-        # Step the environment
+            # Robust handling if model.act returns (actions, hiddens) or (actions, hiddens, log_probs)
+            if len(act_output) == 3:
+                actions, actor_hiddens, log_probs = act_output
+            else:
+                actions, actor_hiddens = act_output
+                # Compute log_probs using actor logits if not returned directly by act()
+                inputs = [i.unsqueeze(0) for i in obss]
+                logits, _ = model.actor(inputs, actor_hiddens)
+                logits = [l.squeeze(0) for l in logits]
+                dist = model.get_dist(logits, action_mask)
+                log_probs = torch.cat(dist.log_probs(actions), dim=-1)  # (parallel_envs, n_agents)
+
+        # Step the parallel environments
         next_obss, rewards, done, truncated, info = envs.step(
             actions.squeeze().tolist()
         )
@@ -107,7 +139,6 @@ def _collect_trajectories(
         # Convert vector rewards cleanly to tensor: (parallel_envs, n_agents, n_channels)
         rewards_tensor = torch.as_tensor(rewards, dtype=torch.float32, device=device)
         if rewards_tensor.ndim == 2:
-            # Handles non-vectorized single-env instance: (n_agents, n_channels) -> (1, n_agents, n_channels)
             rewards_tensor = rewards_tensor.unsqueeze(0)
 
         # Record step transitions
@@ -115,7 +146,8 @@ def _collect_trajectories(
         batch_act[t, running] = rearrange(actions, "N B 1 -> B N")[running]
         batch_done[t + 1, running] = done[running]
         batch_rew[t, running] = rewards_tensor[running]
-        batch_filled[t, running] = 1
+        batch_filled[t, running] = 1.0
+        batch_log_probs[t, running] = log_probs[running]
 
         # Accumulate per-channel episodic return
         env_decomposed_returns[running] += rewards_tensor[running]
@@ -134,21 +166,24 @@ def _collect_trajectories(
                 if d and running[i]:
                     ep_info = {}
 
-                    # ONLY copy numeric scalar stats from final_info (skip strings, lists, dicts)
+                    # Copy numeric scalar metadata from final_info
                     if "final_info" in info and info["final_info"][i] is not None:
                         for k, v in info["final_info"][i].items():
                             if isinstance(v, (int, float, np.integer, np.floating)):
                                 ep_info[k] = float(v)
 
-                    # Calculate decomposed episodic returns dynamically
+                    # Calculate decomposed episodic returns
                     agent_ch_returns = env_decomposed_returns[i].detach().cpu().numpy()  # (n_agents, n_channels)
                     total_scalar_return = float(agent_ch_returns.sum())
-                    
                     ep_info["episode_returns"] = total_scalar_return
 
                     # Dynamically log every active channel by name or index
                     n_channels = agent_ch_returns.shape[1]
-                    channel_names = getattr(envs.unwrapped, "REWARD_CHANNELS", [f"channel_{c}" for c in range(n_channels)])
+                    channel_names = getattr(
+                        envs.unwrapped,
+                        "REWARD_CHANNELS",
+                        [f"channel_{c}" for c in range(n_channels)],
+                    )
 
                     for c in range(n_channels):
                         ch_name = channel_names[c] if c < len(channel_names) else f"channel_{c}"
@@ -164,13 +199,20 @@ def _collect_trajectories(
         obss = next_obss
 
     batch = Batch(
-        batch_obs, batch_act, batch_rew, batch_done, batch_filled, batch_action_masks
+        batch_obs,
+        batch_act,
+        batch_rew,
+        batch_done,
+        batch_filled,
+        batch_action_masks,
+        batch_log_probs,
     )
 
     return t, batch, infos
 
 
 def record_episodes(env, model, n_timesteps, path, device):
+    """Renders evaluation episodes and writes out a video file."""
     recorder = VideoRecorder()
     done = True
 
@@ -188,7 +230,9 @@ def record_episodes(env, model, n_timesteps, path, device):
         else:
             with torch.no_grad():
                 obss = torch.tensor(obss, dtype=torch.float32, device=device).unsqueeze(1)
-                actions, hiddens = model.act(obss, hiddens, action_mask)
+                act_output = model.act(obss, hiddens, action_mask)
+                actions = act_output[0]
+                hiddens = act_output[1]
                 obss, _, done, truncated, info = env.step([a.item() for a in actions])
                 if "action_mask" in info:
                     action_mask = torch.tensor(
@@ -202,9 +246,10 @@ def record_episodes(env, model, n_timesteps, path, device):
 
 
 def main(envs, eval_env, logger, time_limit, **cfg):
+    """Main training routine for Decomp-OptiMAPPO."""
     cfg = DictConfig(cfg)
 
-    # Instantiate DecompA2CNetwork via Hydra
+    # Instantiate DecompOptiMAPPONetwork via Hydra
     model = hydra.utils.instantiate(
         cfg.model, envs.single_observation_space, envs.single_action_space, cfg
     )
@@ -218,8 +263,12 @@ def main(envs, eval_env, logger, time_limit, **cfg):
     last_save = 0
     last_video = 0
 
+    # Buffer to accumulate episodic returns between evaluation logging intervals
+    accumulated_infos = []
+
     while step < cfg.total_steps + 1:
-        t, batch, infos = _collect_trajectories(
+        # Collect rollout trajectory across all parallel environments
+        t, batch, rollout_infos = _collect_trajectories(
             envs,
             model,
             time_limit,
@@ -229,19 +278,25 @@ def main(envs, eval_env, logger, time_limit, **cfg):
             cfg.use_proper_termination,
         )
 
-        # Execute DecompA2CNetwork update across the 6 critics and actor
-        metrics = model.update(batch, step)
-        infos.append(metrics)
+        accumulated_infos.extend(rollout_infos)
 
+        # Execute Decomp-OptiMAPPO multi-epoch mini-batch update
+        metrics = model.update(batch, step)
+        accumulated_infos.append(metrics)
+
+        # Logging interval
         if (step - last_eval) >= cfg.eval_interval:
-            _log_progress(infos, step, updates, logger)
+            _log_progress(accumulated_infos, step, updates, logger)
+            accumulated_infos = []
             last_eval = step
 
+        # Checkpointing
         if cfg.save_interval and (step - last_save) >= cfg.save_interval:
             Path("checkpoints").mkdir(exist_ok=True)
             torch.save(model.state_dict(), f"checkpoints/model_s{step}.pt")
             last_save = step
 
+        # Video recording
         if cfg.video_interval and (step - last_video) >= cfg.video_interval:
             record_episodes(
                 eval_env,

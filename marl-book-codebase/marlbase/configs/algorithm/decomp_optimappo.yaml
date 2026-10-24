@@ -5,11 +5,11 @@ env:
   parallel_envs: 16
 
 algorithm:
-  _target_: decomp_optimappo.train.main
+  _target_: decomp_ac.train.main
   name: "decomp_optimappo"
 
   model:
-    _target_: decomp_optimappo.model.DecompOptiMAPPONetwork
+    _target_: decomp_ac.model_opti_know.DecompOptiMAPPONetwork
     actor:
       layers:
         - 128

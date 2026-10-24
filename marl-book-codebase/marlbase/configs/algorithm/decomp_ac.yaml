@@ -7,7 +7,7 @@ algorithm:
   name: "decomp_ac"
 
   model:
-    _target_: decomp_ac.model.DecompA2CNetwork
+    _target_: decomp_ac.model_a2c_know.DecompA2CNetwork
     actor:
       layers:
         - 128

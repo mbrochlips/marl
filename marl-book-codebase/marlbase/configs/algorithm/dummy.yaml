@@ -1,3 +1,0 @@
-name: "dummy"
-_target_: dummy.train.main
-episodes: 5
