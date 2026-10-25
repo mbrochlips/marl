@@ -27,6 +27,10 @@ def run(source, minimal_name, metric, save_path):
         group.has_metric(metric) for group in groups
     ), f"Metric {metric} not found in all groups"
 
+    # Treat both scalar and non-scalar penalty as the same task
+    for group in groups:
+        group.config.env.name = group.config.env.name.replace("-Scalar", "")
+
     envs = set([group.config.env.name for group in groups])
 
     for env in envs:

@@ -1,0 +1,4 @@
+- +algorithm=decomp_mappo_ot
+- env.name=utils.custom_envs:3Foods-Penalty-6x6-v0
+- env.time_limit=50
+- seed=1
