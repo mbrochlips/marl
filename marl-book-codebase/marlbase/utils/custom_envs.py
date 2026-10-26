@@ -9,7 +9,8 @@ class ForagingDecompReward(ForagingEnv):
     Base level-based foraging environment with decomposed (vectorized) rewards.
     Supports failed-loading / miscoordination penalties.
     """
-
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 10}
+    
     def __init__(
         self,
         players=2,
@@ -403,6 +404,7 @@ class Foraging3Foods(ForagingDecompReward):
 gym.register(
     id="3Foods-Penalty-6x6-v0",
     entry_point="utils.custom_envs:Foraging3Foods",
+    disable_env_checker=True,
     kwargs={
         "players": 2,
         "min_player_level": 2,
@@ -425,6 +427,7 @@ gym.register(
 gym.register(
     id="3Foods-6x6-v0",
     entry_point="utils.custom_envs:Foraging3Foods",
+    disable_env_checker=True,
     kwargs={
         "players": 2,
         "min_player_level": 2,
@@ -447,6 +450,7 @@ gym.register(
 gym.register(
     id="3Foods-Scalar-6x6-v0",
     entry_point="utils.custom_envs:Foraging3Foods",
+    disable_env_checker=True,
     kwargs={
         "players": 2,
         "min_player_level": 2,
@@ -469,6 +473,7 @@ gym.register(
 gym.register(
     id="3Foods-Scalar-Penalty-6x6-v0",
     entry_point="utils.custom_envs:Foraging3Foods",
+    disable_env_checker=True,
     kwargs={
         "players": 2,
         "min_player_level": 2,
