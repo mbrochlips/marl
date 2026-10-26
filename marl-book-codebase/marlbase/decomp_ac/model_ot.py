@@ -93,9 +93,9 @@ class DecompOptiMAPPONetwork(nn.Module):
         obs_dims = [flatdim(o) for o in obs_space]
         act_dims = [flatdim(a) for a in action_space]
 
-        # -------------------------------------------------------------
+
         # 1. Decomposed Channels & Supermodular Detector
-        # -------------------------------------------------------------
+
         self.n_reward_channels = getattr(cfg, "n_reward_channels", 4)
         self.optimism_alpha = getattr(cfg, "optimism_alpha", 0.1)
 
@@ -111,9 +111,9 @@ class DecompOptiMAPPONetwork(nn.Module):
             n_agents=self.n_agents,
         ).to(device)
 
-        # -------------------------------------------------------------
+
         # 2. Decentralized Actors
-        # -------------------------------------------------------------
+
         self.use_rnn = actor.use_rnn
         if not actor.parameter_sharing:
             self.actor = MultiAgentIndependentNetwork(
@@ -133,9 +133,9 @@ class DecompOptiMAPPONetwork(nn.Module):
                 actor.use_orthogonal_init,
             )
 
-        # -------------------------------------------------------------
+
         # 3. M x N Independent Centralized Critics
-        # -------------------------------------------------------------
+
         self.centralised_critic = critic.centralised
         critic_obs_shape = (
             self.n_agents * [sum(obs_dims)] if critic.centralised else obs_dims
@@ -180,9 +180,9 @@ class DecompOptiMAPPONetwork(nn.Module):
             self.critics.append(c)
             self.target_critics.append(tc)
 
-        # -------------------------------------------------------------
+
         # 4. Return Standardization & Optimizer
-        # -------------------------------------------------------------
+
         self.standardise_returns = cfg.standardise_returns
         if self.standardise_returns:
             self.ret_ms = RunningMeanStd(
@@ -201,9 +201,8 @@ class DecompOptiMAPPONetwork(nn.Module):
         self.split_obs = _split_batch([flatdim(s) for s in obs_space])
         self.split_act = _split_batch(self.n_agents * [1])
 
-    # -------------------------------------------------------------
+
     # State & Execution Handlers
-    # -------------------------------------------------------------
 
     def init_critic_hiddens(self, batch_size, target=False):
         critic_list = self.target_critics if target else self.critics
@@ -271,17 +270,16 @@ class DecompOptiMAPPONetwork(nn.Module):
             for target_param, source_param in zip(target.parameters(), source.parameters()):
                 target_param.data.copy_((1 - t) * target_param.data + t * source_param.data)
 
-    # -------------------------------------------------------------
+
     # The Decomp-OptiMAPPO Update Pipeline
-    # -------------------------------------------------------------
 
     def update(self, batch, step):
         T, B = batch.rewards.shape[:2]
         batch_dones = batch.dones.float().unsqueeze(-1).repeat(1, 1, self.n_agents)
 
-        # ---------------------------------------------------------
-        # Phase 1: Compute Target Values & Multi-Channel GAE
-        # ---------------------------------------------------------
+
+        # > Phase 1: Compute Target Values & Multi-Channel GAE
+
         with torch.no_grad():
             all_values, _ = self.get_value(
                 self.split_obs(batch.obss), critic_hiddens=None, target=False
@@ -331,9 +329,9 @@ class DecompOptiMAPPONetwork(nn.Module):
                     action_mask=action_mask,
                 )
 
-        # ---------------------------------------------------------
-        # Phase 2: Autonomous Coordination-Targeted Optimism
-        # ---------------------------------------------------------
+
+        # > Phase 2: Autonomous Coordination-Targeted Optimism
+
         # Compute persistent supermodular coordination score (runs in < 0.05ms)
         coord_scores = self.coord_detector.update(batch.rewards, batch.filled)
 
@@ -358,9 +356,9 @@ class DecompOptiMAPPONetwork(nn.Module):
         )
         norm_total_advantage = (total_advantage - adv_mean) / (adv_std + 1e-8)
 
-        # ---------------------------------------------------------
-        # Phase 3: PPO Mini-Batch Update Loop
-        # ---------------------------------------------------------
+
+        # > Phase 3: PPO Mini-Batch Update Loop
+
         mini_batch_size = max(1, B // self.num_mini_batches)
         
         epoch_actor_losses = []
@@ -397,7 +395,7 @@ class DecompOptiMAPPONetwork(nn.Module):
                     action_mask=mb_action_masks,
                 )
 
-                # 1. Clipped Surrogate Policy Loss
+                # Clipped Surrogate Policy Loss
                 ratio = torch.exp(new_log_probs - mb_old_log_probs.detach())
                 surr1 = ratio * mb_adv.detach()
                 surr2 = torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param) * mb_adv.detach()
@@ -405,7 +403,7 @@ class DecompOptiMAPPONetwork(nn.Module):
                 actor_loss = -torch.min(surr1, surr2).sum(dim=-1) - self.entropy_coef * entropy
                 actor_loss = (actor_loss * mb_filled).sum() / (mb_filled.sum() + 1e-8)
 
-                # 2. Decoupled Multi-Channel Critic Loss
+                # Decoupled Multi-Channel Critic Loss
                 val_losses = []
                 for m in range(self.n_reward_channels):
                     v_pred_m = new_values[..., m]
@@ -427,7 +425,7 @@ class DecompOptiMAPPONetwork(nn.Module):
 
                 total_value_loss = torch.stack(val_losses).sum()
 
-                # 3. Backward Pass & Gradient Clipping
+                # Backward Pass & Gradient Clipping
                 loss = actor_loss + self.value_loss_coef * total_value_loss
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -445,9 +443,9 @@ class DecompOptiMAPPONetwork(nn.Module):
                     epoch_approx_kls.append(approx_kl.item())
                     epoch_clip_fracs.append(clip_frac.item())
 
-        # ---------------------------------------------------------
-        # Phase 4: Target Network Soft Updates & Diagnostics
-        # ---------------------------------------------------------
+
+        # > Phase 4: Target Network Soft Updates & Diagnostics
+
         if (
             self.target_update_interval_or_tau > 1.0
             and step % self.target_update_interval_or_tau == 0
@@ -465,7 +463,7 @@ class DecompOptiMAPPONetwork(nn.Module):
             active_agents.sum() + 1e-8
         )
 
-        # Logging metrics (exported to results.csv and console)
+        # Logging metrics
         return {
             "loss": sum(epoch_actor_losses) / len(epoch_actor_losses)
             + self.value_loss_coef * (sum(epoch_value_losses) / len(epoch_value_losses)),
@@ -475,7 +473,6 @@ class DecompOptiMAPPONetwork(nn.Module):
             "approx_kl": sum(epoch_approx_kls) / len(epoch_approx_kls),
             "clip_frac": sum(epoch_clip_fracs) / len(epoch_clip_fracs),
             "coop_neg_adv_ratio": float(neg_coop_ratio.item()),
-            # Continuous coordination metrics for each reward channel
             **{
                 f"coordination_score_ch{m}": float(coord_scores[m].item())
                 for m in range(self.n_reward_channels)

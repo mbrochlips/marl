@@ -47,17 +47,12 @@ def compute_multichannel_gae(
     return advantages, returns
 
 
-# =====================================================================
-# 1. Channel-Query Transformer Critic with Subspace FiLM Isolation
-# =====================================================================
-
 class FiLMBlock(nn.Module):
     """
     Pre-LN Channel-conditioned Feed-Forward Block with Identity FiLM Initialization.
     """
     def __init__(self, d_model, d_ffn):
         super().__init__()
-        # 1. Pre-LayerNorm
         self.norm = nn.LayerNorm(d_model)
 
         self.linear1 = nn.Linear(d_model, d_ffn)
@@ -75,7 +70,6 @@ class FiLMBlock(nn.Module):
         nn.init.orthogonal_(self.linear2.weight, gain=1.0)
         nn.init.zeros_(self.linear2.bias)
 
-        # --- Identity FiLM Init ---
         # Zeroing weights and biases ensures gamma=0 and beta=0 at step 0
         nn.init.zeros_(self.film_proj.weight)
         nn.init.zeros_(self.film_proj.bias)
@@ -83,22 +77,19 @@ class FiLMBlock(nn.Module):
     def forward(self, x, channel_emb):
         # x: (B, M, d_model), channel_emb: (M, d_model)
 
-        # 1. Pre-LN on the residual stream
         norm_x = self.norm(x)
         h = self.linear1(norm_x)
 
-        # 2. Channel affine parameters
         film_params = self.film_proj(channel_emb)   # (M, 2 * d_ffn)
         gamma, beta = film_params.chunk(2, dim=-1)  # (M, d_ffn) each
 
-        # 3. Identity-centered FiLM modulation: (1.0 + gamma) * h + beta
+        # Identity-centered FiLM modulation: (1.0 + gamma) * h + beta
         # At init: (1.0 + 0.0) * h + 0.0 = h (perfect identity)
         h = (1.0 + gamma.unsqueeze(0)) * h + beta.unsqueeze(0)
         h = F.gelu(h)
 
         out = self.linear2(h)
 
-        # 4. Pure residual addition (unimpeded gradient highway)
         return x + out
 
 
@@ -197,7 +188,7 @@ class ChannelQueryTransformerCritic(nn.Module):
 
 
 # =====================================================================
-# 2. Full Network Architecture (MAPPO-OT with CQ-Transformer Critic)
+# Full Network Architecture (MAPPO-OT with CQ-Transformer Critic)
 # =====================================================================
 
 class TransformerCriticOTMAPPONetwork(nn.Module):
@@ -229,9 +220,8 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
         obs_dims = [flatdim(o) for o in obs_space]
         act_dims = [flatdim(a) for a in action_space]
 
-        # -------------------------------------------------------------
+    
         # Channels, Weights & Autonomous Coordination Detector
-        # -------------------------------------------------------------
         self.n_reward_channels = getattr(cfg, "n_reward_channels", 4)
         self.optimism_alpha = getattr(cfg, "optimism_alpha", 0.1)
 
@@ -245,9 +235,8 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
             n_agents=self.n_agents,
         ).to(device)
 
-        # -------------------------------------------------------------
+
         # Decentralized Actors
-        # -------------------------------------------------------------
         self.use_rnn = actor.use_rnn
         if not actor.parameter_sharing:
             self.actor = MultiAgentIndependentNetwork(
@@ -258,9 +247,7 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
                 obs_dims, list(actor.layers), act_dims, actor.parameter_sharing, actor.use_rnn, actor.use_orthogonal_init
             )
 
-        # -------------------------------------------------------------
         # Unified Transformer Critic (Replaces M Independent Critics)
-        # -------------------------------------------------------------
         self.centralised_critic = critic.centralised
         critic_state_dim = sum(obs_dims) if critic.centralised else obs_dims[0]
 
@@ -280,9 +267,7 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
         )
         self.target_critic = copy.deepcopy(self.critic)
 
-        # -------------------------------------------------------------
         # Return Standardization & Optimizer
-        # -------------------------------------------------------------
         self.standardise_returns = cfg.standardise_returns
         if self.standardise_returns:
             self.ret_ms = RunningMeanStd(
@@ -301,9 +286,9 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
         self.split_obs = _split_batch([flatdim(s) for s in obs_space])
         self.split_act = _split_batch(self.n_agents * [1])
 
-    # -------------------------------------------------------------
+
     # State & Execution Handlers
-    # -------------------------------------------------------------
+
 
     def init_actor_hiddens(self, batch_size):
         return self.actor.init_hiddens(batch_size, self.device)
@@ -360,17 +345,14 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
         for target_param, param in zip(self.target_critic.parameters(), self.critic.parameters()):
             target_param.data.copy_((1.0 - tau) * target_param.data + tau * param.data)
 
-    # -------------------------------------------------------------
-    # The Update Pipeline
-    # -------------------------------------------------------------
 
+    # The Update Pipeline
     def update(self, batch, step):
         T, B = batch.rewards.shape[:2]
         batch_dones = batch.dones.float().unsqueeze(-1).repeat(1, 1, self.n_agents)
 
-        # ---------------------------------------------------------
-        # Phase 1: Compute Target Values & Multi-Channel GAE
-        # ---------------------------------------------------------
+
+        # > Phase 1: Compute Target Values & Multi-Channel GAE
         with torch.no_grad():
             all_values = self.get_value(self.split_obs(batch.obss), target=False)
             v_preds = all_values[:-1]       # (T, B, n_agents, n_channels)
@@ -416,9 +398,9 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
                     action_mask=action_mask,
                 )
 
-        # ---------------------------------------------------------
-        # Phase 2: Autonomous Coordination-Targeted Optimism
-        # ---------------------------------------------------------
+
+        # > Phase 2: Autonomous Coordination-Targeted Optimism
+
         coord_scores = self.coord_detector.update(batch.rewards, batch.filled)
 
         # Fully vectorized LeakyReLU softening across all M channels:
@@ -441,9 +423,9 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
         )
         norm_total_advantage = (total_advantage - adv_mean) / (adv_std + 1e-8)
 
-        # ---------------------------------------------------------
-        # Phase 3: PPO Mini-Batch Update Loop
-        # ---------------------------------------------------------
+
+        # > Phase 3: PPO Mini-Batch Update Loop
+
         mini_batch_size = max(1, B // self.num_mini_batches)
 
         epoch_actor_losses, epoch_value_losses = [], []
@@ -476,14 +458,14 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
                     action_mask=mb_action_masks,
                 )
 
-                # 1. Clipped Surrogate Policy Loss
+                # Clipped Surrogate Policy Loss
                 ratio = torch.exp(new_log_probs - mb_old_log_probs.detach())
                 surr1 = ratio * mb_adv.detach()
                 surr2 = torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param) * mb_adv.detach()
                 actor_loss = -torch.min(surr1, surr2).sum(dim=-1) - self.entropy_coef * entropy
                 actor_loss = (actor_loss * mb_filled).sum() / (mb_filled.sum() + 1e-8)
 
-                # 2. Unified Vectorized Multi-Channel Critic Loss (No Python loops over M)
+                # Unified Vectorized Multi-Channel Critic Loss (No Python loops over M)
                 v_target = mb_target_ret.detach()
                 if self.use_clipped_value_loss:
                     v_old = mb_v_preds_old.detach()
@@ -519,9 +501,9 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
                     epoch_approx_kls.append(approx_kl.item())
                     epoch_clip_fracs.append(clip_frac.item())
 
-        # ---------------------------------------------------------
-        # Phase 4: Target Network Soft Updates & Diagnostics
-        # ---------------------------------------------------------
+
+        # > Phase 4: Target Network Soft Updates & Diagnostics
+
         if (
             self.target_update_interval_or_tau > 1.0
             and step % self.target_update_interval_or_tau == 0
@@ -538,6 +520,7 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
             active_agents.sum() + 1e-8
         )
 
+        # Logging
         return {
             "loss": sum(epoch_actor_losses) / len(epoch_actor_losses)
             + self.value_loss_coef * (sum(epoch_value_losses) / len(epoch_value_losses)),
