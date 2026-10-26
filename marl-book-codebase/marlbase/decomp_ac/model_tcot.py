@@ -53,41 +53,58 @@ def compute_multichannel_gae(
 
 class FiLMBlock(nn.Module):
     """
-    Feature-wise Linear Modulation (FiLM) block.
-    Dynamically projects each channel into an isolated subspace of the FFN,
-    preventing conflicting gradients from interfering with shared representations.
+    Pre-LN Channel-conditioned Feed-Forward Block with Identity FiLM Initialization.
     """
     def __init__(self, d_model, d_ffn):
         super().__init__()
+        # 1. Pre-LayerNorm
+        self.norm = nn.LayerNorm(d_model)
+
         self.linear1 = nn.Linear(d_model, d_ffn)
         self.linear2 = nn.Linear(d_ffn, d_model)
-        self.norm = nn.LayerNorm(d_model)
-        self.film_gen = nn.Sequential(
-            nn.Linear(d_model, d_ffn * 2),
-            nn.GELU(),
-        )
+
+        # Modulation generator: predicts (gamma, beta)
+        self.film_proj = nn.Linear(d_model, d_ffn * 2)
+
+        self._reset_parameters()
+
+    def _reset_parameters(self):
+        # Orthogonal initialization for FFN layers
+        nn.init.orthogonal_(self.linear1.weight, gain=1.0)
+        nn.init.zeros_(self.linear1.bias)
+        nn.init.orthogonal_(self.linear2.weight, gain=1.0)
+        nn.init.zeros_(self.linear2.bias)
+
+        # --- Identity FiLM Init ---
+        # Zeroing weights and biases ensures gamma=0 and beta=0 at step 0
+        nn.init.zeros_(self.film_proj.weight)
+        nn.init.zeros_(self.film_proj.bias)
 
     def forward(self, x, channel_emb):
         # x: (B, M, d_model), channel_emb: (M, d_model)
-        residual = x
-        h = self.linear1(x)
 
-        # Generate channel-specific affine parameters (gamma, beta)
-        film_params = self.film_gen(channel_emb)       # (M, 2 * d_ffn)
-        gamma, beta = film_params.chunk(2, dim=-1)     # (M, d_ffn) each
+        # 1. Pre-LN on the residual stream
+        norm_x = self.norm(x)
+        h = self.linear1(norm_x)
 
-        # Modulate hidden activations per channel
-        h = gamma.unsqueeze(0) * h + beta.unsqueeze(0)
+        # 2. Channel affine parameters
+        film_params = self.film_proj(channel_emb)   # (M, 2 * d_ffn)
+        gamma, beta = film_params.chunk(2, dim=-1)  # (M, d_ffn) each
+
+        # 3. Identity-centered FiLM modulation: (1.0 + gamma) * h + beta
+        # At init: (1.0 + 0.0) * h + 0.0 = h (perfect identity)
+        h = (1.0 + gamma.unsqueeze(0)) * h + beta.unsqueeze(0)
         h = F.gelu(h)
 
         out = self.linear2(h)
-        return self.norm(residual + out)
+
+        # 4. Pure residual addition (unimpeded gradient highway)
+        return x + out
 
 
 class ChannelQueryTransformerCritic(nn.Module):
     """
-    Unified Single Critic mapping state -> (..., N_agents, M_channels).
-    Cross-attention decouples channel representations from state tokens.
+    Pre-LN Channel-Query Transformer Critic with Identity FiLM Subspaces.
     """
     def __init__(
         self,
@@ -105,28 +122,35 @@ class ChannelQueryTransformerCritic(nn.Module):
         self.d_model = d_model
         self.n_state_tokens = n_state_tokens
 
-        # State Tokenizer: Projects raw continuous state into spatial/entity tokens
+        # 1. State Tokenizer
         self.state_tokenizer = nn.Sequential(
             nn.Linear(state_dim, d_model * n_state_tokens),
             nn.GELU(),
         )
 
-        # Channel Embeddings: Learned continuous query representations
+        # 2. Channel Query Embeddings
         self.channel_embeddings = nn.Embedding(n_reward_channels, d_model)
+        nn.init.normal_(self.channel_embeddings.weight, std=0.02)
 
-        # Cross-Attention: Channel queries attend to State tokens
+        # 3. Pre-LN Cross-Attention Normalizers
+        self.norm_query = nn.LayerNorm(d_model)
+        self.norm_state = nn.LayerNorm(d_model)
         self.cross_attn = nn.MultiheadAttention(
             embed_dim=d_model,
             num_heads=n_heads,
             batch_first=True,
         )
-        self.norm_attn = nn.LayerNorm(d_model)
 
-        # Subspace Isolation FFN
+        # 4. Pre-LN FiLM-FFN
         self.film_ffn = FiLMBlock(d_model, d_ffn)
 
-        # Per-agent value readout head
+        # 5. Final LayerNorm before value prediction (essential for Pre-LN)
+        self.final_norm = nn.LayerNorm(d_model)
+
+        # 6. Readout Head
         self.head = nn.Linear(d_model, n_agents)
+        nn.init.orthogonal_(self.head.weight, gain=1.0)
+        nn.init.zeros_(self.head.bias)
 
     def forward(self, state):
         """
@@ -149,19 +173,26 @@ class ChannelQueryTransformerCritic(nn.Module):
         ch_embs = self.channel_embeddings(ch_indices)  # (M, d_model)
         ch_queries = ch_embs.unsqueeze(0).expand(B, -1, -1)
 
-        # 3. Cross-Attention: Channels extract features from State tokens
+        # 3. Pre-LN Cross-Attention
+        # Queries and keys/values are normalized BEFORE attention
+        norm_q = self.norm_query(ch_queries)
+        norm_kv = self.norm_state(state_tokens)
+
         attn_out, _ = self.cross_attn(
-            query=ch_queries,
-            key=state_tokens,
-            value=state_tokens,
+            query=norm_q,
+            key=norm_kv,
+            value=norm_kv,
         )
-        x = self.norm_attn(ch_queries + attn_out)
+        # Clean residual addition
+        x = ch_queries + attn_out
 
-        # 4. Modulated Reasoning
-        x = self.film_ffn(x, ch_embs)  # (B, M, d_model)
+        # 4. Pre-LN FiLM FFN (also handles its own residual connection)
+        x = self.film_ffn(x, ch_embs)
 
-        # 5. Readout -> (B, M, n_agents) -> Transpose to (B, n_agents, M)
-        values = self.head(x).transpose(1, 2)
+        # 5. Final LayerNorm & Value Readout
+        x_norm = self.final_norm(x)
+        values = self.head(x_norm).transpose(1, 2)  # (B, n_agents, M)
+
         return values.view(*orig_shape, self.n_agents, self.n_channels)
 
 

@@ -9,7 +9,7 @@ algorithm:
   name: "mappo_tcot"
 
   model:
-    _target_: decomp_ac.model_tcot.TransformerCriticOTMAPPONetwork
+    _target_: decomp_ac.model_tcot_newfilm.TransformerCriticOTMAPPONetwork
     actor:
       layers:
         - 128

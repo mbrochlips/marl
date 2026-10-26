@@ -9,18 +9,21 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-# Figure settings
+# ==========================================
+# Configuration & Plot Settings
+# ==========================================
+show_stds = False          # Set to True to plot shaded standard deviation bands
+METRIC = "mean_episode_returns"
 FIG_WIDTH = 5
 FIG_HEIGHT = 2
 FIG_ALPHA = 0.2
-METRIC = "mean_episode_returns"
 
 # The exact runs to compare
 RUNS = [
     {
         "label": "MAPPO-TCOT",
         "color": "#388E3C",  # Green
-        "path": "outputs/utils.custom_envs:3Foods-Penalty-6x6-v0/mappo_tcot/2026-10-24_20-21-03/results.csv",
+        "path": "outputs/utils.custom_envs:3Foods-Penalty-6x6-v0/mappo_tcot/2026-10-25_13-20-56_new_film_init/results.csv",
     },
     {
         "label": "MAPPO-OT",
@@ -77,30 +80,29 @@ def parse_column_values(df, col_name):
     return arr
 
 
-def load_returns(csv_path, metric_col=METRIC):
+def load_returns(csv_path, metric_col=METRIC, load_std=False):
     df = pd.read_csv(csv_path)
-    # Strip any leading/trailing spaces from column headers
+    # Strip any leading/trailing spaces from column headers (fixes ' environment_steps')
     df.columns = df.columns.str.strip()
 
-    # 1. Load Mean metric
     if metric_col not in df.columns:
         raise KeyError(f"Metric '{metric_col}' not found in {csv_path}. Columns: {list(df.columns)}")
     means = parse_column_values(df, metric_col)
 
-    # 2. Derive and load matching Standard Deviation metric
-    # e.g., 'mean_episode_returns' -> 'std_episode_returns'
-    if metric_col.startswith("mean_"):
-        std_col = metric_col.replace("mean_", "std_", 1)
-    else:
-        std_col = f"std_{metric_col}"
+    # Load matching standard deviation metric if requested
+    stds = None
+    if load_std:
+        if metric_col.startswith("mean_"):
+            std_col = metric_col.replace("mean_", "std_", 1)
+        else:
+            std_col = f"std_{metric_col}"
 
-    if std_col in df.columns:
-        stds = parse_column_values(df, std_col)
-    else:
-        print(f"Warning: '{std_col}' not found in {csv_path}. Shaded band will be zero.")
-        stds = np.zeros_like(means)
+        if std_col in df.columns:
+            stds = parse_column_values(df, std_col)
+        else:
+            print(f"Warning: '{std_col}' not found in {csv_path}. Skipping std band.")
 
-    # 3. Retrieve environment steps
+    # Retrieve environment steps
     if "environment_steps" in df.columns:
         x = df["environment_steps"].values[:len(means)]
     else:
@@ -120,7 +122,7 @@ def main():
             print(f"Warning: File not found: {run['path']}")
             continue
 
-        x, means, stds = load_returns(run["path"], metric_col=METRIC)
+        x, means, stds = load_returns(run["path"], metric_col=METRIC, load_std=show_stds)
 
         # Plot mean curve
         ax.plot(
@@ -133,8 +135,8 @@ def main():
             markersize=4,
         )
 
-        # Plot standard deviation band
-        if np.any(stds > 0):
+        # Plot standard deviation band only when show_stds is True
+        if show_stds and stds is not None and np.any(stds > 0):
             ax.fill_between(
                 x,
                 means - stds,
@@ -146,16 +148,16 @@ def main():
     # English labels and formatting
     ax.set_xlabel("Environment Steps", fontsize=16)
     ax.set_ylabel("Average Return", fontsize=16)
-    ax.set_title(f"{env_name} Comparison", fontsize=18)
     ax.legend(loc="best", fontsize=12)
     ax.tick_params(labelsize=14)
     ax.grid(True, alpha=0.3)
     plt.tight_layout()
 
-    # Destination directory
+    # Destination directory: utils/postprocessing/plots
     out_dir = Path("utils/postprocessing/plots")
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # Filename: <env_name>_<date_and_time>.pdf
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     safe_env_filename = env_name.replace(":", "_").replace("/", "_")
     out_path = out_dir / f"{safe_env_filename}_{timestamp}.pdf"
