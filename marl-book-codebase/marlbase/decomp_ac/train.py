@@ -1,4 +1,4 @@
-# File: marlbase/decomp_optimappo/train.py
+# File: marlbase/decomp_ac/train.py
 
 from collections import namedtuple
 from pathlib import Path
@@ -11,7 +11,7 @@ from omegaconf import DictConfig
 import torch
 
 from marlbase.utils.video import VideoRecorder
-
+from marlbase.utils.transfer import save_transferable_backbone, load_transferable_backbone
 
 # Batch structure supporting decomposed rewards and optional cached old log-probs
 Batch = namedtuple(
@@ -246,28 +246,30 @@ def record_episodes(env, model, n_timesteps, path, device):
 
 
 def main(envs, eval_env, logger, time_limit, **cfg):
-    """Main training routine for Decomp-OptiMAPPO."""
     cfg = DictConfig(cfg)
 
-    # Instantiate DecompOptiMAPPONetwork via Hydra
+    # Instantiate model
     model = hydra.utils.instantiate(
         cfg.model, envs.single_observation_space, envs.single_action_space, cfg
     )
+
+    # -------------------------------------------------------------
+    # Optional: Load Transferable Backbone for New Environment
+    # -------------------------------------------------------------
+    pretrained_backbone = getattr(cfg, "pretrained_backbone", None)
+    if pretrained_backbone is not None and Path(pretrained_backbone).exists():
+        load_transferable_backbone(model, pretrained_backbone, cfg.model.device)
+
     logger.watch(model)
 
     parallel_envs = envs.observation_space[0].shape[0]
-
     step = 0
     updates = 0
     last_eval = 0
     last_save = 0
-    last_video = 0
-
-    # Buffer to accumulate episodic returns between evaluation logging intervals
     accumulated_infos = []
 
     while step < cfg.total_steps + 1:
-        # Collect rollout trajectory across all parallel environments
         t, batch, rollout_infos = _collect_trajectories(
             envs,
             model,
@@ -277,10 +279,8 @@ def main(envs, eval_env, logger, time_limit, **cfg):
             cfg.model.device,
             cfg.use_proper_termination,
         )
-
         accumulated_infos.extend(rollout_infos)
 
-        # Execute Decomp-OptiMAPPO multi-epoch mini-batch update
         metrics = model.update(batch, step)
         accumulated_infos.append(metrics)
 
@@ -293,21 +293,16 @@ def main(envs, eval_env, logger, time_limit, **cfg):
         # Checkpointing
         if cfg.save_interval and (step - last_save) >= cfg.save_interval:
             Path("checkpoints").mkdir(exist_ok=True)
-            torch.save(model.state_dict(), f"checkpoints/model_s{step}.pt")
+            # 1. Full training checkpoint (for resuming training on this env)
+            torch.save(model.state_dict(), f"checkpoints/model_full_s{step}.pt")
+            # 2. Transferable backbone (for transfer to other LBF environments)
+            save_transferable_backbone(model, f"checkpoints/backbone_s{step}.pt")
             last_save = step
-
-        # Video recording
-        if cfg.video_interval and (step - last_video) >= cfg.video_interval:
-            record_episodes(
-                eval_env,
-                model,
-                cfg.video_frames,
-                f"./videos/step-{step}.mp4",
-                cfg.model.device,
-            )
-            last_video = step
 
         updates += 1
         step += t * parallel_envs
 
+    # Save final transferable checkpoint
+    Path("checkpoints").mkdir(exist_ok=True)
+    save_transferable_backbone(model, "checkpoints/backbone_final.pt")
     envs.close()

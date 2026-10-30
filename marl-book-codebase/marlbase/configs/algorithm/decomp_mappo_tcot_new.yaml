@@ -1,0 +1,76 @@
+# @package _global_
+env:
+  parallel_envs: 16
+
+algorithm:
+  _target_: decomp_ac.train.main
+  name: "mappo_tcot_new"
+
+  model:
+    _target_: decomp_ac.model_tcot_new.TransformerCriticOTMAPPONetwork
+    actor:
+      layers:
+        - 128
+        - 128
+      parameter_sharing: False
+      use_orthogonal_init: True
+      use_rnn: False
+    critic:
+      centralised: True        # Kept for CTDE compatibility
+
+    device: "cuda"             # Automatically falls back to "cpu" if CUDA is unavailable
+
+  # -------------------------------------------------------------
+  # Channel-Query Cross-Agent Transformer Critic Settings
+  # -------------------------------------------------------------
+  critic_d_model: 128          # Model dimension for agent tokens and channel queries
+  critic_n_heads: 4            # Number of attention heads (128 / 4 = 32 dim per head)
+  critic_d_ffn: 256            # Channel FiLM feedforward projection dimension
+  
+  # -------------------------------------------------------------
+  # Attention Attribution & Calibration (New Parameters)
+  # -------------------------------------------------------------
+  critic_identity_bias: 4.0    # Softmax diagonal prior: forces off-diagonal attention to ~0 at step 0
+  coord_ema_momentum: 0.95      # Smoothing momentum for coordination scores across PPO updates
+  coord_r2_threshold: 0.15      # Critic Explained Variance (R^2) gate: zero optimism if R^2 < 0.15
+
+  # -------------------------------------------------------------
+  # Decomposed Channels & Autonomous Targeted Optimism
+  # -------------------------------------------------------------
+  n_reward_channels: 4         # Matches 3Foods-Penalty (3 food channels + 1 penalty channel)
+  optimism_alpha: 0.1          # 90% discount on coordination failure penalties
+  channel_weights: [1.0, 1.0, 1.0, 1.0]
+
+  # -------------------------------------------------------------
+  # PPO Core Hyperparameters
+  # -------------------------------------------------------------
+  ppo_epochs: 4                # Optimization epochs per rollout batch
+  num_mini_batches: 1          # 1 mini-batch (uses full batch)
+  clip_param: 0.2              # PPO surrogate ratio clipping
+  gae_lambda: 0.95             # Multi-channel GAE lambda
+  use_clipped_value_loss: True # Value clipping to stabilize multi-channel return estimation
+
+  # -------------------------------------------------------------
+  # Optimization & Trajectory Rollout
+  # -------------------------------------------------------------
+  optimizer: "Adam"
+  lr: 3.e-4
+  grad_clip: 0.5
+  n_steps: 25                  # Rollout unroll length per env
+  gamma: 0.99
+  entropy_coef: 0.01
+  value_loss_coef: 0.5
+  use_proper_termination: False
+  standardise_returns: True    # Keeps multi-channel return scales aligned
+
+  # Target Critic Update (Hard update every 200 updates)
+  target_update_interval_or_tau: 200
+
+  # -------------------------------------------------------------
+  # Evaluation & Logging
+  # -------------------------------------------------------------
+  total_steps: 2000000
+  eval_interval: 40000
+  save_interval: 0
+  video_interval: 0
+  video_frames: 200
