@@ -229,7 +229,8 @@ def record_episodes(env, model, n_timesteps, path, device):
             done = False
         else:
             with torch.no_grad():
-                obss = torch.tensor(obss, dtype=torch.float32, device=device).unsqueeze(1)
+                # obss = torch.tensor(obss, dtype=torch.float32, device=device).unsqueeze(1)
+                obss = torch.as_tensor(np.array(obss), dtype=torch.float32, device=device).unsqueeze(1)
                 act_output = model.act(obss, hiddens, action_mask)
                 actions = act_output[0]
                 hiddens = act_output[1]

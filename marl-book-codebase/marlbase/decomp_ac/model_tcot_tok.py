@@ -280,6 +280,114 @@ class ExtensibleEntityCritic(EntityChannelQueryTransformerCritic):
         self.channel_registry[channel_id] = idx
         print(f"[Dynamic Critic] Discovered reward '{channel_id}'. Allocated Channel {idx} (M={self.n_channels}).", flush=True)
         return idx
+    
+
+
+def make_orthonormal_basis(dim: int, seed: int = 42) -> torch.Tensor:
+    rng_state = torch.get_rng_state()
+    torch.manual_seed(seed)
+    A = torch.randn(dim, dim)
+    Q, _ = torch.linalg.qr(A)  # Strictly orthonormal: Q.T @ Q = I
+    torch.set_rng_state(rng_state)
+    return Q
+
+
+class ContinualEntityTransformerCritic(nn.Module):
+    def __init__(
+        self,
+        n_agents,
+        d_model=128,
+        n_heads=4,
+        d_ffn=256,
+        **kwargs,
+    ):
+        super().__init__()
+        self.n_agents = n_agents
+        self.d_model = d_model
+
+        # Universal fixed basis buffer: 128 orthogonal queries
+        basis = make_orthonormal_basis(d_model, seed=42)
+        self.register_buffer("channel_basis", basis)
+
+        # 1. Entity Projector & Self-Attention
+        self.entity_proj = nn.Sequential(
+            nn.Linear(5, d_model),
+            nn.GELU(),
+            nn.Linear(d_model, d_model),
+        )
+        self.entity_norm1 = nn.LayerNorm(d_model)
+        self.self_attn = nn.MultiheadAttention(embed_dim=d_model, num_heads=n_heads, batch_first=True)
+        self.entity_norm2 = nn.LayerNorm(d_model)
+
+        # 2. Channel Cross-Attention
+        self.norm_query = nn.LayerNorm(d_model)
+        self.norm_kv = nn.LayerNorm(d_model)
+        self.cross_attn = nn.MultiheadAttention(embed_dim=d_model, num_heads=n_heads, batch_first=True)
+
+        # 3. FiLM Subspaces
+        self.film_ffn = FiLMBlock(d_model, d_ffn)
+        self.final_channel_norm = nn.LayerNorm(d_model)
+        self.final_agent_norm = nn.LayerNorm(d_model)
+
+        # 4. Readout Head
+        self.value_head = nn.Linear(d_model * 2, 1)
+        nn.init.orthogonal_(self.value_head.weight, gain=1.0)
+        nn.init.zeros_(self.value_head.bias)
+
+    def _unpack_flat_state_to_tokens(self, state_flat):
+        orig_shape = state_flat.shape[:-1]
+        flat_dim = state_flat.shape[-1]
+        num_entities = flat_dim // 3
+        raw_entities = state_flat.view(*orig_shape, num_entities, 3)
+
+        flags = torch.zeros(*orig_shape, num_entities, 2, device=state_flat.device)
+        flags[..., :self.n_agents, 0] = 1.0  # Agents
+        food_levels = raw_entities[..., self.n_agents:, 2]
+        flags[..., self.n_agents:, 1] = (food_levels > 0.0).float()  # Active foods
+        return torch.cat([raw_entities, flags], dim=-1)
+
+    def forward(self, state, channel_indices: torch.Tensor):
+        """
+        Args:
+            state: (..., state_dim)
+            channel_indices: 1D LongTensor of basis slots for the active environment
+                             e.g. [0, 1, 2, 3] or [4, 5, 6, 3]
+        """
+        orig_shape = state.shape[:-1]
+        state_flat = state.view(-1, state.shape[-1])
+        B = state_flat.shape[0]
+        M = len(channel_indices)
+
+        # 1. Unpack & Entity Self-Attention
+        entity_tokens = self._unpack_flat_state_to_tokens(state_flat)
+        h_entities = self.entity_norm1(self.entity_proj(entity_tokens))
+        attn_ent, _ = self.self_attn(h_entities, h_entities, h_entities)
+        h_entities = self.entity_norm2(h_entities + attn_ent)
+
+        # 2. Gather EXACT basis queries assigned to these semantic rewards
+        ch_embs = self.channel_basis[channel_indices]  # (M, d_model)
+        ch_queries = ch_embs.unsqueeze(0).expand(B, -1, -1)
+
+        # 3. Cross-Attention
+        norm_q = self.norm_query(ch_queries)
+        norm_kv = self.norm_kv(h_entities)
+        attn_ch, _ = self.cross_attn(query=norm_q, key=norm_kv, value=norm_kv)
+        x = ch_queries + attn_ch
+
+        # 4. Identity FiLM Subspaces
+        channel_tokens = self.film_ffn(x, ch_embs)
+        channel_tokens = self.final_channel_norm(channel_tokens)
+
+        # 5. Extract Contextualized Agent Tokens
+        agent_tokens = self.final_agent_norm(h_entities[:, :self.n_agents, :])  # (B, N, d_model)
+
+        # 6. Readout
+        agent_exp = agent_tokens.unsqueeze(2).expand(B, self.n_agents, M, self.d_model)
+        chan_exp = channel_tokens.unsqueeze(1).expand(B, self.n_agents, M, self.d_model)
+        joint_pairs = torch.cat([agent_exp, chan_exp], dim=-1)
+
+        values = self.value_head(joint_pairs).squeeze(-1)  # (B, N, M)
+        return values.view(*orig_shape, self.n_agents, M)
 
 # =====================================================================
 # Full Network Architecture (MAPPO-OT with CQ-Transformer Critic)

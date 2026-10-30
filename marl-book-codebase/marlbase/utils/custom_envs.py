@@ -290,6 +290,7 @@ class Foraging3Foods(ForagingDecompReward):
       - Channel 2: Low-Level Stochastic Solo Food (Level 2, reward in {-0.2, 3.0})
       - Channel 3: Step Penalty Channel (-c_step per step)
     """
+    REWARD_CHANNELS = ["coop_food", "det_food", "stoch_food", "step_cost"]
 
     def __init__(
         self,
@@ -409,6 +410,7 @@ class Foraging4FoodsStandard(ForagingDecompReward):
       - Observation space: 3 * (2 + 4) = 18 floats per agent
       - Critic State: 18 * 2 = 36 floats
     """
+    REWARD_CHANNELS = ["coop_pen", "coop_free", "stochv2", "detv2", "step_cost"]
 
     def __init__(
         self,
