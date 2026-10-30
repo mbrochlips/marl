@@ -248,14 +248,12 @@ def record_episodes(env, model, n_timesteps, path, device):
 def main(envs, eval_env, logger, time_limit, **cfg):
     cfg = DictConfig(cfg)
 
-    # Instantiate model
+    # 1. Instantiate Model
     model = hydra.utils.instantiate(
         cfg.model, envs.single_observation_space, envs.single_action_space, cfg
     )
 
-    # -------------------------------------------------------------
-    # Optional: Load Transferable Backbone for New Environment
-    # -------------------------------------------------------------
+    # 2. Optional: Load Pretrained Transferable Backbone
     pretrained_backbone = getattr(cfg, "pretrained_backbone", None)
     if pretrained_backbone is not None and Path(pretrained_backbone).exists():
         load_transferable_backbone(model, pretrained_backbone, cfg.model.device)
@@ -270,6 +268,7 @@ def main(envs, eval_env, logger, time_limit, **cfg):
     accumulated_infos = []
 
     while step < cfg.total_steps + 1:
+        # Collect rollouts (exact same function as before)
         t, batch, rollout_infos = _collect_trajectories(
             envs,
             model,
@@ -281,6 +280,7 @@ def main(envs, eval_env, logger, time_limit, **cfg):
         )
         accumulated_infos.extend(rollout_infos)
 
+        # Update model
         metrics = model.update(batch, step)
         accumulated_infos.append(metrics)
 
@@ -293,9 +293,9 @@ def main(envs, eval_env, logger, time_limit, **cfg):
         # Checkpointing
         if cfg.save_interval and (step - last_save) >= cfg.save_interval:
             Path("checkpoints").mkdir(exist_ok=True)
-            # 1. Full training checkpoint (for resuming training on this env)
-            torch.save(model.state_dict(), f"checkpoints/model_full_s{step}.pt")
-            # 2. Transferable backbone (for transfer to other LBF environments)
+            # Full checkpoint for resuming training on the SAME env
+            torch.save(model.state_dict(), f"checkpoints/full_model_s{step}.pt")
+            # Transferable backbone for transferring to ANY OTHER env
             save_transferable_backbone(model, f"checkpoints/backbone_s{step}.pt")
             last_save = step
 
@@ -303,6 +303,5 @@ def main(envs, eval_env, logger, time_limit, **cfg):
         step += t * parallel_envs
 
     # Save final transferable checkpoint
-    Path("checkpoints").mkdir(exist_ok=True)
     save_transferable_backbone(model, "checkpoints/backbone_final.pt")
     envs.close()

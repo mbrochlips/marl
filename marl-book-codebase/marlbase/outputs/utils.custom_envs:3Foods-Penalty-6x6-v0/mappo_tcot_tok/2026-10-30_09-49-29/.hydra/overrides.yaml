@@ -1,0 +1,5 @@
+- +algorithm=decomp_mappo_tcot_tok
+- env.name=utils.custom_envs:3Foods-Penalty-6x6-v0
+- env.time_limit=50
+- seed=1
+- +pretrained_backbone=/zhome/36/1/204745/marl/marl-book-codebase/marlbase/outputs/utils.custom_envs:3Foods-Penalty-6x6-v0/mappo_tcot_tok/2026-10-30_09-45-24/checkpoints/backbone_final.pt

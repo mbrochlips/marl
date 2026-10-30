@@ -401,6 +401,182 @@ class Foraging3Foods(ForagingDecompReward):
         return penalties
 
 
+class Foraging4FoodsStandard(ForagingDecompReward):
+    """
+    Standard LBF with 4 distinct foods (Native 18-dim observations):
+      - Players: 2 (Level 2 each)
+      - Foods on field: 4 (Level 3 Coop w/ Penalty, Level 3 Coop Free, Level 1 Stoch, Level 1 Det)
+      - Observation space: 3 * (2 + 4) = 18 floats per agent
+      - Critic State: 18 * 2 = 36 floats
+    """
+
+    def __init__(
+        self,
+        players=2,
+        min_player_level=2,
+        max_player_level=2,
+        field_size=(6, 6),
+        min_food_level=1,
+        max_food_level=3,
+        force_coop=False,
+        max_num_food=4,
+        sight=6,
+        max_episode_steps=50,
+        step_penalty=0.01,
+        miscoordination_penalty=0.4,
+        num_semantic_channels=5,
+        food_to_collect=3,
+        vector_reward=True,
+        **kwargs,
+    ):
+        super().__init__(
+            players=players,
+            min_player_level=min_player_level,
+            max_player_level=max_player_level,
+            field_size=field_size,
+            min_food_level=min_food_level,
+            max_food_level=max_food_level,
+            sight=sight,
+            max_episode_steps=max_episode_steps,
+            force_coop=force_coop,
+            max_num_food=max_num_food,
+            step_penalty=step_penalty,
+            miscoordination_penalty=miscoordination_penalty,
+            num_semantic_channels=num_semantic_channels,
+            food_to_collect=food_to_collect,
+            vector_reward=vector_reward,
+            **kwargs,
+        )
+        assert len(self.players) == 2, "Agent count must remain 2."
+
+    def _setup_food_items(self):
+        self.field[:] = 0
+        self.food_items = []
+
+        occupied = set(p.position for p in self.players)
+        all_coords = [
+            (r, c)
+            for r in range(self.rows)
+            for c in range(self.cols)
+            if (r, c) not in occupied
+        ]
+
+        rng = getattr(self, "np_random", np.random)
+        chosen_indices = rng.choice(len(all_coords), size=4, replace=False)
+
+        pos_coop_pen = all_coords[chosen_indices[0]]
+        pos_coop_free = all_coords[chosen_indices[1]]
+        pos_stoch = all_coords[chosen_indices[2]]
+        pos_det = all_coords[chosen_indices[3]]
+
+        self.field[pos_coop_pen] = 3
+        self.field[pos_coop_free] = 3
+        self.field[pos_stoch] = 1
+        self.field[pos_det] = 1
+
+        self.food_items = [
+            {
+                "channel_id": 0,
+                "pos": pos_coop_pen,
+                "level": 3,
+                "type": "coop_with_penalty",
+                "active": True,
+            },
+            {
+                "channel_id": 1,
+                "pos": pos_coop_free,
+                "level": 3,
+                "type": "coop_no_penalty",
+                "active": True,
+            },
+            {
+                "channel_id": 2,
+                "pos": pos_stoch,
+                "level": 1,
+                "type": "low_stoch",
+                "active": True,
+            },
+            {
+                "channel_id": 3,
+                "pos": pos_det,
+                "level": 1,
+                "type": "low_det",
+                "active": True,
+            },
+        ]
+
+    def _calculate_food_reward(self, food, loading_players):
+        food_type = food["type"]
+        payouts = {}
+
+        if food_type == "coop_with_penalty":
+            for p in loading_players:
+                payouts[p] = 4.0
+        elif food_type == "coop_no_penalty":
+            for p in loading_players:
+                payouts[p] = 2.5
+        elif food_type == "low_stoch":
+            rng = getattr(self, "np_random", np.random)
+            val = float(rng.choice([-2.5, 2.0], p=[0.5, 0.5]))
+            for p in loading_players:
+                payouts[p] = val
+        elif food_type == "low_det":
+            val = 1.2 / len(loading_players)
+            for p in loading_players:
+                payouts[p] = val
+
+        return payouts
+
+    def _calculate_failed_load_penalty(self, food, loading_players):
+        food_type = food["type"]
+        penalties = {}
+        if food_type == "coop_with_penalty":
+            for p in loading_players:
+                penalties[p] = -abs(self.miscoordination_penalty)
+        return penalties
+
+    def step(self, actions):
+        obs, rew, terminated, truncated, info = super().step(actions)
+
+        # Handle 5th channel (step penalty)
+        if self.step_penalty > 0.0 and self.num_reward_channels == 5:
+            for p_idx in range(len(self.players)):
+                if self.vector_reward:
+                    rew[p_idx][4] = -abs(self.step_penalty)
+
+        if terminated or truncated:
+            team_channels = self.episode_reward_vec.sum(axis=0)
+            names = ["coop_pen", "coop_free", "stoch", "det", "step_penalty"]
+            for idx in range(self.num_reward_channels):
+                name = names[idx] if idx < len(names) else f"ch_{idx}"
+                info[f"return_{name}"] = float(team_channels[idx])
+
+        return obs, rew, terminated, truncated, info
+
+
+gym.register(
+    id="4Foods-Penalty-6x6-v0",
+    entry_point="utils.custom_envs:Foraging4FoodsStandard",
+    disable_env_checker=True,
+    kwargs={
+        "players": 2,
+        "min_player_level": 2,
+        "max_player_level": 2,
+        "field_size": (6, 6),
+        "min_food_level": 1,
+        "max_food_level": 3,
+        "max_num_food": 4,
+        "sight": 6,
+        "max_episode_steps": 50,
+        "force_coop": False,
+        "step_penalty": 0.01,
+        "miscoordination_penalty": 0.3,
+        "num_semantic_channels": 5,
+        "food_to_collect": 3,
+        "vector_reward": True,
+    },
+)
+
 gym.register(
     id="3Foods-Penalty-6x6-v0",
     entry_point="utils.custom_envs:Foraging3Foods",
