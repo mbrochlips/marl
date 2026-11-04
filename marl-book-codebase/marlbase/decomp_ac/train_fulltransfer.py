@@ -11,7 +11,7 @@ import hydra
 from omegaconf import DictConfig
 
 from marlbase.utils.video import VideoRecorder
-from marlbase.utils.transfer import save_transferable_backbone, load_transferable_backbone
+from marlbase.utils.transfer_full import save_transferable_backbone, load_transferable_backbone
 from marlbase.utils.register_rewards import RewardRegistry
 
 # Batch structure supporting decomposed rewards and optional cached old log-probs
