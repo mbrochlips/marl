@@ -9,7 +9,7 @@ EXCLUDED_PREFIXES = (
     "target_critic.film_ffn.film_proj",
     "ret_ms",
     "coord_detector",
-    "channel_weights",
+    # "channel_weights",
 )
 
 

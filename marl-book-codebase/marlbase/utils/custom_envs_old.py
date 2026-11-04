@@ -80,9 +80,6 @@ class ForagingDecompReward(ForagingEnv):
                 self.num_reward_channels, dtype=np.float32
             )
 
-        # -------------------------------------------------------------
-        # CHANGE 1: Track cumulative episode return per player and channel
-        # -------------------------------------------------------------
         self.episode_reward_vec = np.zeros(
             (len(self.players), self.num_reward_channels), dtype=np.float32
         )
@@ -96,20 +93,8 @@ class ForagingDecompReward(ForagingEnv):
         return obs, info
 
     def _setup_food_items(self):
-        """Default spatial allocation (overridden by subclasses)."""
+        """Overridden by subclasses."""
         self.food_items = []
-        food_id = 0
-        for r in range(self.rows):
-            for c in range(self.cols):
-                if self.field[r, c] > 0:
-                    self.food_items.append({
-                        "channel_id": food_id,
-                        "pos": (r, c),
-                        "level": int(self.field[r, c]),
-                        "type": "default",
-                        "active": True,
-                    })
-                    food_id += 1
 
     def _calculate_food_reward(self, food, loading_players):
         """Hook for successful pickups."""
@@ -241,9 +226,6 @@ class ForagingDecompReward(ForagingEnv):
             p.reward_vec = rewards[p_idx]
             p.reward = float(rewards[p_idx].sum())
             p.score += p.reward
-            # -------------------------------------------------------------
-            # CHANGE 2: Accumulate step rewards into episode returns
-            # -------------------------------------------------------------
             self.episode_reward_vec[p_idx] += rewards[p_idx]
 
         # Check termination based on target food count
@@ -267,9 +249,6 @@ class ForagingDecompReward(ForagingEnv):
         info["foods_collected"] = [not f["active"] for f in self.food_items]
         info["num_foods_collected"] = num_collected
 
-        # -------------------------------------------------------------
-        # CHANGE 3: Expose channel returns as scalar floats on episode end
-        # -------------------------------------------------------------
         if terminated or truncated:
             # Team cumulative returns (summed across both players)
             team_channels = self.episode_reward_vec.sum(axis=0)
@@ -304,7 +283,7 @@ class Foraging3Foods(ForagingDecompReward):
         step_penalty=0.01,
         miscoordination_penalty=0.0,
         num_semantic_channels=4,
-        food_to_collect=None,
+        food_to_collect=2,
         vector_reward=False,  # <--- Default False so MAPPO receives scalar team rewards
         **kwargs,
     ):
@@ -327,49 +306,72 @@ class Foraging3Foods(ForagingDecompReward):
 
     def _setup_food_items(self):
         self.field[:] = 0
-        self.food_items = []
-
-        occupied = set(p.position for p in self.players)
-        all_coords = [
-            (r, c)
-            for r in range(self.rows)
-            for c in range(self.cols)
-            if (r, c) not in occupied
-        ]
-
-        rng = getattr(self, "np_random", np.random)
-        chosen_indices = rng.choice(len(all_coords), size=3, replace=False)
-        pos_coop = all_coords[chosen_indices[0]]
-        pos_det = all_coords[chosen_indices[1]]
-        pos_stoch = all_coords[chosen_indices[2]]
-
-        self.field[pos_coop] = 3
-        self.field[pos_det] = 1
-        self.field[pos_stoch] = 2
-
         self.food_items = [
             {
                 "channel_id": 0,
-                "pos": pos_coop,
+                "pos": None,
                 "level": 3,
                 "type": "high_coop",
                 "active": True,
             },
             {
                 "channel_id": 1,
-                "pos": pos_det,
+                "pos": None,
                 "level": 1,
                 "type": "low_det",
                 "active": True,
             },
             {
                 "channel_id": 2,
-                "pos": pos_stoch,
+                "pos": None,
                 "level": 2,
                 "type": "low_stoch",
                 "active": True,
             },
         ]
+
+        occupied = set(p.position for p in self.players)
+
+        # Use a set of tuples for fast removal
+        available_coords = {
+            (r, c)
+            for r in range(self.rows)
+            for c in range(self.cols)
+            if (r, c) not in occupied
+        }
+
+        rng = getattr(self, "np_random", np.random)
+
+        # Minimum distance between food items:
+        MIN_DIST = 2
+
+        for item in self.food_items:
+            if not available_coords:
+                raise RuntimeError(
+                    "[Env] Not enough available space on the grid to place all food items."
+                )
+
+            # Convert set to list to sample randomly
+            coords_list = list(available_coords)
+            chosen_idx = rng.choice(len(coords_list))
+            pos = coords_list[chosen_idx]
+            item["pos"] = pos
+
+            # Remove the chosen position and everything within MIN_DIST
+            r, c = pos
+            coords_to_remove = {
+                (nr, nc)
+                for nr in range(r - MIN_DIST, r + MIN_DIST + 1)
+                for nc in range(c - MIN_DIST, c + MIN_DIST + 1)
+                if 0 <= nr < self.rows and 0 <= nc < self.cols
+            }
+
+            available_coords.difference_update(coords_to_remove)
+
+        # Update field matrix
+        for item in self.food_items:
+            self.field[item["pos"]] = item["level"]
+
 
     def _calculate_food_reward(self, food, loading_players):
         food_type = food["type"]

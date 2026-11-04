@@ -9,6 +9,9 @@ algorithm:
   model:
     _target_: decomp_ac.model_tcot_fulltransfer.TransformerCriticOTMAPPONetwork
     actor:
+      layers:
+        - 128
+        - 128
       parameter_sharing: True                   # Recommended for LBF (faster coordination)
       use_orthogonal_init: True
       use_rnn: False

@@ -1,3 +1,4 @@
+# File: model.py
 
 import copy
 from einops import rearrange
@@ -12,6 +13,7 @@ from marlbase.utils.models import MultiAgentIndependentNetwork, MultiAgentShared
 from marlbase.utils.utils import MultiCategorical
 from marlbase.utils.standardise_stream import RunningMeanStd
 from marlbase.utils.coor_score import CoordinationDetector
+
 
 def _split_batch(splits):
     def thunk(batch):
@@ -64,7 +66,6 @@ class FiLMBlock(nn.Module):
         self._reset_parameters()
 
     def _reset_parameters(self):
-        # Orthogonal initialization for FFN layers
         nn.init.orthogonal_(self.linear1.weight, gain=1.0)
         nn.init.zeros_(self.linear1.bias)
         nn.init.orthogonal_(self.linear2.weight, gain=1.0)
@@ -76,7 +77,6 @@ class FiLMBlock(nn.Module):
 
     def forward(self, x, channel_emb):
         # x: (B, M, d_model), channel_emb: (M, d_model)
-
         norm_x = self.norm(x)
         h = self.linear1(norm_x)
 
@@ -84,201 +84,181 @@ class FiLMBlock(nn.Module):
         gamma, beta = film_params.chunk(2, dim=-1)  # (M, d_ffn) each
 
         # Identity-centered FiLM modulation: (1.0 + gamma) * h + beta
-        # At init: (1.0 + 0.0) * h + 0.0 = h (perfect identity)
         h = (1.0 + gamma.unsqueeze(0)) * h + beta.unsqueeze(0)
         h = F.gelu(h)
 
         out = self.linear2(h)
-
         return x + out
 
 
-class SingleEgoAttentionActor(nn.Module):
+# =====================================================================
+# Complete Team-Residual Readout Head with Shared Team Bias
+# =====================================================================
+
+class TeamResidualReadoutHead(nn.Module):
     """
-    Ego-attention policy network for an individual agent.
-    Flattens arbitrary leading dimensions (T, B) so it never crashes on shape unpacking.
+    Decomposes value into a Shared Team Baseline + Agent Residual Offsets:
+      V_i^m(s) = [ (w_team^m)^T h_m(s) + b_team^m ] + [ (Δw_i^m)^T h_m(s) + Δb_i^m ]
+
+    Key Properties:
+      - w_team and b_team are updated by ALL agents jointly (N-times faster bias convergence).
+      - b_team absorbs the global DC return baseline (+1.5, -0.5, etc.).
+      - Δw and Δb are initialized to ZERO: new agents inherit the exact team baseline at step 0.
+      - Decoupled linear gradient flow: zero parameter cross-talk between agents.
     """
-    def __init__(self, n_agents, act_dim=6, d_model=128):
+    def __init__(self, d_model, n_agents, n_channels):
         super().__init__()
-        self.n_agents = n_agents
         self.d_model = d_model
-
-        # Universal 5D Projector: [y, x, level, is_agent, is_food]
-        self.entity_proj = nn.Sequential(
-            nn.Linear(5, d_model),
-            nn.GELU(),
-            nn.Linear(d_model, d_model),
-        )
-        self.norm = nn.LayerNorm(d_model)
-
-        # Cross-Attention: Self attends to all surrounding entities
-        self.ego_attn = nn.MultiheadAttention(embed_dim=d_model, num_heads=4, batch_first=True)
-        self.post_norm = nn.LayerNorm(d_model)
-
-        # Action Readout Head (6 discrete actions in LBF)
-        self.action_head = nn.Linear(d_model, act_dim)
-        nn.init.orthogonal_(self.action_head.weight, gain=0.01)
-        nn.init.zeros_(self.action_head.bias)
-
-    def _unpack_obs(self, obs_flat):
-        # Flattens all leading dimensions into total_B for safe attention processing
-        orig_shape = obs_flat.shape[:-1]
-        flat_dim = obs_flat.shape[-1]
-        K = flat_dim // 3
-
-        # Reshape to (total_B, K, 3)
-        raw = obs_flat.reshape(-1, K, 3)
-        total_B = raw.shape[0]
-
-        flags = torch.zeros(total_B, K, 2, device=obs_flat.device)
-        flags[:, :self.n_agents, 0] = 1.0  # Agents
-        food_levels = raw[:, self.n_agents:, 2]
-        flags[:, self.n_agents:, 1] = (food_levels > 0.0).float()  # Active foods
-
-        tokens = torch.cat([raw, flags], dim=-1)  # (total_B, K, 5)
-        return tokens, orig_shape
-
-    def forward(self, obs_flat):
-        # 1. Unpack to (total_B, K, 5) and remember original shape
-        tokens, orig_shape = self._unpack_obs(obs_flat)
-
-        # 2. Project entities
-        h = self.norm(self.entity_proj(tokens))  # (total_B, K, d_model)
-
-        # 3. Ego-Token is always index 0 (self)
-        ego_token = h[:, 0:1, :]                 # (total_B, 1, d_model)
-        context_tokens = h                       # (total_B, K, d_model)
-
-        # 4. Cross-Attention
-        attn_out, _ = self.ego_attn(query=ego_token, key=context_tokens, value=context_tokens)
-        ego_feat = self.post_norm(ego_token + attn_out).squeeze(1)  # (total_B, d_model)
-
-        # 5. Action Logits
-        logits = self.action_head(ego_feat)      # (total_B, act_dim)
-
-        # 6. Reshape back to (*orig_shape, act_dim)
-        return logits.view(*orig_shape, -1)
-
-
-class MultiAgentEgoAttentionActor(nn.Module):
-    """Multi-agent container handling shared or independent actors."""
-    def __init__(self, n_agents, act_dims, d_model=128, parameter_sharing=True):
-        super().__init__()
         self.n_agents = n_agents
-        self.parameter_sharing = parameter_sharing
+        self.n_channels = n_channels
 
-        if parameter_sharing:
-            self.actor = SingleEgoAttentionActor(n_agents, act_dims[0], d_model)
+        # 1. Shared Team Baseline Parameters (O(1) w.r.t agent count)
+        # w_team: (M, d_model) -> one consensus projection vector per channel
+        # b_team: (M,)         -> global unconditional return bias per channel
+        self.w_team = nn.Parameter(torch.empty(n_channels, d_model))
+        self.b_team = nn.Parameter(torch.zeros(n_channels))
+
+        # 2. Agent-Specific Residual Offsets
+        # delta_w: (N, M, d_model) -> how agent i deviates from team projection
+        # delta_b: (N, M)          -> how agent i deviates from team bias
+        self.delta_w = nn.Parameter(torch.zeros(n_agents, n_channels, d_model))
+        self.delta_b = nn.Parameter(torch.zeros(n_agents, n_channels))
+
+        self._reset_parameters()
+
+    def _reset_parameters(self):
+        # Orthogonal init for team projection weights
+        if self.n_channels <= self.d_model:
+            nn.init.orthogonal_(self.w_team, gain=1.0)
         else:
-            self.actors = nn.ModuleList([
-                SingleEgoAttentionActor(n_agents, act_dims[i], d_model)
-                for i in range(n_agents)
-            ])
+            nn.init.normal_(self.w_team, std=1.0 / (self.d_model ** 0.5))
 
-    def forward(self, inputs, hiddens=None):
-        # inputs is a list of N tensors: [obs_agent_0, obs_agent_1, ...]
-        logits = []
-        for i in range(self.n_agents):
-            actor_net = self.actor if self.parameter_sharing else self.actors[i]
-            logits.append(actor_net(inputs[i]))
-        return logits, hiddens
+        nn.init.zeros_(self.b_team)
+        nn.init.zeros_(self.delta_w)
+        nn.init.zeros_(self.delta_b)
 
-    def init_hiddens(self, batch_size, device):
-        return None  # Feed-forward Transformer; no recurrent state required
+    def forward(self, h):
+        """
+        Args:
+            h: (B, M, d_model) -> Channel features from Pre-LN FiLM Transformer
+        Returns:
+            values: (B, N, M)  -> Predicted value per agent and reward channel
+        """
+        # 1. Compute Shared Team Baseline: (B, M)
+        # Sum over feature dimension d_model: (B, M, D) * (1, M, D) -> (B, M)
+        v_team = torch.sum(h * self.w_team.unsqueeze(0), dim=-1) + self.b_team.unsqueeze(0)
 
-def make_orthonormal_basis(dim: int, seed: int = 42) -> torch.Tensor:
-    rng_state = torch.get_rng_state()
-    torch.manual_seed(seed)
-    Q, _ = torch.linalg.qr(torch.randn(dim, dim))
-    torch.set_rng_state(rng_state)
-    return Q
+        # 2. Compute Individual Agent Offsets: (B, N, M)
+        # (B, 1, M, D) * (1, N, M, D) -> sum over D -> (B, N, M)
+        v_offset = torch.sum(h.unsqueeze(1) * self.delta_w.unsqueeze(0), dim=-1) + self.delta_b.unsqueeze(0)
+
+        # 3. Total Value = Team Baseline (broadcasted across N agents) + Individual Offset
+        values = v_team.unsqueeze(1) + v_offset  # (B, N, M)
+        return values
 
 
-class ContinualEntityTransformerCritic(nn.Module):
-    def __init__(self, n_agents, d_model=128, n_heads=4, d_ffn=256, **kwargs):
+class ChannelQueryTransformerCritic(nn.Module):
+    """
+    Pre-LN Channel-Query Transformer Critic with Team-Residual Readout.
+    Uses dense MLP state tokenization (strong spatial coordinate inductive bias).
+    """
+    def __init__(
+        self,
+        state_dim,
+        n_agents,
+        n_reward_channels,
+        d_model=128,
+        n_heads=4,
+        d_ffn=256,
+        n_state_tokens=4,
+    ):
         super().__init__()
         self.n_agents = n_agents
+        self.n_channels = n_reward_channels
         self.d_model = d_model
+        self.n_state_tokens = n_state_tokens
 
-        # Universal fixed basis: 128 orthogonal queries
-        basis = make_orthonormal_basis(d_model, seed=42)
-        self.register_buffer("channel_basis", basis)
-
-        # 1. 5D Entity Projector & Self-Attention
-        self.entity_proj = nn.Sequential(
-            nn.Linear(5, d_model),
+        # 1. State Tokenizer: Dense MLP mixes all entity coordinates directly
+        self.state_tokenizer = nn.Sequential(
+            nn.Linear(state_dim, d_model * n_state_tokens),
             nn.GELU(),
-            nn.Linear(d_model, d_model),
         )
-        self.entity_norm1 = nn.LayerNorm(d_model)
-        self.self_attn = nn.MultiheadAttention(embed_dim=d_model, num_heads=n_heads, batch_first=True)
-        self.entity_norm2 = nn.LayerNorm(d_model)
 
-        # 2. Channel Cross-Attention
+        # 2. Channel Query Embeddings
+        self.channel_embeddings = nn.Embedding(n_reward_channels, d_model)
+        nn.init.orthogonal_(self.channel_embeddings.weight)
+
+        # 3. Pre-LN Cross-Attention Normalizers
         self.norm_query = nn.LayerNorm(d_model)
-        self.norm_kv = nn.LayerNorm(d_model)
-        self.cross_attn = nn.MultiheadAttention(embed_dim=d_model, num_heads=n_heads, batch_first=True)
+        self.norm_state = nn.LayerNorm(d_model)
+        self.cross_attn = nn.MultiheadAttention(
+            embed_dim=d_model,
+            num_heads=n_heads,
+            batch_first=True,
+        )
 
-        # 3. FiLM Subspaces
+        # 4. Pre-LN FiLM-FFN Subspaces
         self.film_ffn = FiLMBlock(d_model, d_ffn)
-        self.final_channel_norm = nn.LayerNorm(d_model)
-        self.final_agent_norm = nn.LayerNorm(d_model)
+        self.final_norm = nn.LayerNorm(d_model)
 
-        # 4. Universal Readout Head
-        self.value_head = nn.Linear(d_model * 2, 1)
-        nn.init.orthogonal_(self.value_head.weight, gain=1.0)
-        nn.init.zeros_(self.value_head.bias)
+        # 5. Team-Residual Readout Head with Team Bias
+        self.head = TeamResidualReadoutHead(
+            d_model=d_model,
+            n_agents=n_agents,
+            n_channels=n_reward_channels,
+        )
 
-    def _unpack_flat_state_to_tokens(self, state_flat):
-        orig_shape = state_flat.shape[:-1]
-        flat_dim = state_flat.shape[-1]
-        num_entities = flat_dim // 3
-        raw_entities = state_flat.view(*orig_shape, num_entities, 3)
-
-        flags = torch.zeros(*orig_shape, num_entities, 2, device=state_flat.device)
-        flags[..., :self.n_agents, 0] = 1.0  # Agents
-        food_levels = raw_entities[..., self.n_agents:, 2]
-        flags[..., self.n_agents:, 1] = (food_levels > 0.0).float()  # Active foods
-        return torch.cat([raw_entities, flags], dim=-1)
-
-    def forward(self, state, channel_indices: torch.Tensor):
+    def forward(self, state):
+        """
+        Args:
+            state: (..., state_dim)
+        Returns:
+            values: (..., n_agents, n_reward_channels)
+        """
         orig_shape = state.shape[:-1]
         state_flat = state.view(-1, state.shape[-1])
         B = state_flat.shape[0]
-        M = len(channel_indices)
 
-        # 1. Self-Attention across entities
-        entity_tokens = self._unpack_flat_state_to_tokens(state_flat)
-        h_entities = self.entity_norm1(self.entity_proj(entity_tokens))
-        attn_ent, _ = self.self_attn(h_entities, h_entities, h_entities)
-        h_entities = self.entity_norm2(h_entities + attn_ent)
+        # 1. State Tokens: (B, n_state_tokens, d_model)
+        state_tokens = self.state_tokenizer(state_flat).view(
+            B, self.n_state_tokens, self.d_model
+        )
 
-        # 2. Gather queries from basis for active environment channels
-        ch_embs = self.channel_basis[channel_indices]  # (M, d_model)
+        # 2. Channel Queries: (B, M, d_model)
+        ch_indices = torch.arange(self.n_channels, device=state.device)
+        ch_embs = self.channel_embeddings(ch_indices)  # (M, d_model)
         ch_queries = ch_embs.unsqueeze(0).expand(B, -1, -1)
 
-        # 3. Cross-Attention
+        # 3. Pre-LN Cross-Attention
         norm_q = self.norm_query(ch_queries)
-        norm_kv = self.norm_kv(h_entities)
-        attn_ch, _ = self.cross_attn(query=norm_q, key=norm_kv, value=norm_kv)
-        x = ch_queries + attn_ch
+        norm_kv = self.norm_state(state_tokens)
 
-        # 4. Identity FiLM Subspaces
-        channel_tokens = self.film_ffn(x, ch_embs)
-        channel_tokens = self.final_channel_norm(channel_tokens)
+        attn_out, _ = self.cross_attn(
+            query=norm_q,
+            key=norm_kv,
+            value=norm_kv,
+        )
+        x = ch_queries + attn_out
 
-        # 5. Extract Contextualized Agent Tokens
-        agent_tokens = self.final_agent_norm(h_entities[:, :self.n_agents, :])
+        # 4. Pre-LN FiLM FFN Subspace Modulation
+        x = self.film_ffn(x, ch_embs)
+        x_norm = self.final_norm(x)  # (B, M, d_model)
 
-        # 6. Bilinear Readout
-        agent_exp = agent_tokens.unsqueeze(2).expand(B, self.n_agents, M, self.d_model)
-        chan_exp = channel_tokens.unsqueeze(1).expand(B, self.n_agents, M, self.d_model)
-        joint_pairs = torch.cat([agent_exp, chan_exp], dim=-1)
+        # 5. Team-Residual Value Readout: (B, n_agents, n_channels)
+        values = self.head(x_norm)
 
-        values = self.value_head(joint_pairs).squeeze(-1)  # (B, N, M)
-        return values.view(*orig_shape, self.n_agents, M)
+        return values.view(*orig_shape, self.n_agents, self.n_channels)
+
+
+# =====================================================================
+# Full MAPPO-TCOT Network Orchestrator
+# =====================================================================
 
 class TransformerCriticOTMAPPONetwork(nn.Module):
+    """
+    MAPPO-TCOT with Channel-Query Transformer Critic, Team-Residual Readout,
+    and Autonomous Coordination Detector.
+    """
     def __init__(self, obs_space, action_space, cfg, actor, critic, device):
         super().__init__()
         self.device = device
@@ -294,38 +274,58 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
         self.optimism_alpha = getattr(cfg, "optimism_alpha", 0.1)
 
         self.n_agents = len(obs_space)
+        obs_dims = [flatdim(o) for o in obs_space]
         act_dims = [flatdim(a) for a in action_space]
-        d_model = getattr(cfg, "critic_d_model", 128)
 
-        # ─────────────────────────────────────────────────────────────
-        # STEP 3 INTEGRATION: Entity-Centric Ego-Attention Actor
-        # ─────────────────────────────────────────────────────────────
-        self.actor = MultiAgentEgoAttentionActor(
-            n_agents=self.n_agents,
-            act_dims=act_dims,
-            d_model=d_model,
-            parameter_sharing=actor.parameter_sharing,
-        )
+        # Multi-Channel Setup
+        self.n_reward_channels = getattr(cfg, "n_reward_channels", 4)
 
-        # ─────────────────────────────────────────────────────────────
-        # STEP 2 INTEGRATION: Continual Fixed-Basis Transformer Critic
-        # ─────────────────────────────────────────────────────────────
-        self.critic = ContinualEntityTransformerCritic(
+        # Autonomous Coordination Detector
+        self.coord_detector = CoordinationDetector(
+            n_reward_channels=self.n_reward_channels,
             n_agents=self.n_agents,
-            d_model=d_model,
-            n_heads=getattr(cfg, "critic_n_heads", 4),
-            d_ffn=getattr(cfg, "critic_d_ffn", 256),
+        ).to(device)
+
+        # Decentralized Dense MLP Actors (Proven High-Performance Baseline)
+        self.use_rnn = actor.use_rnn
+        if not actor.parameter_sharing:
+            self.actor = MultiAgentIndependentNetwork(
+                obs_dims, list(actor.layers), act_dims, actor.use_rnn, actor.use_orthogonal_init
+            )
+        else:
+            self.actor = MultiAgentSharedNetwork(
+                obs_dims, list(actor.layers), act_dims, actor.parameter_sharing, actor.use_rnn, actor.use_orthogonal_init
+            )
+
+        # Unified Transformer Critic with Team-Residual Readout
+        self.centralised_critic = critic.centralised
+        critic_state_dim = sum(obs_dims) if critic.centralised else obs_dims[0]
+
+        critic_d_model = getattr(cfg, "critic_d_model", 128)
+        critic_n_heads = getattr(cfg, "critic_n_heads", 4)
+        critic_d_ffn = getattr(cfg, "critic_d_ffn", 256)
+        n_state_tokens = getattr(cfg, "n_state_tokens", 4)
+
+        self.critic = ChannelQueryTransformerCritic(
+            state_dim=critic_state_dim,
+            n_agents=self.n_agents,
+            n_reward_channels=self.n_reward_channels,
+            d_model=critic_d_model,
+            n_heads=critic_n_heads,
+            d_ffn=critic_d_ffn,
+            n_state_tokens=n_state_tokens,
         )
         self.target_critic = copy.deepcopy(self.critic)
 
-        # Default active channel setup
-        initial_channels = getattr(cfg, "n_reward_channels", 4)
+        # Return Standardization & Optimizer
         self.standardise_returns = cfg.standardise_returns
-        self.set_active_channels(list(range(initial_channels)))
+        if self.standardise_returns:
+            self.ret_ms = RunningMeanStd(
+                shape=(self.n_agents, self.n_reward_channels), device=device
+            )
 
-        # Optimizer & Updates
-        self.to(device)
         self.soft_update(1.0)
+        self.to(device)
 
         optimizer = getattr(optim, cfg.optimizer)
         if isinstance(optimizer, str):
@@ -336,26 +336,7 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
         self.split_obs = _split_batch([flatdim(s) for s in obs_space])
         self.split_act = _split_batch(self.n_agents * [1])
 
-    def set_active_channels(self, channel_indices):
-        """
-        Dynamically binds the model to a set of active environment channels.
-        Can be called whenever transferring to a new environment.
-        """
-        if not isinstance(channel_indices, torch.Tensor):
-            channel_indices = torch.tensor(channel_indices, dtype=torch.long, device=self.device)
-        self.active_channel_indices = channel_indices
-        self.n_reward_channels = len(channel_indices)
-
-        # Dynamically adapt return normalizer and coordination detector to M channels
-        if self.standardise_returns:
-            self.ret_ms = RunningMeanStd(
-                shape=(self.n_agents, self.n_reward_channels), device=self.device
-            )
-
-        self.coord_detector = CoordinationDetector(
-            n_reward_channels=self.n_reward_channels,
-            n_agents=self.n_agents,
-        ).to(self.device)
+    # State & Execution Handlers
 
     def init_actor_hiddens(self, batch_size):
         return self.actor.init_hiddens(batch_size, self.device)
@@ -368,27 +349,41 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
             action_logits = masked_logits
         return MultiCategorical([Categorical(logits=logits) for logits in action_logits])
 
-    def act(self, inputs, actor_hiddens=None, action_mask=None):
+    def act(self, inputs, actor_hiddens, action_mask=None):
+        inputs = [i.unsqueeze(0) for i in inputs]
         actor_logits, actor_hiddens = self.actor(inputs, actor_hiddens)
+        actor_logits = [logits.squeeze(0) for logits in actor_logits]
         dist = self.get_dist(actor_logits, action_mask)
         actions = dist.sample()
         return torch.stack(actions, dim=0), actor_hiddens
 
     def get_value(self, inputs, target=False):
         """
-        Evaluates the global state across active channel basis queries.
+        Unified forward pass through the Transformer Critic.
+        Returns: (..., n_agents, n_reward_channels)
         """
-        state = inputs[0] if isinstance(inputs, (list, tuple)) else inputs
-        critic_net = self.target_critic if target else self.critic
-        return critic_net(state, self.active_channel_indices)
+        if self.centralised_critic:
+            state = torch.cat(inputs, dim=-1)
+        else:
+            state = inputs[0]
 
-    def evaluate_actions(self, inputs, action, actor_hiddens=None, action_mask=None, state=None):
+        critic_net = self.target_critic if target else self.critic
+        return critic_net(state)
+
+    def evaluate_actions(
+        self,
+        inputs,
+        action,
+        actor_hiddens=None,
+        action_mask=None,
+        state=None,
+    ):
         if state is None:
             state = inputs
 
         values = self.get_value(state)
-        actor_logits, actor_hiddens = self.actor(inputs, actor_hiddens)
-        dist = self.get_dist(actor_logits, action_mask)
+        actor_features, actor_hiddens = self.actor(inputs, actor_hiddens)
+        dist = self.get_dist(actor_features, action_mask)
         action_log_probs = torch.cat(dist.log_probs(action), dim=-1)
         dist_entropy = torch.stack(dist.entropy(), dim=-1).sum(dim=-1)
 
@@ -397,6 +392,8 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
     def soft_update(self, tau):
         for target_param, param in zip(self.target_critic.parameters(), self.critic.parameters()):
             target_param.data.copy_((1.0 - tau) * target_param.data + tau * param.data)
+
+    # The Update Pipeline
 
     def update(self, batch, step):
         T, B = batch.rewards.shape[:2]
@@ -451,7 +448,7 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
         # > Phase 2: Autonomous Coordination-Targeted Optimism
         coord_scores = self.coord_detector.update(batch.rewards, batch.filled)
 
-        # Vectorized LeakyReLU softening across active channels
+        # Vectorized LeakyReLU softening across active channels:
         alpha = 1.0 - coord_scores * (1.0 - self.optimism_alpha)
         alpha_broadcast = alpha.view(1, 1, 1, -1)
 
@@ -461,9 +458,10 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
             raw_advantages,
         )
 
-        # Pure decomposed sum across channels (zero hardcoded weights!)
+        # Pure unweighted sum across channels (natural decomposed sum)
         total_advantage = transformed_advantages.sum(dim=-1)
 
+        # Active mask normalization
         active_mask = batch.filled.unsqueeze(-1).expand_as(total_advantage)
         adv_mean = (total_advantage * active_mask).sum() / (active_mask.sum() + 1e-8)
         adv_std = torch.sqrt(
@@ -473,6 +471,7 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
 
         # > Phase 3: PPO Mini-Batch Update Loop
         mini_batch_size = max(1, B // self.num_mini_batches)
+
         epoch_actor_losses, epoch_value_losses = [], []
         epoch_entropies, epoch_approx_kls, epoch_clip_fracs = [], [], []
 
@@ -510,7 +509,7 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
                 actor_loss = -torch.min(surr1, surr2).sum(dim=-1) - self.entropy_coef * entropy
                 actor_loss = (actor_loss * mb_filled).sum() / (mb_filled.sum() + 1e-8)
 
-                # Clipped Multi-Channel Critic Loss
+                # Vectorized Multi-Channel Clipped Value Loss
                 v_target = mb_target_ret.detach()
                 if self.use_clipped_value_loss:
                     v_old = mb_v_preds_old.detach()
@@ -545,7 +544,7 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
                     epoch_approx_kls.append(approx_kl.item())
                     epoch_clip_fracs.append(clip_frac.item())
 
-        # > Phase 4: Target Critic Soft Update
+        # > Phase 4: Target Network Soft Updates & Diagnostics
         if (
             self.target_update_interval_or_tau > 1.0
             and step % self.target_update_interval_or_tau == 0
