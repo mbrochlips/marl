@@ -86,19 +86,18 @@ class ForagingDecompReward(ForagingEnv):
         pass
 
     def spawn_players(self, *args, **kwargs):
-        """
-        Safe player spawning that resolves per-agent levels whether passed as
-        scalars, lists, or NumPy arrays (e.g., np.array([4, 4])).
-        """
+        """Safe player spawning ensuring player.history and levels are properly set."""
         raw_min = args[0] if len(args) >= 2 else getattr(self, "min_player_level", 1)
         raw_max = args[1] if len(args) >= 2 else (args[0] if len(args) == 1 else getattr(self, "max_player_level", 1))
 
         rng = getattr(self, "np_random", np.random)
 
-        # 1. Assign player levels per-agent index
+        # 1. Assign player levels and reset player history
         for i, p in enumerate(self.players):
             p.reward = 0.0
             p.score = 0.0
+            p.done = False
+            p.history = []  # <--- Essential initialization
 
             min_lvl = int(raw_min[i]) if hasattr(raw_min, "__getitem__") else int(raw_min)
             max_lvl = int(raw_max[i]) if hasattr(raw_max, "__getitem__") else int(raw_max)
@@ -203,6 +202,10 @@ class ForagingDecompReward(ForagingEnv):
 
         for player in self.players:
             player.reward_vec = np.zeros(self.num_reward_channels, dtype=np.float32)
+            player.reward = 0.0
+            player.score = 0.0
+            player.done = False
+            player.history = []  # <--- Essential initialization on reset
 
         self.episode_reward_vec = np.zeros(
             (len(self.players), self.num_reward_channels), dtype=np.float32
@@ -282,6 +285,8 @@ class ForagingDecompReward(ForagingEnv):
 
         for p, pos, a in zip(self.players, new_positions, actions):
             p.position = pos
+            if p.history is None:
+                p.history = []
             p.history.append(a)
 
         rewards = [np.zeros(self.num_reward_channels, dtype=np.float32) for _ in range(len(self.players))]

@@ -1,5 +1,3 @@
-# File: model.py
-
 import copy
 from einops import rearrange
 from gymnasium.spaces import flatdim
@@ -29,15 +27,11 @@ def compute_multichannel_gae(
     gamma,
     gae_lambda,
 ):
-    """
-    Vectorized Multi-Channel Generalized Advantage Estimation (GAE).
-    Operates independently across time, batch, agents, and channels without loops over M.
-    """
+    """Vectorized Multi-Channel Generalized Advantage Estimation."""
     T, B, N, M = rewards.shape
     advantages = torch.zeros_like(rewards)
     last_gae = torch.zeros(B, N, M, device=rewards.device)
 
-    # dones: (T, B, N) -> (T, B, N, 1) for broadcasting across M channels
     non_terminals = 1.0 - dones.unsqueeze(-1).float()
 
     for t in reversed(range(T)):
@@ -50,19 +44,13 @@ def compute_multichannel_gae(
 
 
 class FiLMBlock(nn.Module):
-    """
-    Pre-LN Channel-conditioned Feed-Forward Block with Identity FiLM Initialization.
-    """
+    """Pre-LN Channel-conditioned Feed-Forward Block with Identity FiLM Initialization."""
     def __init__(self, d_model, d_ffn):
         super().__init__()
         self.norm = nn.LayerNorm(d_model)
-
         self.linear1 = nn.Linear(d_model, d_ffn)
         self.linear2 = nn.Linear(d_ffn, d_model)
-
-        # Modulation generator: predicts (gamma, beta)
         self.film_proj = nn.Linear(d_model, d_ffn * 2)
-
         self._reset_parameters()
 
     def _reset_parameters(self):
@@ -70,8 +58,6 @@ class FiLMBlock(nn.Module):
         nn.init.zeros_(self.linear1.bias)
         nn.init.orthogonal_(self.linear2.weight, gain=1.0)
         nn.init.zeros_(self.linear2.bias)
-
-        # Zeroing weights and biases ensures gamma=0 and beta=0 at step 0
         nn.init.zeros_(self.film_proj.weight)
         nn.init.zeros_(self.film_proj.bias)
 
@@ -79,94 +65,61 @@ class FiLMBlock(nn.Module):
         # x: (B, M, d_model), channel_emb: (M, d_model)
         norm_x = self.norm(x)
         h = self.linear1(norm_x)
+        film_params = self.film_proj(channel_emb)
+        gamma, beta = film_params.chunk(2, dim=-1)
 
-        film_params = self.film_proj(channel_emb)   # (M, 2 * d_ffn)
-        gamma, beta = film_params.chunk(2, dim=-1)  # (M, d_ffn) each
-
-        # Identity-centered FiLM modulation: (1.0 + gamma) * h + beta
         h = (1.0 + gamma.unsqueeze(0)) * h + beta.unsqueeze(0)
         h = F.gelu(h)
+        return x + self.linear2(h)
 
-        out = self.linear2(h)
-        return x + out
-
-
-# =====================================================================
-# Complete Team-Residual Readout Head with Shared Team Bias
-# =====================================================================
 
 class TeamResidualReadoutHead(nn.Module):
     """
-    Decomposes value into a Shared Team Baseline + Agent Residual Offsets:
-      V_i^m(s) = [ (w_team^m)^T h_m(s) + b_team^m ] + [ (Δw_i^m)^T h_m(s) + Δb_i^m ]
-
-    Key Properties:
-      - w_team and b_team are updated by ALL agents jointly (N-times faster bias convergence).
-      - b_team absorbs the global DC return baseline (+1.5, -0.5, etc.).
-      - Δw and Δb are initialized to ZERO: new agents inherit the exact team baseline at step 0.
-      - Decoupled linear gradient flow: zero parameter cross-talk between agents.
+    Universal Capacity Readout Head with Shared Baseline + Agent Residual Offsets.
+    Allocated with max_channels capacity; slices active channels at runtime.
     """
-    def __init__(self, d_model, n_agents, n_channels):
+    def __init__(self, d_model, n_agents, max_channels=32):
         super().__init__()
         self.d_model = d_model
         self.n_agents = n_agents
-        self.n_channels = n_channels
+        self.max_channels = max_channels
 
-        # 1. Shared Team Baseline Parameters (O(1) w.r.t agent count)
-        # w_team: (M, d_model) -> one consensus projection vector per channel
-        # b_team: (M,)         -> global unconditional return bias per channel
-        self.w_team = nn.Parameter(torch.empty(n_channels, d_model))
-        self.b_team = nn.Parameter(torch.zeros(n_channels))
-
-        # 2. Agent-Specific Residual Offsets
-        # delta_w: (N, M, d_model) -> how agent i deviates from team projection
-        # delta_b: (N, M)          -> how agent i deviates from team bias
-        self.delta_w = nn.Parameter(torch.zeros(n_agents, n_channels, d_model))
-        self.delta_b = nn.Parameter(torch.zeros(n_agents, n_channels))
+        self.w_team = nn.Parameter(torch.empty(max_channels, d_model))
+        self.b_team = nn.Parameter(torch.zeros(max_channels))
+        self.delta_w = nn.Parameter(torch.zeros(n_agents, max_channels, d_model))
+        self.delta_b = nn.Parameter(torch.zeros(n_agents, max_channels))
 
         self._reset_parameters()
 
     def _reset_parameters(self):
-        # Orthogonal init for team projection weights
-        if self.n_channels <= self.d_model:
-            nn.init.orthogonal_(self.w_team, gain=1.0)
-        else:
-            nn.init.normal_(self.w_team, std=1.0 / (self.d_model ** 0.5))
-
+        nn.init.orthogonal_(self.w_team, gain=1.0)
         nn.init.zeros_(self.b_team)
         nn.init.zeros_(self.delta_w)
         nn.init.zeros_(self.delta_b)
 
-    def forward(self, h):
+    def forward(self, h, active_indices):
         """
         Args:
-            h: (B, M, d_model) -> Channel features from Pre-LN FiLM Transformer
-        Returns:
-            values: (B, N, M)  -> Predicted value per agent and reward channel
+            h: (B, M_active, d_model)
+            active_indices: Tensor of active basis slot indices (len = M_active)
         """
-        # 1. Compute Shared Team Baseline: (B, M)
-        # Sum over feature dimension d_model: (B, M, D) * (1, M, D) -> (B, M)
-        v_team = torch.sum(h * self.w_team.unsqueeze(0), dim=-1) + self.b_team.unsqueeze(0)
+        w = self.w_team[active_indices]              # (M_active, d_model)
+        b = self.b_team[active_indices]              # (M_active,)
+        dw = self.delta_w[:, active_indices]         # (N, M_active, d_model)
+        db = self.delta_b[:, active_indices]         # (N, M_active)
 
-        # 2. Compute Individual Agent Offsets: (B, N, M)
-        # (B, 1, M, D) * (1, N, M, D) -> sum over D -> (B, N, M)
-        v_offset = torch.sum(h.unsqueeze(1) * self.delta_w.unsqueeze(0), dim=-1) + self.delta_b.unsqueeze(0)
-
-        # 3. Total Value = Team Baseline (broadcasted across N agents) + Individual Offset
-        values = v_team.unsqueeze(1) + v_offset  # (B, N, M)
-        return values
+        v_team = torch.sum(h * w.unsqueeze(0), dim=-1) + b.unsqueeze(0)
+        v_offset = torch.sum(h.unsqueeze(1) * dw.unsqueeze(0), dim=-1) + db.unsqueeze(0)
+        return v_team.unsqueeze(1) + v_offset
 
 
 class ChannelQueryTransformerCritic(nn.Module):
-    """
-    Pre-LN Channel-Query Transformer Critic with Team-Residual Readout.
-    Uses dense MLP state tokenization (strong spatial coordinate inductive bias).
-    """
+    """Relational Cross-Attention Transformer Critic with Universal Slot Indexing."""
     def __init__(
         self,
         state_dim,
         n_agents,
-        n_reward_channels,
+        max_channels=32,
         d_model=128,
         n_heads=4,
         d_ffn=256,
@@ -174,21 +127,18 @@ class ChannelQueryTransformerCritic(nn.Module):
     ):
         super().__init__()
         self.n_agents = n_agents
-        self.n_channels = n_reward_channels
         self.d_model = d_model
         self.n_state_tokens = n_state_tokens
+        self.max_channels = max_channels
 
-        # 1. State Tokenizer: Dense MLP mixes all entity coordinates directly
         self.state_tokenizer = nn.Sequential(
             nn.Linear(state_dim, d_model * n_state_tokens),
             nn.GELU(),
         )
 
-        # 2. Channel Query Embeddings
-        self.channel_embeddings = nn.Embedding(n_reward_channels, d_model)
+        self.channel_embeddings = nn.Embedding(max_channels, d_model)
         nn.init.orthogonal_(self.channel_embeddings.weight)
 
-        # 3. Pre-LN Cross-Attention Normalizers
         self.norm_query = nn.LayerNorm(d_model)
         self.norm_state = nn.LayerNorm(d_model)
         self.cross_attn = nn.MultiheadAttention(
@@ -197,68 +147,46 @@ class ChannelQueryTransformerCritic(nn.Module):
             batch_first=True,
         )
 
-        # 4. Pre-LN FiLM-FFN Subspaces
         self.film_ffn = FiLMBlock(d_model, d_ffn)
         self.final_norm = nn.LayerNorm(d_model)
 
-        # 5. Team-Residual Readout Head with Team Bias
         self.head = TeamResidualReadoutHead(
             d_model=d_model,
             n_agents=n_agents,
-            n_channels=n_reward_channels,
+            max_channels=max_channels,
         )
 
+        self.register_buffer("active_indices", torch.arange(4, dtype=torch.long))
+
+    def set_active_channels(self, active_indices):
+        self.active_indices = active_indices.long()
+
     def forward(self, state):
-        """
-        Args:
-            state: (..., state_dim)
-        Returns:
-            values: (..., n_agents, n_reward_channels)
-        """
         orig_shape = state.shape[:-1]
         state_flat = state.view(-1, state.shape[-1])
         B = state_flat.shape[0]
 
-        # 1. State Tokens: (B, n_state_tokens, d_model)
         state_tokens = self.state_tokenizer(state_flat).view(
             B, self.n_state_tokens, self.d_model
         )
 
-        # 2. Channel Queries: (B, M, d_model)
-        ch_indices = torch.arange(self.n_channels, device=state.device)
-        ch_embs = self.channel_embeddings(ch_indices)  # (M, d_model)
+        # Slice active slot queries
+        ch_embs = self.channel_embeddings(self.active_indices)
         ch_queries = ch_embs.unsqueeze(0).expand(B, -1, -1)
 
-        # 3. Pre-LN Cross-Attention
         norm_q = self.norm_query(ch_queries)
         norm_kv = self.norm_state(state_tokens)
-
-        attn_out, _ = self.cross_attn(
-            query=norm_q,
-            key=norm_kv,
-            value=norm_kv,
-        )
+        attn_out, _ = self.cross_attn(query=norm_q, key=norm_kv, value=norm_kv)
         x = ch_queries + attn_out
 
-        # 4. Pre-LN FiLM FFN Subspace Modulation
         x = self.film_ffn(x, ch_embs)
-        x_norm = self.final_norm(x)  # (B, M, d_model)
+        x_norm = self.final_norm(x)
 
-        # 5. Team-Residual Value Readout: (B, n_agents, n_channels)
-        values = self.head(x_norm)
+        values = self.head(x_norm, self.active_indices)
+        return values.view(*orig_shape, self.n_agents, len(self.active_indices))
 
-        return values.view(*orig_shape, self.n_agents, self.n_channels)
-
-
-# =====================================================================
-# Full MAPPO-TCOT Network Orchestrator
-# =====================================================================
 
 class TransformerCriticOTMAPPONetwork(nn.Module):
-    """
-    MAPPO-TCOT with Channel-Query Transformer Critic, Team-Residual Readout,
-    and Autonomous Coordination Detector.
-    """
     def __init__(self, obs_space, action_space, cfg, actor, critic, device):
         super().__init__()
         self.device = device
@@ -277,16 +205,12 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
         obs_dims = [flatdim(o) for o in obs_space]
         act_dims = [flatdim(a) for a in action_space]
 
-        # Multi-Channel Setup
+        self.max_channels = getattr(cfg, "max_channels", 32)
         self.n_reward_channels = getattr(cfg, "n_reward_channels", 4)
 
-        # Autonomous Coordination Detector
-        self.coord_detector = CoordinationDetector(
-            n_reward_channels=self.n_reward_channels,
-            n_agents=self.n_agents,
-        ).to(device)
+        # Persistent coordination scores across all basis slots
+        self.register_buffer("basis_coord_scores", torch.zeros(self.max_channels))
 
-        # Decentralized Dense MLP Actors (Proven High-Performance Baseline)
         self.use_rnn = actor.use_rnn
         if not actor.parameter_sharing:
             self.actor = MultiAgentIndependentNetwork(
@@ -297,27 +221,26 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
                 obs_dims, list(actor.layers), act_dims, actor.parameter_sharing, actor.use_rnn, actor.use_orthogonal_init
             )
 
-        # Unified Transformer Critic with Team-Residual Readout
         self.centralised_critic = critic.centralised
         critic_state_dim = sum(obs_dims) if critic.centralised else obs_dims[0]
-
-        critic_d_model = getattr(cfg, "critic_d_model", 128)
-        critic_n_heads = getattr(cfg, "critic_n_heads", 4)
-        critic_d_ffn = getattr(cfg, "critic_d_ffn", 256)
-        n_state_tokens = getattr(cfg, "n_state_tokens", 4)
 
         self.critic = ChannelQueryTransformerCritic(
             state_dim=critic_state_dim,
             n_agents=self.n_agents,
-            n_reward_channels=self.n_reward_channels,
-            d_model=critic_d_model,
-            n_heads=critic_n_heads,
-            d_ffn=critic_d_ffn,
-            n_state_tokens=n_state_tokens,
+            max_channels=self.max_channels,
+            d_model=getattr(cfg, "critic_d_model", 128),
+            n_heads=getattr(cfg, "critic_n_heads", 4),
+            d_ffn=getattr(cfg, "critic_d_ffn", 256),
+            n_state_tokens=getattr(cfg, "n_state_tokens", 4),
         )
         self.target_critic = copy.deepcopy(self.critic)
 
-        # Return Standardization & Optimizer
+        # Initial default allocation (re-bound by set_active_channels)
+        self.coord_detector = CoordinationDetector(
+            n_reward_channels=self.n_reward_channels,
+            n_agents=self.n_agents,
+        ).to(device)
+
         self.standardise_returns = cfg.standardise_returns
         if self.standardise_returns:
             self.ret_ms = RunningMeanStd(
@@ -336,7 +259,30 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
         self.split_obs = _split_batch([flatdim(s) for s in obs_space])
         self.split_act = _split_batch(self.n_agents * [1])
 
-    # State & Execution Handlers
+    def set_active_channels(self, active_indices):
+        """Binds active basis slots and restores learned coordination optimism."""
+        self.active_channel_indices = active_indices.to(self.device)
+        self.n_reward_channels = len(active_indices)
+
+        self.critic.set_active_channels(self.active_channel_indices)
+        self.target_critic.set_active_channels(self.active_channel_indices)
+
+        # Create active coordination detector
+        self.coord_detector = CoordinationDetector(
+            n_reward_channels=self.n_reward_channels,
+            n_agents=self.n_agents,
+        ).to(self.device)
+
+        # Seed detector with known coordination scores to eliminate coordination shock
+        if hasattr(self.coord_detector, "scores"):
+            self.coord_detector.scores.data.copy_(
+                self.basis_coord_scores[self.active_channel_indices]
+            )
+
+        if self.standardise_returns:
+            self.ret_ms = RunningMeanStd(
+                shape=(self.n_agents, self.n_reward_channels), device=self.device
+            )
 
     def init_actor_hiddens(self, batch_size):
         return self.actor.init_hiddens(batch_size, self.device)
@@ -358,59 +304,39 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
         return torch.stack(actions, dim=0), actor_hiddens
 
     def get_value(self, inputs, target=False):
-        """
-        Unified forward pass through the Transformer Critic.
-        Returns: (..., n_agents, n_reward_channels)
-        """
-        if self.centralised_critic:
-            state = torch.cat(inputs, dim=-1)
-        else:
-            state = inputs[0]
-
+        state = torch.cat(inputs, dim=-1) if self.centralised_critic else inputs[0]
         critic_net = self.target_critic if target else self.critic
         return critic_net(state)
 
-    def evaluate_actions(
-        self,
-        inputs,
-        action,
-        actor_hiddens=None,
-        action_mask=None,
-        state=None,
-    ):
+    def evaluate_actions(self, inputs, action, actor_hiddens=None, action_mask=None, state=None):
         if state is None:
             state = inputs
-
         values = self.get_value(state)
         actor_features, actor_hiddens = self.actor(inputs, actor_hiddens)
         dist = self.get_dist(actor_features, action_mask)
         action_log_probs = torch.cat(dist.log_probs(action), dim=-1)
         dist_entropy = torch.stack(dist.entropy(), dim=-1).sum(dim=-1)
-
         return values, action_log_probs, dist_entropy, actor_hiddens
 
     def soft_update(self, tau):
         for target_param, param in zip(self.target_critic.parameters(), self.critic.parameters()):
             target_param.data.copy_((1.0 - tau) * target_param.data + tau * param.data)
 
-    # The Update Pipeline
-
     def update(self, batch, step):
         T, B = batch.rewards.shape[:2]
         batch_dones = batch.dones.float().unsqueeze(-1).repeat(1, 1, self.n_agents)
 
-        # > Phase 1: Compute Target Values & Multi-Channel GAE
+        # 1. Target Values & GAE
         with torch.no_grad():
             all_values = self.get_value(self.split_obs(batch.obss), target=False)
-            v_preds = all_values[:-1]       # (T, B, n_agents, n_channels)
-            next_v_preds = all_values[1:]   # (T, B, n_agents, n_channels)
+            v_preds = all_values[:-1]
+            next_v_preds = all_values[1:]
 
             if self.standardise_returns:
                 v_preds_raw = v_preds * torch.sqrt(self.ret_ms.var + 1e-8) + self.ret_ms.mean
                 next_v_preds_raw = next_v_preds * torch.sqrt(self.ret_ms.var + 1e-8) + self.ret_ms.mean
             else:
-                v_preds_raw = v_preds
-                next_v_preds_raw = next_v_preds
+                v_preds_raw, next_v_preds_raw = v_preds, next_v_preds
 
             raw_advantages, raw_returns = compute_multichannel_gae(
                 batch.rewards,
@@ -445,10 +371,11 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
                     action_mask=action_mask,
                 )
 
-        # > Phase 2: Autonomous Coordination-Targeted Optimism
+        # 2. Targeted Coordination Optimism
         coord_scores = self.coord_detector.update(batch.rewards, batch.filled)
+        # Store scores back into basis bank for future transfers
+        self.basis_coord_scores[self.active_channel_indices] = coord_scores.detach()
 
-        # Vectorized LeakyReLU softening across active channels:
         alpha = 1.0 - coord_scores * (1.0 - self.optimism_alpha)
         alpha_broadcast = alpha.view(1, 1, 1, -1)
 
@@ -457,11 +384,8 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
             alpha_broadcast * raw_advantages,
             raw_advantages,
         )
-
-        # Pure unweighted sum across channels (natural decomposed sum)
         total_advantage = transformed_advantages.sum(dim=-1)
 
-        # Active mask normalization
         active_mask = batch.filled.unsqueeze(-1).expand_as(total_advantage)
         adv_mean = (total_advantage * active_mask).sum() / (active_mask.sum() + 1e-8)
         adv_std = torch.sqrt(
@@ -469,15 +393,13 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
         )
         norm_total_advantage = (total_advantage - adv_mean) / (adv_std + 1e-8)
 
-        # > Phase 3: PPO Mini-Batch Update Loop
+        # 3. PPO Mini-Batch Update
         mini_batch_size = max(1, B // self.num_mini_batches)
-
         epoch_actor_losses, epoch_value_losses = [], []
         epoch_entropies, epoch_approx_kls, epoch_clip_fracs = [], [], []
 
         for _ in range(self.ppo_epochs):
             env_perm = torch.randperm(B)
-
             for start_idx in range(0, B, mini_batch_size):
                 end_idx = min(start_idx + mini_batch_size, B)
                 batch_indices = env_perm[start_idx:end_idx]
@@ -502,20 +424,16 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
                     action_mask=mb_action_masks,
                 )
 
-                # Clipped Policy Loss
                 ratio = torch.exp(new_log_probs - mb_old_log_probs.detach())
                 surr1 = ratio * mb_adv.detach()
                 surr2 = torch.clamp(ratio, 1.0 - self.clip_param, 1.0 + self.clip_param) * mb_adv.detach()
                 actor_loss = -torch.min(surr1, surr2).sum(dim=-1) - self.entropy_coef * entropy
                 actor_loss = (actor_loss * mb_filled).sum() / (mb_filled.sum() + 1e-8)
 
-                # Vectorized Multi-Channel Clipped Value Loss
                 v_target = mb_target_ret.detach()
                 if self.use_clipped_value_loss:
                     v_old = mb_v_preds_old.detach()
-                    v_pred_clipped = v_old + torch.clamp(
-                        new_values - v_old, -self.clip_param, self.clip_param
-                    )
+                    v_pred_clipped = v_old + torch.clamp(new_values - v_old, -self.clip_param, self.clip_param)
                     vf_loss1 = (new_values - v_target).pow(2)
                     vf_loss2 = (v_pred_clipped - v_target).pow(2)
                     channel_vf_loss = torch.max(vf_loss1, vf_loss2)
@@ -527,7 +445,6 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
                     (channel_vf_loss * mb_mask).sum(dim=(0, 1, 2)) / (mb_mask.sum() + 1e-8)
                 ).sum()
 
-                # Optimization step
                 loss = actor_loss + self.value_loss_coef * total_value_loss
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -544,22 +461,11 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
                     epoch_approx_kls.append(approx_kl.item())
                     epoch_clip_fracs.append(clip_frac.item())
 
-        # > Phase 4: Target Network Soft Updates & Diagnostics
-        if (
-            self.target_update_interval_or_tau > 1.0
-            and step % self.target_update_interval_or_tau == 0
-        ):
+        # 4. Target Critic Updates
+        if self.target_update_interval_or_tau > 1.0 and step % self.target_update_interval_or_tau == 0:
             self.soft_update(1.0)
         elif self.target_update_interval_or_tau < 1.0:
             self.soft_update(self.target_update_interval_or_tau)
-
-        top_coop_idx = torch.argmax(coord_scores).item()
-        coop_adv_raw = raw_advantages[..., top_coop_idx]
-        neg_coop_mask = coop_adv_raw < 0.0
-        active_agents = batch.filled.unsqueeze(-1).expand_as(coop_adv_raw)
-        neg_coop_ratio = (neg_coop_mask.float() * active_agents).sum() / (
-            active_agents.sum() + 1e-8
-        )
 
         return {
             "loss": sum(epoch_actor_losses) / len(epoch_actor_losses)
@@ -569,9 +475,8 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
             "entropy": sum(epoch_entropies) / len(epoch_entropies),
             "approx_kl": sum(epoch_approx_kls) / len(epoch_approx_kls),
             "clip_frac": sum(epoch_clip_fracs) / len(epoch_clip_fracs),
-            "coop_neg_adv_ratio": float(neg_coop_ratio.item()),
             **{
-                f"coordination_score_ch{m}": float(coord_scores[m].item())
+                f"coord_score_ch{m}": float(coord_scores[m].item())
                 for m in range(self.n_reward_channels)
             },
         }

@@ -1,0 +1,11 @@
+{
+  "solo_det": 0,
+  "solo_det_high": 1,
+  "solo_stoch": 2,
+  "solo_stoch_risky": 3,
+  "coop_det": 4,
+  "coop_det_free": 5,
+  "coop_super": 6,
+  "coop_stoch": 7,
+  "step_penalty": 8
+}

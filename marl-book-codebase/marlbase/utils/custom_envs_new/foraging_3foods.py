@@ -1,5 +1,5 @@
 import numpy as np
-from marlbase.utils.custom_envs.base import ForagingDecompReward
+from marlbase.utils.custom_envs_new.base import ForagingDecompReward
 
 
 class Foraging3Foods(ForagingDecompReward):

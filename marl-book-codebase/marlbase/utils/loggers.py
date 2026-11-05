@@ -87,11 +87,11 @@ class Logger:
             # 1. Cleaned up Coordination Scores: [ch0: 1.000 | ch1: 0.000 | ...]
             coord_keys = sorted([
                 k for k in info_dict.keys()
-                if ("coordination" in k or "interaction" in k) and not k.startswith("std_")
+                if ("coord" in k or "interaction" in k) and not k.startswith("std_")
             ])
             if coord_keys:
                 scores_str = " | ".join([
-                    f"{k.replace('mean_', '').replace('coordination_score_', '').replace('coordination_', ''):}: {info_dict[k]:.3f}"
+                    f"{k.replace('mean_', '').replace('coordination_score_', '').replace('coordination_', '').replace('coord_score_',''):}: {info_dict[k]:.3f}"
                     for k in coord_keys
                 ])
                 self.info(f"Coor. Scores:  [{scores_str}]")

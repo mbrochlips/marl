@@ -531,7 +531,7 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
             "clip_frac": sum(epoch_clip_fracs) / len(epoch_clip_fracs),
             "coop_neg_adv_ratio": float(neg_coop_ratio.item()),
             **{
-                f"coordination_score_ch{m}": float(coord_scores[m].item())
+                f"coord_score_ch{m}": float(coord_scores[m].item())
                 for m in range(self.n_reward_channels)
             },
         }

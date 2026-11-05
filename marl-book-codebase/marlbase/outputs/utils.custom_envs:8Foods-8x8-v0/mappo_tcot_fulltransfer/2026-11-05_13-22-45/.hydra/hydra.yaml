@@ -123,13 +123,13 @@ hydra:
     - hydra.mode=RUN
     task:
     - +algorithm=decomp_mappo_tcot_fulltransfer
-    - env.name=utils.custom_envs:8Foods-Penalty-8x8-v0
+    - env.name=utils.custom_envs:8Foods-8x8-v0
     - env.time_limit=50
     - seed=1
   job:
     name: run
     chdir: true
-    override_dirname: +algorithm=decomp_mappo_tcot_fulltransfer,env.name=utils.custom_envs:8Foods-Penalty-8x8-v0,env.time_limit=50,seed=1
+    override_dirname: +algorithm=decomp_mappo_tcot_fulltransfer,env.name=utils.custom_envs:8Foods-8x8-v0,env.time_limit=50,seed=1
     id: ???
     num: ???
     config_name: default
@@ -154,7 +154,7 @@ hydra:
     - path: ''
       schema: structured
       provider: schema
-    output_dir: /zhome/36/1/204745/marl/marl-book-codebase/marlbase/outputs/utils.custom_envs:8Foods-Penalty-8x8-v0/mappo_tcot_fulltransfer/2026-11-04_15-17-14
+    output_dir: /zhome/36/1/204745/marl/marl-book-codebase/marlbase/outputs/utils.custom_envs:8Foods-8x8-v0/mappo_tcot_fulltransfer/2026-11-05_13-22-45
     choices:
       algorithm: decomp_mappo_tcot_fulltransfer
       logger: filesystemlogger

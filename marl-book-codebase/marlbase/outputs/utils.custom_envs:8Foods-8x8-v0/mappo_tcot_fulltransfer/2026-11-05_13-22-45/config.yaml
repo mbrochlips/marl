@@ -41,7 +41,7 @@ algorithm:
   target_update_interval_or_tau: 200
 env:
   _target_: utils.envs.make_env
-  name: utils.custom_envs:8Foods-Penalty-8x8-v0
+  name: utils.custom_envs:8Foods-8x8-v0
   time_limit: 50
   clear_info: false
   observe_id: false

@@ -1,4 +1,4 @@
 - +algorithm=decomp_mappo_tcot_fulltransfer
-- env.name=utils.custom_envs:8Foods-Penalty-8x8-v0
+- env.name=utils.custom_envs:8Foods-8x8-v0
 - env.time_limit=50
 - seed=1
