@@ -7,6 +7,8 @@ from einops import rearrange
 from gymnasium.spaces import flatdim
 import hydra
 from omegaconf import DictConfig
+from hydra.core.hydra_config import HydraConfig
+import shutil
 
 from marlbase.utils.video import VideoRecorder
 from marlbase.utils.transfer import save_transferable_backbone, load_transferable_backbone
@@ -126,84 +128,131 @@ def _collect_trajectories(
     return t, batch, infos
 
 
+def record_episodes(env, model, n_timesteps, path, device):
+    """Renders evaluation episodes and writes out a video file."""
+    recorder = VideoRecorder()
+    done = True
+
+    for _ in range(n_timesteps):
+        if done:
+            obss, info = env.reset()
+            hiddens = model.init_actor_hiddens(1)
+            if "action_mask" in info:
+                action_mask = torch.tensor(
+                    info["action_mask"], dtype=torch.float32, device=device
+                )
+            else:
+                action_mask = None
+            done = False
+        else:
+            with torch.no_grad():
+                # obss = torch.tensor(obss, dtype=torch.float32, device=device).unsqueeze(1)
+                obss = torch.as_tensor(np.array(obss), dtype=torch.float32, device=device).unsqueeze(1)
+                act_output = model.act(obss, hiddens, action_mask)
+                actions = act_output[0]
+                hiddens = act_output[1]
+                obss, _, done, truncated, info = env.step([a.item() for a in actions])
+                if "action_mask" in info:
+                    action_mask = torch.tensor(
+                        info["action_mask"], dtype=torch.float32, device=device
+                    )
+            done = done or truncated
+        recorder.record_frame(env)
+
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    recorder.save(path)
+
 def main(envs, eval_env, logger, time_limit, **cfg):
     """Main training routine for MAPPO-TCOT with Universal Basis Transfer."""
     cfg = DictConfig(cfg)
     device = cfg.model.device
 
-    # -----------------------------------------------------------------
-    # 1. Hydra Path Anchoring (Root Workspace Directory)
-    # -----------------------------------------------------------------
-    # Protects persistent assets from being trapped inside timestamped Hydra subfolders
-    orig_cwd = (
-        Path(hydra.utils.get_original_cwd())
-        if hydra.core.hydra_config.HydraConfig.initialized()
-        else Path(".")
-    )
-    checkpoint_dir = orig_cwd / "checkpoints"
+    # 1. Resolve runtime output paths inside the Hydra run directory
+    run_dir = Path(HydraConfig.get().runtime.output_dir)
+    orig_cwd = Path(hydra.utils.get_original_cwd())
+
+
+    checkpoint_dir = run_dir / "checkpoints"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
-    registry_path = checkpoint_dir / "reward_registry.json"
+    video_dir = run_dir / "videos"
+    video_dir.mkdir(parents=True, exist_ok=True)
+    registry_path = run_dir / "reward_registry.json"
 
-    # -----------------------------------------------------------------
-    # 2. Semantic Channel Discovery & Global Registry
-    # -----------------------------------------------------------------
+    # Intervals
+    eval_interval = getattr(cfg, "eval_interval", 0) or 0
+    save_interval = getattr(cfg, "save_interval", 0) or 0
+    video_interval = getattr(cfg, "video_interval", 0) or 0
+
+    # 2. Reward Registry & Pretrained Backbone Resolution
     registry = RewardRegistry(max_channels=getattr(cfg, "max_channels", 32))
-    registry.load(str(registry_path))
-
-    env_unwrapped = eval_env.unwrapped
-    # Detect semantic names directly; avoid fallback to generic 'channel_0'
-    channel_names = getattr(env_unwrapped, "channel_names", None) or getattr(
-        env_unwrapped, "REWARD_CHANNELS", None
-    )
-
-    if channel_names is None:
-        n_channels = getattr(
-            env_unwrapped,
-            "num_reward_channels",
-            getattr(cfg, "n_reward_channels", 4),
-        )
-        channel_names = [f"channel_{i}" for i in range(n_channels)]
-
-    print(f"[Setup] Detected {len(channel_names)} semantic channels: {channel_names}", flush=True)
-
-    # Map semantic names to universal basis indices (e.g. [0, 1, 2, 8])
-    active_indices = registry.get_or_register(channel_names)
-    active_indices_tensor = torch.tensor(active_indices, dtype=torch.long, device=device)
-    registry.save(str(registry_path))
-
-    # -----------------------------------------------------------------
-    # 3. Model Instantiation
-    # -----------------------------------------------------------------
-    model = hydra.utils.instantiate(
-        cfg.model, envs.single_observation_space, envs.single_action_space, cfg
-    )
-
-    # -----------------------------------------------------------------
-    # 4. Load Transferable Backbone (MUST happen before set_active_channels)
-    # -----------------------------------------------------------------
     pretrained_backbone = cfg.get("pretrained_backbone", None)
+
     if pretrained_backbone is not None:
         pretrained_path = Path(pretrained_backbone)
         if not pretrained_path.is_absolute():
             pretrained_path = orig_cwd / pretrained_path
 
-        if pretrained_path.exists():
-            load_transferable_backbone(model, str(pretrained_path), device)
-            print(f"[Transfer] Successfully loaded universal backbone from: {pretrained_path.resolve()}", flush=True)
+        # Look for reward_registry.json in parent directories of the checkpoint
+        source_registry_path = pretrained_path.parent.parent / "reward_registry.json"
+        if not source_registry_path.exists():
+            source_registry_path = pretrained_path.parent / "reward_registry.json"
+
+        if source_registry_path.exists():
+            registry.load(str(source_registry_path))
+            print(f"[Transfer] Paired with source registry: {source_registry_path}", flush=True)
         else:
-            raise FileNotFoundError(f"[Error] Checkpoint not found at: {pretrained_path.resolve()}")
+            print(f"[Transfer] Warning: No registry found at {source_registry_path}. Fresh mapping.", flush=True)
+    else:
+        print("[Setup] Training from scratch: Initializing fresh RewardRegistry (slots 0..N-1).", flush=True)
 
-    # -----------------------------------------------------------------
-    # 5. Bind Active Channels & Seed Coordination Detector
-    # -----------------------------------------------------------------
-    # Slices active basis queries, updates RunningMeanStd, and seeds coord_detector from loaded scores
-    model.set_active_channels(active_indices_tensor)
+    # 3. Channel Detection & Model Initialization
+    env_unwrapped = eval_env.unwrapped
+    channel_names = getattr(env_unwrapped, "channel_names", None) or getattr(
+        env_unwrapped, "REWARD_CHANNELS", None
+    )
+    if channel_names is None:
+        n_channels = getattr(env_unwrapped, "num_reward_channels", getattr(cfg, "n_reward_channels", 4))
+        channel_names = [f"channel_{i}" for i in range(n_channels)]
+    else:
+        n_channels = len(channel_names)
 
+    print(f"[Setup] Detected {len(channel_names)} semantic channels: {channel_names}", flush=True)
+
+    active_indices = registry.get_or_register(channel_names)
+    active_indices_tensor = torch.tensor(active_indices, dtype=torch.long, device=device)
+    registry.save(str(registry_path))
+
+    model = hydra.utils.instantiate(
+        cfg.model, 
+        envs.single_observation_space, 
+        envs.single_action_space, 
+        cfg,
+    )
+
+    if pretrained_backbone is not None:
+        load_transferable_backbone(model, str(pretrained_path), device)
+
+    model.set_active_channels(active_indices_tensor, channel_names=channel_names)
     logger.watch(model)
 
-    # -----------------------------------------------------------------
-    # 6. Training Rollout & Update Loop
-    # -----------------------------------------------------------------
+    # 4. Helper closures to eliminate boilerplate and ensure consistent states
+    def save_checkpoint(tag: str):
+        torch.save(model.state_dict(), str(checkpoint_dir / f"full_model_{tag}.pt"))
+        save_transferable_backbone(model, str(checkpoint_dir / f"backbone_{tag}.pt"))
+        registry.save(str(registry_path))
+
+    def save_video(filename: str):
+        model.eval()
+        record_episodes(
+            eval_env,
+            model,
+            cfg.video_frames,
+            str(video_dir / filename),
+            device,
+        )
+        model.train()
+
+    # 5. Training Loop Setup
     parallel_envs = envs.observation_space[0].shape[0]
     step = 0
     updates = 0
@@ -212,8 +261,12 @@ def main(envs, eval_env, logger, time_limit, **cfg):
     last_video = 0
     accumulated_infos = []
 
-    while step < cfg.total_steps + 1:
-        # Collect rollouts across parallel environments
+    # Initial baseline video (Step 0)
+    if video_interval > 0:
+        save_video("step-0.mp4")
+
+    # 6. Training Loop
+    while step < cfg.total_steps:
         t, batch, rollout_infos = _collect_trajectories(
             envs,
             model,
@@ -223,32 +276,42 @@ def main(envs, eval_env, logger, time_limit, **cfg):
             device,
             cfg.use_proper_termination,
         )
+        # Advance environment steps immediately so metrics and tags match actual step counts
+        step += t * parallel_envs
         accumulated_infos.extend(rollout_infos)
 
-        # Multi-epoch PPO mini-batch update
         metrics = model.update(batch, step)
         accumulated_infos.append(metrics)
+        updates += 1
 
-        # Periodic Evaluation Logging
-        if (step - last_eval) >= cfg.eval_interval:
+        # Periodic evaluation logging
+        if eval_interval > 0 and (step - last_eval) >= eval_interval:
             _log_progress(accumulated_infos, step, updates, logger)
             accumulated_infos = []
             last_eval = step
 
-        # Periodic Checkpointing (Anchored to Root checkpoints/ folder)
-        if cfg.save_interval and (step - last_save) >= cfg.save_interval:
-            torch.save(model.state_dict(), str(checkpoint_dir / f"full_model_s{step}.pt"))
-            save_transferable_backbone(model, str(checkpoint_dir / f"backbone_s{step}.pt"))
-            registry.save(str(registry_path))
+        # Periodic checkpointing
+        if save_interval > 0 and (step - last_save) >= save_interval:
+            save_checkpoint(f"s{step}")
             last_save = step
 
-    # -----------------------------------------------------------------
-    # 7. Final Save & Clean Exit
-    # -----------------------------------------------------------------
-    torch.save(model.state_dict(), str(checkpoint_dir / "full_model_final.pt"))
-    save_transferable_backbone(model, str(checkpoint_dir / "backbone_final.pt"))
-    registry.save(str(registry_path))
+        # Periodic video recording
+        if video_interval > 0 and (step - last_video) >= video_interval:
+            save_video(f"step-{step}.mp4")
+            last_video = step
 
+    # 7. Final Checkpoint & Final Video
+    save_checkpoint("final")
+
+    if video_interval > 0:
+        latest_video = video_dir / f"step-{last_video}.mp4"
+        # If the last step already rendered a periodic video, copy it to avoid duplicate work
+        if last_video == step and latest_video.exists():
+            shutil.copyfile(latest_video, video_dir / "step-final.mp4")
+        else:
+            save_video("step-final.mp4")
+
+    # Clean Exit
     envs.close()
     if hasattr(eval_env, "close"):
         eval_env.close()

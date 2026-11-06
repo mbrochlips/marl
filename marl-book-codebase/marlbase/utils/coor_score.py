@@ -5,7 +5,7 @@ import torch.nn.functional as F
 class CoordinationDetector(nn.Module):
     """
     Algorithm-agnostic Multi-Agent Coordination Detector.
-    Can be used by MAPPO, QMIX, MADDPG, or any decomposed MARL algorithm.
+    Tracks solo vs joint reward supermodularity across reward channels.
     """
     def __init__(self, n_reward_channels, n_agents, confidence_lambda=0.35):
         super().__init__()
@@ -13,26 +13,32 @@ class CoordinationDetector(nn.Module):
         self.n_agents = n_agents
         self.confidence_lambda = confidence_lambda
 
-        # Persistent GPU buffers (automatically saved/loaded with state_dict)
         self.register_buffer("all_time_max_solo", torch.zeros(n_reward_channels))
         self.register_buffer("all_time_max_joint", torch.zeros(n_reward_channels))
         self.register_buffer("cumulative_joint_events", torch.zeros(n_reward_channels))
         self.register_buffer("coordination_scores", torch.zeros(n_reward_channels))
 
+    def seed_scores(self, initial_scores):
+        """
+        Seeds transferred coordination scores and establishes initial confidence
+        so that transferred optimism is not wiped out on the first update.
+        """
+        initial_scores = initial_scores.to(self.coordination_scores.device)
+        self.coordination_scores.copy_(initial_scores)
+
+        # For channels that were already cooperative, give initial confidence and joint priors
+        coop_mask = initial_scores > 0.5
+        self.cumulative_joint_events[coop_mask] = 10.0  # high confidence prior
+        self.all_time_max_joint[coop_mask] = 1.0
+        self.all_time_max_solo[coop_mask] = 0.0
+
     @torch.no_grad()
     def update(self, rewards, filled_mask):
-        """
-        Args:
-            rewards: Tensor of shape (..., N_agents, N_channels) on CUDA
-            filled_mask: Tensor of shape (...) indicating active steps
-        Returns:
-            scores: Tensor of shape (N_channels,) bounded in [0, 1]
-        """
-        # Vectorized zero-sync extraction
         mask = filled_mask.unsqueeze(-1).unsqueeze(-1)
         valid_rews = rewards * mask
         rews_flat = valid_rews.view(-1, self.n_agents, self.n_channels)
 
+        # Only positive reward events count toward food harvesting
         has_rew = (rews_flat > 1e-4).float()
         active_counts = has_rew.sum(dim=1, keepdim=True)
 

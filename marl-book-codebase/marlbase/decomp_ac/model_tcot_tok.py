@@ -92,10 +92,59 @@ class FiLMBlock(nn.Module):
 
         return x + out
 
+# class FiLMBlock(nn.Module):
+#     """
+#     Deepened Pre-LN FiLM FFN Block.
+#     Features a 2-layer non-linear modulation generator with zero-initialized output,
+#     adding expressive channel sub-spacing at near-zero FLOP cost.
+#     """
+#     def __init__(self, d_model, d_ffn):
+#         super().__init__()
+#         self.norm = nn.LayerNorm(d_model)
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+#         # FFN Trunk (Fast 2-layer projection on B x M tokens)
+#         self.linear1 = nn.Linear(d_model, d_ffn)
+#         self.linear2 = nn.Linear(d_ffn, d_model)
+
+#         # Deepened 2-layer MLP Generator (Operates on M tokens only: 0% batch compute overhead)
+#         # Predicts (gamma, beta, and optional gate alpha)
+#         self.film_proj = nn.Sequential(
+#             nn.Linear(d_model, d_model),
+#             nn.GELU(),
+#             nn.Linear(d_model, d_ffn * 2),
+#         )
+
+#         self._reset_parameters()
+
+#     def _reset_parameters(self):
+#         nn.init.orthogonal_(self.linear1.weight, gain=1.0)
+#         nn.init.zeros_(self.linear1.bias)
+#         nn.init.orthogonal_(self.linear2.weight, gain=1.0)
+#         nn.init.zeros_(self.linear2.bias)
+
+#         # First layer of generator: orthogonal
+#         nn.init.orthogonal_(self.film_proj[0].weight, gain=1.0)
+#         nn.init.zeros_(self.film_proj[0].bias)
+
+#         # CRUCIAL: Zero-initialize the final projection so gamma=0, beta=0 at step 0!
+#         nn.init.zeros_(self.film_proj[-1].weight)
+#         nn.init.zeros_(self.film_proj[-1].bias)
+
+#     def forward(self, x, channel_emb):
+#         # x: (B, M, d_model)
+#         # channel_emb: (M, d_model) -> Tiny 9-element batch
+#         norm_x = self.norm(x)
+#         h = self.linear1(norm_x)
+
+#         # Non-linear 2-layer modulation parameters
+#         film_params = self.film_proj(channel_emb)   # (M, 2 * d_ffn)
+#         gamma, beta = film_params.chunk(2, dim=-1)  # (M, d_ffn) each
+
+#         # Affine feature modulation
+#         h = (1.0 + gamma.unsqueeze(0)) * h + beta.unsqueeze(0)
+#         h = F.gelu(h)
+
+#         return x + self.linear2(h)
 
 
 class EntityChannelQueryTransformerCritic(nn.Module):

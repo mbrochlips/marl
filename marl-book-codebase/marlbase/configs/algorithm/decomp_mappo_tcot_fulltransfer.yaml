@@ -7,7 +7,7 @@ algorithm:
   name: "mappo_tcot_fulltransfer"
 
   model:
-    _target_: decomp_ac.model_tcot_fulltransfer.TransformerCriticOTMAPPONetwork
+    _target_: decomp_ac.model_tcot_fulltransfer_old.TransformerCriticOTMAPPONetwork
     actor:
       layers:
         - 128
@@ -26,6 +26,7 @@ algorithm:
   critic_d_model: 128          # Latent dimension for entity tokens and channel queries
   critic_n_heads: 4            # Number of attention heads (divides 128 evenly)
   critic_d_ffn: 256            # Hidden dimension of the FiLM FFN block
+  # n_state_tokens: 4            # NEW
 
   # -------------------------------------------------------------
   # Autonomous Targeted Coordination Optimism

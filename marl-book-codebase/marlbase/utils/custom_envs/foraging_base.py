@@ -26,23 +26,34 @@ class ForagingDecompReward(ForagingEnv):
         normalize_reward=False,
         num_semantic_channels=4,
         step_penalty=0.01,
+        collision_penalty=0.03,
         miscoordination_penalty=1.0,
         food_to_collect=None,
         vector_reward=False,
         channel_names=None,
-        step_penalty_channel=None,
         **kwargs,
     ):
-        self.num_reward_channels = num_semantic_channels
-        self.step_penalty = float(step_penalty)
-        self.miscoordination_penalty = float(miscoordination_penalty)
+
         self.food_items = []
         self.food_to_collect = food_to_collect
         self.vector_reward = vector_reward
         self.channel_names = channel_names
+        self.step_penalty = float(step_penalty) if step_penalty is not None else 0.0
+        self.collision_penalty = float(collision_penalty) if collision_penalty is not None else 0.0
+        self.miscoordination_penalty = float(miscoordination_penalty) if miscoordination_penalty is not None else 0.0
+        self.channel_names = list(channel_names) if channel_names is not None else []
+        self.num_reward_channels = len(self.channel_names) if self.channel_names else int(num_semantic_channels)
         self.step_penalty_channel = (
-            step_penalty_channel if step_penalty_channel is not None else (num_semantic_channels - 1)
+            self.channel_names.index("step_penalty")
+            if "step_penalty" in self.channel_names
+            else None
         )
+        self.collision_penalty_channel = (
+            self.channel_names.index("collision_penalty")
+            if "collision_penalty" in self.channel_names
+            else None
+        )
+        
 
         env_kwargs = {
             "players": players,
@@ -96,6 +107,7 @@ class ForagingDecompReward(ForagingEnv):
             Action(int(a)) if Action(int(a)) in self._valid_actions[p] else Action.NONE
             for p, a in zip(self.players, actions)
         ]
+        rewards = [np.zeros(self.num_reward_channels, dtype=np.float32) for _ in self.players]
 
         # 1. Resolve Movements & Collisions
         curr_pos = [p.position for p in self.players]
@@ -103,6 +115,7 @@ class ForagingDecompReward(ForagingEnv):
             (curr_pos[i][0] + MOVES.get(a, (0, 0))[0], curr_pos[i][1] + MOVES.get(a, (0, 0))[1])
             for i, a in enumerate(actions)
         ]
+        collided_players = set()
 
         resolved = False
         while not resolved:
@@ -121,13 +134,20 @@ class ForagingDecompReward(ForagingEnv):
                         or (new_pos[i] == curr_pos[j] and new_pos[j] == curr_pos[j])
                     ):
                         new_pos[i], new_pos[j] = curr_pos[i], curr_pos[j]
+                        
+                        collided_players.add(i)
+                        collided_players.add(j)
+
                         resolved = False
 
         for p, pos, a in zip(self.players, new_pos, actions):
             p.position, _ = pos, p.history.append(a)
 
-        # 2. Rewards
-        rewards = [np.zeros(self.num_reward_channels, dtype=np.float32) for _ in self.players]
+        if self.collision_penalty > 0.0 and self.collision_penalty_channel is not None:
+            for p_idx in collided_players:
+                rewards[p_idx][self.collision_penalty_channel] -= abs(self.collision_penalty)
+
+        # 2. Step Penalty
         if self.step_penalty > 0.0 and self.step_penalty_channel is not None:
             for r in rewards:
                 r[self.step_penalty_channel] = -abs(self.step_penalty)
@@ -142,7 +162,7 @@ class ForagingDecompReward(ForagingEnv):
             if not loaders:
                 continue
 
-            ch = food["channel_id"]
+            ch = self.channel_names.index(food["type"])
             if sum(p.level for p in loaders) >= food["level"]:
                 food["active"] = False
                 self.field[fr, fc] = 0
