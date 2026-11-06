@@ -7,7 +7,7 @@ algorithm:
   name: "mappo_tcot_fulltransfer"
 
   model:
-    _target_: decomp_ac.model_tcot_fulltransfer_old.TransformerCriticOTMAPPONetwork
+    _target_: decomp_ac.model_tcot_fulltransfer.TransformerCriticOTMAPPONetwork
     actor:
       layers:
         - 128
