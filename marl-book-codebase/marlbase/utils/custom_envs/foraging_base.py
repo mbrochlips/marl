@@ -116,29 +116,51 @@ class ForagingDecompReward(ForagingEnv):
             for i, a in enumerate(actions)
         ]
         collided_players = set()
-
         resolved = False
+
         while not resolved:
             resolved = True
+
+            # 1. Grid Boundaries and Food Obstacles
+            for i, (r, c) in enumerate(new_pos):
+                if new_pos[i] != curr_pos[i]:
+                    if not (0 <= r < self.rows and 0 <= c < self.cols) or self.field[r, c] > 0:
+                        new_pos[i] = curr_pos[i]
+                        resolved = False
+
+            # 2. Head-on Swaps (Agent i and j cross paths directly)
             for i in range(len(self.players)):
-                if new_pos[i] == curr_pos[i]:
-                    continue
-                r, c = new_pos[i]
-                if not (0 <= r < self.rows and 0 <= c < self.cols) or self.field[r, c] > 0:
-                    new_pos[i] = curr_pos[i]
-                    resolved = False
-                for j in range(len(self.players)):
-                    if i != j and (
-                        new_pos[i] == new_pos[j]
-                        or (new_pos[i] == curr_pos[j] and new_pos[j] == curr_pos[i])
-                        or (new_pos[i] == curr_pos[j] and new_pos[j] == curr_pos[j])
+                for j in range(i + 1, len(self.players)):
+                    if (
+                        new_pos[i] != curr_pos[i]
+                        and new_pos[j] != curr_pos[j]
+                        and new_pos[i] == curr_pos[j]
+                        and new_pos[j] == curr_pos[i]
                     ):
                         new_pos[i], new_pos[j] = curr_pos[i], curr_pos[j]
-                        
-                        collided_players.add(i)
-                        collided_players.add(j)
-
+                        collided_players.update([i, j])
                         resolved = False
+
+            # 3. Same-Tile Contests (>= 2 agents target the exact same cell)
+            dest_claims = {}
+            for i, pos in enumerate(new_pos):
+                if pos != curr_pos[i]:
+                    dest_claims.setdefault(pos, []).append(i)
+
+            for pos, claimants in dest_claims.items():
+                if len(claimants) > 1:
+                    for i in claimants:
+                        new_pos[i] = curr_pos[i]
+                        collided_players.add(i)
+                    resolved = False
+
+            # 4. Walking into a Stationary Agent (Domino cascades)
+            stationary_cells = {curr_pos[i] for i, pos in enumerate(new_pos) if pos == curr_pos[i]}
+            for i, pos in enumerate(new_pos):
+                if pos != curr_pos[i] and pos in stationary_cells:
+                    new_pos[i] = curr_pos[i]
+                    collided_players.add(i)  # Only penalize the walker
+                    resolved = False
 
         for p, pos, a in zip(self.players, new_pos, actions):
             p.position, _ = pos, p.history.append(a)

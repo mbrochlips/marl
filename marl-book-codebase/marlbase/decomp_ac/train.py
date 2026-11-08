@@ -11,7 +11,7 @@ from omegaconf import DictConfig
 import torch
 
 from marlbase.utils.video import VideoRecorder
-from marlbase.utils.transfer import save_transferable_backbone, load_transferable_backbone
+from marlbase.utils.transfer_old import save_transferable_backbone, load_transferable_backbone
 
 # Batch structure supporting decomposed rewards and optional cached old log-probs
 Batch = namedtuple(

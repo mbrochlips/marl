@@ -1,71 +1,131 @@
+from pathlib import Path
+from typing import Sequence, Dict, Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class CoordinationDetector(nn.Module):
-    """
-    Algorithm-agnostic Multi-Agent Coordination Detector.
-    Tracks solo vs joint reward supermodularity across reward channels.
-    """
-    def __init__(self, n_reward_channels, n_agents, confidence_lambda=0.35):
+    """Ultra-fast, vectorized multi-agent coordination detector."""
+    def __init__(self, channel_names: Sequence[str], n_agents: int, confidence_lambda: float = 0.35):
         super().__init__()
-        self.n_channels = n_reward_channels
-        self.n_agents = n_agents
+        self.channel_names = list(channel_names)
+        self.n_channels, self.n_agents = len(self.channel_names), n_agents
         self.confidence_lambda = confidence_lambda
+        self.channel_to_idx = {name: i for i, name in enumerate(self.channel_names)}
 
-        self.register_buffer("all_time_max_solo", torch.zeros(n_reward_channels))
-        self.register_buffer("all_time_max_joint", torch.zeros(n_reward_channels))
-        self.register_buffer("cumulative_joint_events", torch.zeros(n_reward_channels))
-        self.register_buffer("coordination_scores", torch.zeros(n_reward_channels))
+        self.register_buffer("all_time_max_solo", torch.zeros(self.n_channels))
+        self.register_buffer("all_time_max_joint", torch.zeros(self.n_channels))
+        self.register_buffer("cumulative_joint_events", torch.zeros(self.n_channels))
+        self.register_buffer("coordination_scores", torch.zeros(self.n_channels))
 
-    def seed_scores(self, initial_scores):
-        """
-        Seeds transferred coordination scores and establishes initial confidence
-        so that transferred optimism is not wiped out on the first update.
-        """
-        initial_scores = initial_scores.to(self.coordination_scores.device)
-        self.coordination_scores.copy_(initial_scores)
-
-        # For channels that were already cooperative, give initial confidence and joint priors
-        coop_mask = initial_scores > 0.5
-        self.cumulative_joint_events[coop_mask] = 10.0  # high confidence prior
-        self.all_time_max_joint[coop_mask] = 1.0
-        self.all_time_max_solo[coop_mask] = 0.0
+    def save(self, path: str):
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        torch.save({"channel_names": self.channel_names, "state": self.state_dict()}, path)
 
     @torch.no_grad()
-    def update(self, rewards, filled_mask):
-        mask = filled_mask.unsqueeze(-1).unsqueeze(-1)
-        valid_rews = rewards * mask
-        rews_flat = valid_rews.view(-1, self.n_agents, self.n_channels)
+    def load(self, path: str):
+        data = torch.load(path, map_location=self.coordination_scores.device)
+        for i, name in enumerate(data["channel_names"]):
+            if name in self.channel_to_idx:
+                idx = self.channel_to_idx[name]
+                for k in ["coordination_scores", "all_time_max_joint", "all_time_max_solo", "cumulative_joint_events"]:
+                    getattr(self, k)[idx] = data["state"][k][i]
 
-        # Only positive reward events count toward food harvesting
-        has_rew = (rews_flat > 1e-4).float()
-        active_counts = has_rew.sum(dim=1, keepdim=True)
+    @torch.no_grad()
+    def update(self, rewards: torch.Tensor, filled_mask: Optional[torch.Tensor] = None) -> torch.Tensor:
+        # [T * B, n_agents, n_channels]
+        rews = rewards.reshape(-1, self.n_agents, self.n_channels)
+        if filled_mask is not None:
+            rews = rews * filled_mask.reshape(-1, 1, 1)
 
-        # 1. Solo detection (exactly 1 agent scored)
-        is_solo = (active_counts == 1.0).float()
-        batch_max_solo = (rews_flat * is_solo).amax(dim=(0, 1))
+        # Collapse agents to 2D [M, C] immediately
+        active = (rews > 1e-4).sum(dim=1)  # (M, C)
+        step_max = rews.amax(dim=1)        # (M, C)
 
-        # 2. Joint detection (>= 2 agents scored)
-        is_joint = (active_counts >= 2.0).float()
-        batch_max_joint = (rews_flat * is_joint).amax(dim=(0, 1))
-        batch_joint_events = is_joint.amax(dim=1).sum(dim=0)
+        max_solo = torch.where(active == 1, step_max, 0.0).amax(dim=0)
+        max_joint = torch.where(active >= 2, step_max, 0.0).amax(dim=0)
+        joint_events = (active >= 2).sum(dim=0)
 
-        # 3. Update all-time persistent buffers
-        torch.maximum(self.all_time_max_solo, batch_max_solo, out=self.all_time_max_solo)
-        torch.maximum(self.all_time_max_joint, batch_max_joint, out=self.all_time_max_joint)
-        self.cumulative_joint_events.add_(batch_joint_events)
+        torch.maximum(self.all_time_max_solo, max_solo, out=self.all_time_max_solo)
+        torch.maximum(self.all_time_max_joint, max_joint, out=self.all_time_max_joint)
+        self.cumulative_joint_events.add_(joint_events)
 
-        # 4. Supermodular Surplus & Confidence
         surplus = F.relu(self.all_time_max_joint - self.all_time_max_solo)
-        surplus_ratio = surplus / (self.all_time_max_joint + 1e-6)
         confidence = 1.0 - torch.exp(-self.confidence_lambda * self.cumulative_joint_events)
-
-        self.coordination_scores.copy_(surplus_ratio * confidence)
+        self.coordination_scores.copy_((surplus / (self.all_time_max_joint + 1e-6)) * confidence)
         return self.coordination_scores
 
-    def get_scores(self):
+    def get_scores_dict(self) -> Dict[str, float]:
+        return dict(zip(self.channel_names, self.coordination_scores.tolist()))
+
+    def get_scores(self) -> torch.Tensor:
         return self.coordination_scores
+
+# class CoordinationDetector(nn.Module):
+#     """
+#     Algorithm-agnostic Multi-Agent Coordination Detector.
+#     Tracks solo vs joint reward supermodularity across reward channels.
+#     """
+#     def __init__(self, n_reward_channels, n_agents, confidence_lambda=0.35):
+#         super().__init__()
+#         self.n_channels = n_reward_channels
+#         self.n_agents = n_agents
+#         self.confidence_lambda = confidence_lambda
+
+#         self.register_buffer("all_time_max_solo", torch.zeros(n_reward_channels))
+#         self.register_buffer("all_time_max_joint", torch.zeros(n_reward_channels))
+#         self.register_buffer("cumulative_joint_events", torch.zeros(n_reward_channels))
+#         self.register_buffer("coordination_scores", torch.zeros(n_reward_channels))
+
+#     def seed_scores(self, initial_scores):
+#         """
+#         Seeds transferred coordination scores and establishes initial confidence
+#         so that transferred optimism is not wiped out on the first update.
+#         """
+#         initial_scores = initial_scores.to(self.coordination_scores.device)
+#         self.coordination_scores.copy_(initial_scores)
+
+#         # For channels that were already cooperative, give initial confidence and joint priors
+#         coop_mask = initial_scores > 0.5
+#         self.cumulative_joint_events[coop_mask] = 10.0  # high confidence prior
+#         self.all_time_max_joint[coop_mask] = 1.0
+#         self.all_time_max_solo[coop_mask] = 0.0
+
+#     @torch.no_grad()
+#     def update(self, rewards, filled_mask):
+#         mask = filled_mask.unsqueeze(-1).unsqueeze(-1)
+#         valid_rews = rewards * mask
+#         rews_flat = valid_rews.view(-1, self.n_agents, self.n_channels)
+
+#         # Only positive reward events count toward food harvesting
+#         has_rew = (rews_flat > 1e-4).float()
+#         active_counts = has_rew.sum(dim=1, keepdim=True)
+
+#         # 1. Solo detection (exactly 1 agent scored)
+#         is_solo = (active_counts == 1.0).float()
+#         batch_max_solo = (rews_flat * is_solo).amax(dim=(0, 1))
+
+#         # 2. Joint detection (>= 2 agents scored)
+#         is_joint = (active_counts >= 2.0).float()
+#         batch_max_joint = (rews_flat * is_joint).amax(dim=(0, 1))
+#         batch_joint_events = is_joint.amax(dim=1).sum(dim=0)
+
+#         # 3. Update all-time persistent buffers
+#         torch.maximum(self.all_time_max_solo, batch_max_solo, out=self.all_time_max_solo)
+#         torch.maximum(self.all_time_max_joint, batch_max_joint, out=self.all_time_max_joint)
+#         self.cumulative_joint_events.add_(batch_joint_events)
+
+#         # 4. Supermodular Surplus & Confidence
+#         surplus = F.relu(self.all_time_max_joint - self.all_time_max_solo)
+#         surplus_ratio = surplus / (self.all_time_max_joint + 1e-6)
+#         confidence = 1.0 - torch.exp(-self.confidence_lambda * self.cumulative_joint_events)
+
+#         self.coordination_scores.copy_(surplus_ratio * confidence)
+#         return self.coordination_scores
+
+#     def get_scores(self):
+#         return self.coordination_scores
     
 
 

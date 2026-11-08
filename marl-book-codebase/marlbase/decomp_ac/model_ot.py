@@ -14,7 +14,7 @@ from torch import optim
 from marlbase.utils.models import MultiAgentIndependentNetwork, MultiAgentSharedNetwork
 from marlbase.utils.utils import MultiCategorical
 from marlbase.utils.standardise_stream import RunningMeanStd
-from marlbase.utils.coor_score import CoordinationDetector
+from marlbase.utils.coord_score import CoordinationDetector
 
 
 def _split_batch(splits):

@@ -85,10 +85,10 @@ class Logger:
 
         if info_dict is not None:
             # 1. Cleaned up Coordination Scores: [ch0: 1.000 | ch1: 0.000 | ...]
-            coord_keys = sorted([
+            coord_keys = [
                 k for k in info_dict.keys()
                 if ("coord" in k or "interaction" in k) and not k.startswith("std_")
-            ])
+            ]
             if coord_keys:
                 scores_str = " | ".join([
                     f"{k.replace('mean_', '').replace('coordination_score_', '').replace('coordination_', '').replace('coord_score_',''):}: {info_dict[k]:.3f}"
@@ -97,10 +97,10 @@ class Logger:
                 self.info(f"Coor. Scores:  [{scores_str}]")
 
             # 2. Cleaned up Channel Returns: [ch0: 0.500 | ch1: 0.120 | ...]
-            ret_keys = sorted([
+            ret_keys = [
                 k for k in info_dict.keys()
                 if "return_" in k and not k.startswith("std_") and "episode_returns" not in k
-            ])
+            ]
             if ret_keys:
                 rets_str = " | ".join([
                     f"{k.replace('mean_', '').replace('return_', '').replace('channel_', 'ch'):}: {info_dict[k]:.3f}"

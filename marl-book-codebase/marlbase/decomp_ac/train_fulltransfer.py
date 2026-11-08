@@ -13,6 +13,7 @@ import shutil
 from marlbase.utils.video import VideoRecorder
 from marlbase.utils.transfer import save_transferable_backbone, load_transferable_backbone
 from marlbase.utils.register_rewards import RewardRegistry
+from marlbase.utils.coord_score import CoordinationDetector
 
 Batch = namedtuple(
     "Batch",
@@ -171,12 +172,14 @@ def main(envs, eval_env, logger, time_limit, **cfg):
     run_dir = Path(HydraConfig.get().runtime.output_dir)
     orig_cwd = Path(hydra.utils.get_original_cwd())
 
-
     checkpoint_dir = run_dir / "checkpoints"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     video_dir = run_dir / "videos"
     video_dir.mkdir(parents=True, exist_ok=True)
+
+    # Overwrite targets for latest state
     registry_path = run_dir / "reward_registry.json"
+    coord_detector_path = run_dir / "coord_detector.pt"
 
     # Intervals
     eval_interval = getattr(cfg, "eval_interval", 0) or 0
@@ -192,11 +195,9 @@ def main(envs, eval_env, logger, time_limit, **cfg):
         if not pretrained_path.is_absolute():
             pretrained_path = orig_cwd / pretrained_path
 
-        # Look for reward_registry.json in parent directories of the checkpoint
-        source_registry_path = pretrained_path.parent.parent / "reward_registry.json"
-        if not source_registry_path.exists():
-            source_registry_path = pretrained_path.parent / "reward_registry.json"
-
+        source_registry_path = pretrained_path / "reward_registry.json"
+        source_detector_path = pretrained_path / "coord_detector.pt"
+        
         if source_registry_path.exists():
             registry.load(str(source_registry_path))
             print(f"[Transfer] Paired with source registry: {source_registry_path}", flush=True)
@@ -213,10 +214,9 @@ def main(envs, eval_env, logger, time_limit, **cfg):
     if channel_names is None:
         n_channels = getattr(env_unwrapped, "num_reward_channels", getattr(cfg, "n_reward_channels", 4))
         channel_names = [f"channel_{i}" for i in range(n_channels)]
+        print(f"[Setup] Found no channel names! Created {len(channel_names)} semantic channels: {channel_names}", flush=True)
     else:
-        n_channels = len(channel_names)
-
-    print(f"[Setup] Detected {len(channel_names)} semantic channels: {channel_names}", flush=True)
+        print(f"[Setup] Detected {len(channel_names)} semantic channels: {channel_names}", flush=True)
 
     active_indices = registry.get_or_register(channel_names)
     active_indices_tensor = torch.tensor(active_indices, dtype=torch.long, device=device)
@@ -232,7 +232,18 @@ def main(envs, eval_env, logger, time_limit, **cfg):
     if pretrained_backbone is not None:
         load_transferable_backbone(model, str(pretrained_path), device)
 
+    # Initialize active channels on model and detector
     model.set_active_channels(active_indices_tensor, channel_names=channel_names)
+
+    # Load transferred detector scores if available (mirrors registry.load)
+    if pretrained_backbone is not None:
+        if source_detector_path.exists():
+            model.coord_detector.load(str(source_detector_path))
+            print(f"[Transfer] Loaded CoordinationDetector from {source_detector_path}", flush=True)
+            print(f"[Transfer] Seeded scores: {model.coord_detector.get_scores_dict()}", flush=True)
+        else:
+            print(f"[Transfer] Note: No detector found at {source_detector_path}. Fresh detector.", flush=True)
+
     logger.watch(model)
 
     # 4. Helper closures to eliminate boilerplate and ensure consistent states
@@ -240,6 +251,7 @@ def main(envs, eval_env, logger, time_limit, **cfg):
         torch.save(model.state_dict(), str(checkpoint_dir / f"full_model_{tag}.pt"))
         save_transferable_backbone(model, str(checkpoint_dir / f"backbone_{tag}.pt"))
         registry.save(str(registry_path))
+        model.coord_detector.save(str(coord_detector_path))
 
     def save_video(filename: str):
         model.eval()
@@ -276,7 +288,6 @@ def main(envs, eval_env, logger, time_limit, **cfg):
             device,
             cfg.use_proper_termination,
         )
-        # Advance environment steps immediately so metrics and tags match actual step counts
         step += t * parallel_envs
         accumulated_infos.extend(rollout_infos)
 
@@ -305,7 +316,6 @@ def main(envs, eval_env, logger, time_limit, **cfg):
 
     if video_interval > 0:
         latest_video = video_dir / f"step-{last_video}.mp4"
-        # If the last step already rendered a periodic video, copy it to avoid duplicate work
         if last_video == step and latest_video.exists():
             shutil.copyfile(latest_video, video_dir / "step-final.mp4")
         else:
