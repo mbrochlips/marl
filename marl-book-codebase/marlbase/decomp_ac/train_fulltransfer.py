@@ -251,7 +251,7 @@ def main(envs, eval_env, logger, time_limit, **cfg):
         torch.save(model.state_dict(), str(checkpoint_dir / f"full_model_{tag}.pt"))
         save_transferable_backbone(model, str(checkpoint_dir / f"backbone_{tag}.pt"))
         registry.save(str(registry_path))
-        model.coord_detector.save(str(coord_detector_path))
+        # model.coord_detector.save(str(coord_detector_path))
 
     def save_video(filename: str):
         model.eval()

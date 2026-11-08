@@ -22,7 +22,7 @@ solo_det_high = {
     "split": True,
 }
 solo_stoch = {
-    "level": 3,
+    "level": 2,
     "type": "solo_stoch",
     "stoch_outcomes": [-2.0, 1.0],
     "stoch_probs": [0.5, 0.5],
@@ -109,4 +109,4 @@ FOOD_PRESETS = {
 # ==============================================================================
 for preset in FOOD_PRESETS.values():
     preset["food_items"] = [{**copy.deepcopy(item), "channel_id": i} for i, item in enumerate(preset["food_items"])]
-    preset["channel_names"] = [item["type"] for item in preset["food_items"]]
+    preset["channel_names"] = [item["type"] for item in preset["food_items"]] + ["step_penalty"]

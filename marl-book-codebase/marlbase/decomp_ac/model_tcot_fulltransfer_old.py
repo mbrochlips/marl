@@ -10,7 +10,7 @@ from torch import optim
 from marlbase.utils.models import MultiAgentIndependentNetwork, MultiAgentSharedNetwork
 from marlbase.utils.utils import MultiCategorical
 from marlbase.utils.standardise_stream import RunningMeanStd
-from marlbase.utils.coord_score import CoordinationDetector
+from marlbase.utils.coord_score import CoordinationDetector_idx
 
 
 def _split_batch(splits):
@@ -109,9 +109,7 @@ class TeamResidualReadoutHead(nn.Module):
         db = self.delta_b[:, active_indices]         # (N, M_active)
 
         v_team = torch.sum(h * w.unsqueeze(0), dim=-1) + b.unsqueeze(0)
-        # v_team = torch.einsum("bmd, md -> bm", h, w) + b.unsqueeze(0)
         v_offset = torch.sum(h.unsqueeze(1) * dw.unsqueeze(0), dim=-1) + db.unsqueeze(0)
-        # v_offset = torch.einsum("bmd, nmd -> bnm", h, dw) + db.unsqueeze(0)
         return v_team.unsqueeze(1) + v_offset
 
 
@@ -189,17 +187,7 @@ class ChannelQueryTransformerCritic(nn.Module):
 
 
 class TransformerCriticOTMAPPONetwork(nn.Module):
-    def __init__(
-        self,
-        obs_space,
-        action_space,
-        cfg,
-        actor,
-        critic,
-        device,
-        channel_names=None,
-        **kwargs,
-    ):
+    def __init__(self, obs_space, action_space, cfg, actor, critic, device):
         super().__init__()
         self.device = device
         self.gamma = cfg.gamma
@@ -213,18 +201,12 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
         self.use_clipped_value_loss = getattr(cfg, "use_clipped_value_loss", True)
         self.optimism_alpha = getattr(cfg, "optimism_alpha", 0.1)
 
-        self.channel_names = channel_names
-
         self.n_agents = len(obs_space)
         obs_dims = [flatdim(o) for o in obs_space]
         act_dims = [flatdim(a) for a in action_space]
 
         self.max_channels = getattr(cfg, "max_channels", 32)
-        # Fallback channel count for initial buffers before set_active_channels is called
-        if self.channel_names is not None:
-            self.n_reward_channels = len(self.channel_names)
-        else:
-            self.n_reward_channels = getattr(cfg, "n_reward_channels", 4)
+        self.n_reward_channels = getattr(cfg, "n_reward_channels", 4)
 
         # Persistent coordination scores across all basis slots
         self.register_buffer("basis_coord_scores", torch.zeros(self.max_channels))
@@ -253,8 +235,8 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
         )
         self.target_critic = copy.deepcopy(self.critic)
 
-        # Initial default allocation (re-bound cleanly in set_active_channels)
-        self.coord_detector = CoordinationDetector(
+        # Initial default allocation (re-bound by set_active_channels)
+        self.coord_detector = CoordinationDetector_idx(
             n_reward_channels=self.n_reward_channels,
             n_agents=self.n_agents,
         ).to(device)
@@ -277,29 +259,25 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
         self.split_obs = _split_batch([flatdim(s) for s in obs_space])
         self.split_act = _split_batch(self.n_agents * [1])
 
-    def set_active_channels(self, active_indices, channel_names=None, **kwargs):
+    def set_active_channels(self, active_indices):
         """Binds active basis slots and restores learned coordination optimism."""
         self.active_channel_indices = active_indices.to(self.device)
         self.n_reward_channels = len(active_indices)
 
-        if channel_names is not None:
-            self.channel_names = list(channel_names)
-
         self.critic.set_active_channels(self.active_channel_indices)
         self.target_critic.set_active_channels(self.active_channel_indices)
 
-        # Re-initialize detector for the active channels
-        self.coord_detector = CoordinationDetector(
+        # Create active coordination detector
+        self.coord_detector = CoordinationDetector_idx(
             n_reward_channels=self.n_reward_channels,
             n_agents=self.n_agents,
         ).to(self.device)
 
         # Seed detector with known coordination scores to eliminate coordination shock
-        active_seed_scores = self.basis_coord_scores[self.active_channel_indices]
-        if hasattr(self.coord_detector, "seed_scores"):
-            self.coord_detector.seed_scores(active_seed_scores)
-        elif hasattr(self.coord_detector, "coordination_scores"):
-            self.coord_detector.coordination_scores.copy_(active_seed_scores)
+        if hasattr(self.coord_detector, "scores"):
+            self.coord_detector.scores.data.copy_(
+                self.basis_coord_scores[self.active_channel_indices]
+            )
 
         if self.standardise_returns:
             self.ret_ms = RunningMeanStd(

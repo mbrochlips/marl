@@ -26,34 +26,23 @@ class ForagingDecompReward(ForagingEnv):
         normalize_reward=False,
         num_semantic_channels=4,
         step_penalty=0.01,
-        collision_penalty=0.03,
         miscoordination_penalty=1.0,
         food_to_collect=None,
         vector_reward=False,
         channel_names=None,
+        step_penalty_channel=None,
         **kwargs,
     ):
-
+        self.num_reward_channels = num_semantic_channels
+        self.step_penalty = float(step_penalty)
+        self.miscoordination_penalty = float(miscoordination_penalty)
         self.food_items = []
         self.food_to_collect = food_to_collect
         self.vector_reward = vector_reward
         self.channel_names = channel_names
-        self.step_penalty = float(step_penalty) if step_penalty is not None else 0.0
-        self.collision_penalty = float(collision_penalty) if collision_penalty is not None else 0.0
-        self.miscoordination_penalty = float(miscoordination_penalty) if miscoordination_penalty is not None else 0.0
-        self.channel_names = list(channel_names) if channel_names is not None else []
-        self.num_reward_channels = len(self.channel_names) if self.channel_names else int(num_semantic_channels)
         self.step_penalty_channel = (
-            self.channel_names.index("step_penalty")
-            if "step_penalty" in self.channel_names
-            else None
+            step_penalty_channel if step_penalty_channel is not None else (num_semantic_channels - 1)
         )
-        self.collision_penalty_channel = (
-            self.channel_names.index("collision_penalty")
-            if "collision_penalty" in self.channel_names
-            else None
-        )
-        
 
         env_kwargs = {
             "players": players,
@@ -107,7 +96,6 @@ class ForagingDecompReward(ForagingEnv):
             Action(int(a)) if Action(int(a)) in self._valid_actions[p] else Action.NONE
             for p, a in zip(self.players, actions)
         ]
-        rewards = [np.zeros(self.num_reward_channels, dtype=np.float32) for _ in self.players]
 
         # 1. Resolve Movements & Collisions
         curr_pos = [p.position for p in self.players]
@@ -115,61 +103,31 @@ class ForagingDecompReward(ForagingEnv):
             (curr_pos[i][0] + MOVES.get(a, (0, 0))[0], curr_pos[i][1] + MOVES.get(a, (0, 0))[1])
             for i, a in enumerate(actions)
         ]
-        collided_players = set()
-        resolved = False
 
+        resolved = False
         while not resolved:
             resolved = True
-
-            # 1. Grid Boundaries and Food Obstacles
-            for i, (r, c) in enumerate(new_pos):
-                if new_pos[i] != curr_pos[i]:
-                    if not (0 <= r < self.rows and 0 <= c < self.cols) or self.field[r, c] > 0:
-                        new_pos[i] = curr_pos[i]
-                        resolved = False
-
-            # 2. Head-on Swaps (Agent i and j cross paths directly)
             for i in range(len(self.players)):
-                for j in range(i + 1, len(self.players)):
-                    if (
-                        new_pos[i] != curr_pos[i]
-                        and new_pos[j] != curr_pos[j]
-                        and new_pos[i] == curr_pos[j]
-                        and new_pos[j] == curr_pos[i]
+                if new_pos[i] == curr_pos[i]:
+                    continue
+                r, c = new_pos[i]
+                if not (0 <= r < self.rows and 0 <= c < self.cols) or self.field[r, c] > 0:
+                    new_pos[i] = curr_pos[i]
+                    resolved = False
+                for j in range(len(self.players)):
+                    if i != j and (
+                        new_pos[i] == new_pos[j]
+                        or (new_pos[i] == curr_pos[j] and new_pos[j] == curr_pos[i])
+                        or (new_pos[i] == curr_pos[j] and new_pos[j] == curr_pos[j])
                     ):
                         new_pos[i], new_pos[j] = curr_pos[i], curr_pos[j]
-                        collided_players.update([i, j])
                         resolved = False
-
-            # 3. Same-Tile Contests (>= 2 agents target the exact same cell)
-            dest_claims = {}
-            for i, pos in enumerate(new_pos):
-                if pos != curr_pos[i]:
-                    dest_claims.setdefault(pos, []).append(i)
-
-            for pos, claimants in dest_claims.items():
-                if len(claimants) > 1:
-                    for i in claimants:
-                        new_pos[i] = curr_pos[i]
-                        collided_players.add(i)
-                    resolved = False
-
-            # 4. Walking into a Stationary Agent (Domino cascades)
-            stationary_cells = {curr_pos[i] for i, pos in enumerate(new_pos) if pos == curr_pos[i]}
-            for i, pos in enumerate(new_pos):
-                if pos != curr_pos[i] and pos in stationary_cells:
-                    new_pos[i] = curr_pos[i]
-                    collided_players.add(i)  # Only penalize the walker
-                    resolved = False
 
         for p, pos, a in zip(self.players, new_pos, actions):
             p.position, _ = pos, p.history.append(a)
 
-        if self.collision_penalty > 0.0 and self.collision_penalty_channel is not None:
-            for p_idx in collided_players:
-                rewards[p_idx][self.collision_penalty_channel] -= abs(self.collision_penalty)
-
-        # 2. Step Penalty
+        # 2. Rewards
+        rewards = [np.zeros(self.num_reward_channels, dtype=np.float32) for _ in self.players]
         if self.step_penalty > 0.0 and self.step_penalty_channel is not None:
             for r in rewards:
                 r[self.step_penalty_channel] = -abs(self.step_penalty)
@@ -184,7 +142,7 @@ class ForagingDecompReward(ForagingEnv):
             if not loaders:
                 continue
 
-            ch = self.channel_names.index(food["type"])
+            ch = food["channel_id"]
             if sum(p.level for p in loaders) >= food["level"]:
                 food["active"] = False
                 self.field[fr, fc] = 0

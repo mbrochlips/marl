@@ -4,6 +4,64 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+class CoordinationDetector_idx(nn.Module):
+    """
+    Algorithm-agnostic Multi-Agent Coordination Detector.
+    Can be used by MAPPO, QMIX, MADDPG, or any decomposed MARL algorithm.
+    """
+    def __init__(self, n_reward_channels, n_agents, confidence_lambda=0.35):
+        super().__init__()
+        self.n_channels = n_reward_channels
+        self.n_agents = n_agents
+        self.confidence_lambda = confidence_lambda
+
+        # Persistent GPU buffers (automatically saved/loaded with state_dict)
+        self.register_buffer("all_time_max_solo", torch.zeros(n_reward_channels))
+        self.register_buffer("all_time_max_joint", torch.zeros(n_reward_channels))
+        self.register_buffer("cumulative_joint_events", torch.zeros(n_reward_channels))
+        self.register_buffer("coordination_scores", torch.zeros(n_reward_channels))
+
+    @torch.no_grad()
+    def update(self, rewards, filled_mask):
+        """
+        Args:
+            rewards: Tensor of shape (..., N_agents, N_channels) on CUDA
+            filled_mask: Tensor of shape (...) indicating active steps
+        Returns:
+            scores: Tensor of shape (N_channels,) bounded in [0, 1]
+        """
+        # Vectorized zero-sync extraction
+        mask = filled_mask.unsqueeze(-1).unsqueeze(-1)
+        valid_rews = rewards * mask
+        rews_flat = valid_rews.view(-1, self.n_agents, self.n_channels)
+
+        has_rew = (rews_flat > 1e-4).float()
+        active_counts = has_rew.sum(dim=1, keepdim=True)
+
+        # 1. Solo detection (exactly 1 agent scored)
+        is_solo = (active_counts == 1.0).float()
+        batch_max_solo = (rews_flat * is_solo).amax(dim=(0, 1))
+
+        # 2. Joint detection (>= 2 agents scored)
+        is_joint = (active_counts >= 2.0).float()
+        batch_max_joint = (rews_flat * is_joint).amax(dim=(0, 1))
+        batch_joint_events = is_joint.amax(dim=1).sum(dim=0)
+
+        # 3. Update all-time persistent buffers
+        torch.maximum(self.all_time_max_solo, batch_max_solo, out=self.all_time_max_solo)
+        torch.maximum(self.all_time_max_joint, batch_max_joint, out=self.all_time_max_joint)
+        self.cumulative_joint_events.add_(batch_joint_events)
+
+        # 4. Supermodular Surplus & Confidence
+        surplus = F.relu(self.all_time_max_joint - self.all_time_max_solo)
+        surplus_ratio = surplus / (self.all_time_max_joint + 1e-6)
+        confidence = 1.0 - torch.exp(-self.confidence_lambda * self.cumulative_joint_events)
+
+        self.coordination_scores.copy_(surplus_ratio * confidence)
+        return self.coordination_scores
+
+    def get_scores(self):
+        return self.coordination_scores
 
 class CoordinationDetector(nn.Module):
     """Ultra-fast, vectorized multi-agent coordination detector."""
