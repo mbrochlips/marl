@@ -13,7 +13,7 @@ import shutil
 from marlbase.utils.video import VideoRecorder
 from marlbase.utils.transfer import save_transferable_backbone, load_transferable_backbone
 from marlbase.utils.register_rewards import RewardRegistry
-from marlbase.utils.coord_score import CoordinationDetector
+from marlbase.utils.detectors import CoordinationDetector
 
 Batch = namedtuple(
     "Batch",

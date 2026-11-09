@@ -17,6 +17,8 @@ algorithm:
       use_rnn: False
     critic:
       centralised: True
+      team_residual_readout: False
+      optimistic_targets: True
 
     device: "cuda"
 

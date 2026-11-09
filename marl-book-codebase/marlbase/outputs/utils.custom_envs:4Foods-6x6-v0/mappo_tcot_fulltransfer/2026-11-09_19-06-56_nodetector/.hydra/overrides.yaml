@@ -1,0 +1,5 @@
+- +algorithm=decomp_mappo_tcot_fulltransfer
+- env.name=utils.custom_envs:4Foods-6x6-v0
+- env.time_limit=50
+- seed=2
+- ++pretrained_backbone=/outputs/utils.custom_envs:3Foods-6x6-v0/mappo_tcot_fulltransfer/2026-11-09_14-36-05_simplereadout
