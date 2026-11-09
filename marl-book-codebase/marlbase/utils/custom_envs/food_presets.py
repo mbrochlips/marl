@@ -14,20 +14,20 @@ solo_det = {
     "has_penalty": False,
     "split": True,
 }
-solo_det_high = {
-    "level": 2,
-    "type": "solo_det_high",
-    "reward": 1.5,
-    "has_penalty": False,
-    "split": True,
-}
 solo_stoch = {
-    "level": 2,
+    "level": 2,  # Retained Level 2 from the high-performing setup
     "type": "solo_stoch",
     "stoch_outcomes": [-2.0, 1.0],
     "stoch_probs": [0.5, 0.5],
     "has_penalty": False,
     "split": False,
+}
+solo_det_high = {
+    "level": 3,
+    "type": "solo_det_high",
+    "reward": 1.5,
+    "has_penalty": False,
+    "split": True,
 }
 solo_stoch_risky = {
     "level": 4,
@@ -69,11 +69,9 @@ coop_stoch = {
     "split": False,
 }
 
-
 # ==============================================================================
 # FOOD PRESETS
 # ==============================================================================
-
 FOOD_PRESETS = {
     "3foods": {
         "food_items": [
@@ -104,9 +102,7 @@ FOOD_PRESETS = {
     },
 }
 
-# ==============================================================================
-# DYNAMIC CHANNEL_ID & CHANNEL_NAMES GENERATION
-# ==============================================================================
+# Deepcopy so presets cannot be mutated at runtime
 for preset in FOOD_PRESETS.values():
-    preset["food_items"] = [{**copy.deepcopy(item), "channel_id": i} for i, item in enumerate(preset["food_items"])]
-    preset["channel_names"] = [item["type"] for item in preset["food_items"]] + ["step_penalty"]
+    preset["food_items"] = [copy.deepcopy(item) for item in preset["food_items"]]
+    preset["channel_names"] = [item["type"] for item in preset["food_items"]]

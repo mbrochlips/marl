@@ -49,7 +49,7 @@ algorithm:
   lr: 3.e-4
   grad_clip: 0.5
   gamma: 0.99
-  entropy_coef: 0.01
+  entropy_coef: 0.01 # was 0.01
   value_loss_coef: 0.5
   use_proper_termination: False
 

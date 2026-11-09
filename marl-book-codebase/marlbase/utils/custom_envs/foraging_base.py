@@ -24,25 +24,30 @@ class ForagingDecompReward(ForagingEnv):
         max_episode_steps=50,
         force_coop=False,
         normalize_reward=False,
-        num_semantic_channels=4,
         step_penalty=0.01,
+        collision_penalty=0.0,
         miscoordination_penalty=1.0,
         food_to_collect=None,
         vector_reward=False,
         channel_names=None,
-        step_penalty_channel=None,
         **kwargs,
     ):
-        self.num_reward_channels = num_semantic_channels
-        self.step_penalty = float(step_penalty)
-        self.miscoordination_penalty = float(miscoordination_penalty)
         self.food_items = []
         self.food_to_collect = food_to_collect
         self.vector_reward = vector_reward
-        self.channel_names = channel_names
-        self.step_penalty_channel = (
-            step_penalty_channel if step_penalty_channel is not None else (num_semantic_channels - 1)
-        )
+        self.step_penalty = float(step_penalty) if step_penalty is not None else 0.0
+        self.collision_penalty = float(collision_penalty) if collision_penalty is not None else 0.0
+        self.miscoordination_penalty = float(miscoordination_penalty) if miscoordination_penalty is not None else 0.0
+
+        # Canonical source of truth for reward channels
+        self.channel_names = list(channel_names) if channel_names is not None else []
+        self.num_reward_channels = len(self.channel_names)
+
+        # O(1) single source of truth for channel indexing
+        self.channel_map = {name: i for i, name in enumerate(self.channel_names)}
+
+        # Defensive initialization before reset() is called
+        self.episode_reward_vec = np.zeros((players, self.num_reward_channels), dtype=np.float32)
 
         env_kwargs = {
             "players": players,
@@ -65,6 +70,7 @@ class ForagingDecompReward(ForagingEnv):
         super().reset(**kwargs)
         self._setup_food_items()
 
+        # Initialize reward vectors per episode
         for player in self.players:
             player.reward_vec = np.zeros(self.num_reward_channels, dtype=np.float32)
         self.episode_reward_vec = np.zeros((len(self.players), self.num_reward_channels), dtype=np.float32)
@@ -97,40 +103,76 @@ class ForagingDecompReward(ForagingEnv):
             for p, a in zip(self.players, actions)
         ]
 
-        # 1. Resolve Movements & Collisions
+        # 1. Resolve Movements & Collisions (N-Agent Resolver)
         curr_pos = [p.position for p in self.players]
         new_pos = [
             (curr_pos[i][0] + MOVES.get(a, (0, 0))[0], curr_pos[i][1] + MOVES.get(a, (0, 0))[1])
             for i, a in enumerate(actions)
         ]
-
+        collided_players = set()
         resolved = False
+
         while not resolved:
             resolved = True
+            
+            # Step 1: Boundaries & Food Obstacles
+            for i, (r, c) in enumerate(new_pos):
+                if new_pos[i] != curr_pos[i]:
+                    if not (0 <= r < self.rows and 0 <= c < self.cols) or self.field[r, c] > 0:
+                        new_pos[i] = curr_pos[i]
+                        resolved = False
+
+            # Step 2: Head-on Swaps
             for i in range(len(self.players)):
-                if new_pos[i] == curr_pos[i]:
-                    continue
-                r, c = new_pos[i]
-                if not (0 <= r < self.rows and 0 <= c < self.cols) or self.field[r, c] > 0:
-                    new_pos[i] = curr_pos[i]
-                    resolved = False
-                for j in range(len(self.players)):
-                    if i != j and (
-                        new_pos[i] == new_pos[j]
-                        or (new_pos[i] == curr_pos[j] and new_pos[j] == curr_pos[i])
-                        or (new_pos[i] == curr_pos[j] and new_pos[j] == curr_pos[j])
+                for j in range(i + 1, len(self.players)):
+                    if (
+                        new_pos[i] != curr_pos[i]
+                        and new_pos[j] != curr_pos[j]
+                        and new_pos[i] == curr_pos[j]
+                        and new_pos[j] == curr_pos[i]
                     ):
                         new_pos[i], new_pos[j] = curr_pos[i], curr_pos[j]
+                        collided_players.update([i, j])
                         resolved = False
+
+            # Step 3: Same-Tile Contests
+            dest_claims = {}
+            for i, pos in enumerate(new_pos):
+                if pos != curr_pos[i]:
+                    dest_claims.setdefault(pos, []).append(i)
+
+            for pos, claimants in dest_claims.items():
+                if len(claimants) > 1:
+                    for i in claimants:
+                        new_pos[i] = curr_pos[i]
+                        collided_players.add(i)
+                    resolved = False
+
+            # Step 4: Walking into Stationary Agent Cascades
+            stationary_cells = {curr_pos[i] for i, pos in enumerate(new_pos) if pos == curr_pos[i]}
+            for i, pos in enumerate(new_pos):
+                if pos != curr_pos[i] and pos in stationary_cells:
+                    new_pos[i] = curr_pos[i]
+                    collided_players.add(i)  # Only penalize the walker
+                    resolved = False
 
         for p, pos, a in zip(self.players, new_pos, actions):
             p.position, _ = pos, p.history.append(a)
 
-        # 2. Rewards
+        # 2. Rewards Allocation Using self.channel_map
         rewards = [np.zeros(self.num_reward_channels, dtype=np.float32) for _ in self.players]
-        if self.step_penalty > 0.0 and self.step_penalty_channel is not None:
+
+        # Collision penalty
+        col_ch = self.channel_map.get("collision_penalty")
+        if col_ch is not None and self.collision_penalty > 0.0:
+            for p_idx in collided_players:
+                rewards[p_idx][col_ch] -= abs(self.collision_penalty)
+
+        # Step penalty
+        step_ch = self.channel_map.get("step_penalty")
+        if step_ch is not None and self.step_penalty > 0.0:
             for r in rewards:
-                r[self.step_penalty_channel] = -abs(self.step_penalty)
+                r[step_ch] = -abs(self.step_penalty)
 
         # 3. Food Interactions
         for food in self.food_items:
@@ -142,7 +184,8 @@ class ForagingDecompReward(ForagingEnv):
             if not loaders:
                 continue
 
-            ch = food["channel_id"]
+            # Deterministic O(1) hash lookup by food type
+            ch = self.channel_map[food["type"]]
             if sum(p.level for p in loaders) >= food["level"]:
                 food["active"] = False
                 self.field[fr, fc] = 0

@@ -197,6 +197,7 @@ def main(envs, eval_env, logger, time_limit, **cfg):
 
         source_registry_path = pretrained_path / "reward_registry.json"
         source_detector_path = pretrained_path / "coord_detector.pt"
+        source_backbone_path = pretrained_path / "checkpoints" / "backbone_final.pt"
         
         if source_registry_path.exists():
             registry.load(str(source_registry_path))
@@ -230,7 +231,7 @@ def main(envs, eval_env, logger, time_limit, **cfg):
     )
 
     if pretrained_backbone is not None:
-        load_transferable_backbone(model, str(pretrained_path), device)
+        load_transferable_backbone(model, str(source_backbone_path), device)
 
     # Initialize active channels on model and detector
     model.set_active_channels(active_indices_tensor, channel_names=channel_names)
@@ -251,7 +252,7 @@ def main(envs, eval_env, logger, time_limit, **cfg):
         torch.save(model.state_dict(), str(checkpoint_dir / f"full_model_{tag}.pt"))
         save_transferable_backbone(model, str(checkpoint_dir / f"backbone_{tag}.pt"))
         registry.save(str(registry_path))
-        # model.coord_detector.save(str(coord_detector_path))
+        model.coord_detector.save(str(coord_detector_path))
 
     def save_video(filename: str):
         model.eval()

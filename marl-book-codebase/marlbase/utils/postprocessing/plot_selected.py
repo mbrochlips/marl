@@ -21,25 +21,25 @@ FIG_ALPHA = 0.2
 # The exact runs to compare
 RUNS = [
     {
-        "label": "MAPPO-TCOT",
+        "label": "From Scratch",
         "color": "#388E3C",  # Green
-        "path": "outputs/utils.custom_envs:3Foods-Penalty-6x6-v0/mappo_tcot/2026-10-25_13-20-56_new_film_init/results.csv",
+        "path": "outputs/utils.custom_envs:4Foods-6x6-v0/mappo_tcot_fulltransfer/2026-11-09_15-40-28_scratch/results.csv",
     },
     {
-        "label": "MAPPO-OT",
+        "label": "From 3Foods run",
         "color": "#7B1FA2",  # Purple
-        "path": "outputs/utils.custom_envs:3Foods-Penalty-6x6-v0/mappo_ot/2026-10-25_11-15-30/results.csv",
+        "path": "outputs/utils.custom_envs:4Foods-6x6-v0/mappo_tcot_fulltransfer/2026-11-09_17-02-36_load3foods/results.csv",
     },
-    {
-        "label": "OptiMAPPO",
-        "color": "#F57C00",  # Orange
-        "path": "outputs/utils.custom_envs:3Foods-Scalar-Penalty-6x6-v0/optimappo/2026-10-24_20-11-02/results.csv",
-    },
-    {
-        "label": "MAPPO",
-        "color": "#D32F2F",  # Red
-        "path": "outputs/utils.custom_envs:3Foods-Scalar-Penalty-6x6-v0/mappo/2026-10-25_10-59-49/results.csv",
-    },
+    # {
+    #     "label": "OptiMAPPO",
+    #     "color": "#F57C00",  # Orange
+    #     "path": "outputs/utils.custom_envs:3Foods-Scalar-Penalty-6x6-v0/optimappo/2026-10-24_20-11-02/results.csv",
+    # },
+    # {
+    #     "label": "MAPPO",
+    #     "color": "#D32F2F",  # Red
+    #     "path": "outputs/utils.custom_envs:3Foods-Scalar-Penalty-6x6-v0/mappo/2026-10-25_10-59-49/results.csv",
+    # },
 ]
 
 
