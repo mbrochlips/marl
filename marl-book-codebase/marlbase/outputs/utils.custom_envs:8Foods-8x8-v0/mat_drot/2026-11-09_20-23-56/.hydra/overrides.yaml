@@ -1,0 +1,4 @@
+- +algorithm=mat_drot
+- env.name=utils.custom_envs:8Foods-8x8-v0
+- env.time_limit=50
+- seed=1
