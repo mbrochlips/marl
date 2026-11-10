@@ -4,7 +4,7 @@ env:
 
 algorithm:
   _target_: decomp_ac.train.main
-  name: "mat_dro2tr"
+  name: "matto"
 
   model:
     _target_: decomp_ac.model.TransformerCriticOTMAPPONetwork
@@ -17,7 +17,7 @@ algorithm:
       use_rnn: False
     critic:
       centralised: True
-      team_residual_readout: True # what makes it DRO2TR
+      team_residual_readout: False
       optimistic_targets: True # what makes it DROT
 
     device: "cuda"

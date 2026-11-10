@@ -112,12 +112,14 @@ class ChannelQueryTransformerCritic(nn.Module):
         self.d_model = d_model
         self.max_channels = max_channels
         self.n_state_tokens = n_state_tokens
-        self.canonical_state_dim = max_agents * max_entities * 3
+        self.canonical_state_dim = max_agents * max_entities # * 3
 
-        # 1. Direct Spatial Tokenizer (Proven fast & stable)
+        # 1. Tokenizer
         self.state_tokenizer = nn.Sequential(
-            nn.Linear(self.canonical_state_dim, d_model * n_state_tokens),
+            nn.Linear(self.canonical_state_dim, d_model),
+            nn.LayerNorm(d_model),
             nn.GELU(),
+            nn.Linear(d_model, d_model * n_state_tokens),
         )
 
         # 2. Universal Channel Query Embeddings
