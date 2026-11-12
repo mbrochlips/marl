@@ -1,0 +1,6 @@
+{
+  "coop_det": 0,
+  "solo_det": 1,
+  "solo_stoch": 2,
+  "step_penalty": 3
+}

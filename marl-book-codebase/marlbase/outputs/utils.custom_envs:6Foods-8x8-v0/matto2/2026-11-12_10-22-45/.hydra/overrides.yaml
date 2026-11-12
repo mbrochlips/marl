@@ -1,0 +1,4 @@
+- +algorithm=matto2
+- env.name=utils.custom_envs:6Foods-8x8-v0
+- env.time_limit=50
+- seed=1

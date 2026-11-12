@@ -98,10 +98,9 @@ class TwoLayerFiLMBlock(nn.Module):
 class ChannelQueryTransformerCritic(nn.Module):
     def __init__(
         self,
+        state_dim,
         n_agents,
         max_channels=32,
-        max_agents=3,
-        max_entities=11, 
         d_model=128,
         n_heads=4,
         d_ffn=256,
@@ -109,14 +108,14 @@ class ChannelQueryTransformerCritic(nn.Module):
     ):
         super().__init__()
         self.n_agents = n_agents
+        self.state_dim = state_dim
         self.d_model = d_model
         self.max_channels = max_channels
         self.n_state_tokens = n_state_tokens
-        self.canonical_state_dim = max_agents * max_entities # * 3
 
         # 1. Tokenizer
         self.state_tokenizer = nn.Sequential(
-            nn.Linear(self.canonical_state_dim, d_model),
+            nn.Linear(self.state_dim + 1, d_model), # adding deadspace for dumping unwanted att 
             nn.LayerNorm(d_model),
             nn.GELU(),
             nn.Linear(d_model, d_model * n_state_tokens),
@@ -152,14 +151,11 @@ class ChannelQueryTransformerCritic(nn.Module):
     def forward(self, state):
         orig_shape = state.shape[:-1]
         state_flat = state.view(-1, state.shape[-1])
-        B, in_dim = state_flat.shape
+        B = state_flat.shape[0]
 
-        # Tight padding/clamping
-        if in_dim < self.canonical_state_dim:
-            pad = torch.zeros(B, self.canonical_state_dim - in_dim, device=state.device, dtype=state.dtype)
-            state_flat = torch.cat([state_flat, pad], dim=-1)
-        elif in_dim > self.canonical_state_dim:
-            state_flat = state_flat[:, :self.canonical_state_dim]
+        # Padding for dumping unwanted att
+        pad = torch.zeros(B, 1, device=state.device, dtype=state.dtype)
+        state_flat = torch.cat([state_flat, pad], dim=-1)
 
         # 1. State tokens: (B, 4, d_model)
         state_tokens = self.state_tokenizer(state_flat).view(
@@ -228,6 +224,7 @@ class TeamResidualReadoutHead(nn.Module):
 
 
         return v_team.unsqueeze(1) + v_offset
+    
 
 class ChannelQueryTransformerCriticTeamResidualReadout(nn.Module):
     """
@@ -238,30 +235,29 @@ class ChannelQueryTransformerCriticTeamResidualReadout(nn.Module):
     """
     def __init__(
         self,
-        # state_dim,
+        state_dim,
+        att_padding, # adding deadspace for dumping unwanted att 
         n_agents,
         max_channels=32,
-        max_entities=11,       # Supports up to 3 agents + 8 foods (11 * 3 = 33 dims)
         d_model=128,
         n_heads=4,
         d_ffn=256,
         n_state_tokens=4,
     ):
         super().__init__()
+        self.att_padding=att_padding
         self.n_agents = n_agents
         self.d_model = d_model
         self.max_channels = max_channels
         self.n_state_tokens = n_state_tokens
-        self.canonical_state_dim = max_entities * 3 # Always 33. CONSIDER: should this be * 3 = 99 to handle each agent view?
 
         # Proven direct projection: 15k parameters, fast convergence
         self.state_tokenizer = nn.Sequential(
-            nn.Linear(self.canonical_state_dim, d_model),
+            nn.Linear(state_dim + self.att_padding, d_model), # pad with 1
             nn.LayerNorm(d_model),
             nn.GELU(),
             nn.Linear(d_model, d_model * n_state_tokens),
         )
-        
 
         # Channel Queries & Cross-Attention
         self.channel_embeddings = nn.Embedding(max_channels, d_model)
@@ -293,14 +289,11 @@ class ChannelQueryTransformerCriticTeamResidualReadout(nn.Module):
     def forward(self, state):
         orig_shape = state.shape[:-1]
         state_flat = state.view(-1, state.shape[-1])
-        B, in_dim = state_flat.shape
+        B = state_flat.shape[0]
 
-        # Pad state up to canonical dimension if current env has fewer entities
-        if in_dim < self.canonical_state_dim:
-            pad = torch.zeros(B, self.canonical_state_dim - in_dim, device=state.device, dtype=state.dtype)
-            state_flat = torch.cat([state_flat, pad], dim=-1)
-        elif in_dim > self.canonical_state_dim:
-            state_flat = state_flat[:, :self.canonical_state_dim]
+        # Pad state 
+        pad = torch.zeros(B, self.att_padding, device=state.device, dtype=state.dtype)
+        state_flat = torch.cat([state_flat, pad], dim=-1)
 
         # 1. Proven direct projection to 4 state tokens
         state_tokens = self.state_tokenizer(state_flat).view(

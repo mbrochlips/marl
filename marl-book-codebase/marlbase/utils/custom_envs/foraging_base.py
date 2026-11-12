@@ -1,3 +1,5 @@
+# file: foraging_base.py
+
 import inspect
 import gymnasium as gym
 import numpy as np

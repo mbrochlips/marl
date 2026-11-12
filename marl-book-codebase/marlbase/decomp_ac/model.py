@@ -113,10 +113,10 @@ class TransformerCriticOTMAPPONetwork(nn.Module):
         )
 
         self.critic = critic_cls(
+            state_dim=sum(obs_dims),
+            att_padding = getattr(cfg, "att_padding", 3),
             n_agents=self.n_agents,
             max_channels=self.max_channels,
-            max_agents=getattr(cfg, "max_agents", 3),
-            max_entities=getattr(cfg, "max_entities", 11),
             d_model=getattr(cfg, "critic_d_model", 128),
             n_heads=getattr(cfg, "critic_n_heads", 4),
             d_ffn=getattr(cfg, "critic_d_ffn", 256),
